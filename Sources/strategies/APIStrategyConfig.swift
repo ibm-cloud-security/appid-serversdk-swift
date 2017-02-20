@@ -13,6 +13,29 @@
 
 
 import Foundation
+extension String{
+    func base64decodedString() -> String?{
+        if let data = self.base64decodedData(){
+            return String(data: data, encoding:String.Encoding.utf8)
+        } else {
+            return nil;
+        }
+    }
+    
+    func base64decodedData() -> Data? {
+        let missing = self.characters.count % 4
+        
+        var ending = ""
+        if missing > 0 {
+            let amount = 4 - missing
+            ending = String(repeating: "=", count: amount)
+        }
+        
+        let base64 = self.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/") + ending
+        
+        return Data(base64Encoded: base64, options: Data.Base64DecodingOptions())
+    }
+}
 
 
 public class APIStrategyConfig {

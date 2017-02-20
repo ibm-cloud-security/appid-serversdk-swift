@@ -13,15 +13,16 @@
 
 
 import Foundation
+import Kitura
+import KituraNet
+import Credentials
 
-
-
-public class APIStrategy {
+public class APIStrategy: CredentialsPluginProtocol {
     
 
     private static let HEADER_AUTHORIZATION = "Authorization"
     private static let BEARER = "Bearer"
-    private var name:String?
+    private static let AUTH_HEADER = "Authorization"
     private var serviceConfig:APIStrategyConfig?
     private var options:[String:Any]?
     static let AUTHORIZATION_HEADER = "Authorization"
@@ -29,56 +30,80 @@ public class APIStrategy {
     static let DEFAULT_SCOPE = "appid_default"
     
     
-    public static let sharedInstance = APIStrategy()
-    
-    private init(){}
-    
-    public func initialize(options:[String: Any]?) {
-    //    logger.debug("Initializing")
+    public init(options:[String: Any]?) {
+        //    logger.debug("Initializing")
         self.options = options ?? [:]
-        self.name = APIStrategy.STRATEGY_NAME
         self.serviceConfig = APIStrategyConfig(options: options)
     }
     
-    public func authenticate(authorizationHeader:String?, scope:String?, completionHandler: ((_ error: Error?, _ authContext: String?) -> Void)?) {
+    
+    
+    public var name: String {
+        return APIStrategy.STRATEGY_NAME
+    }
+    
+    public var redirecting = false
+    
+    public var usersCache : NSCache<NSString, BaseCacheElement>?
+    
+    public func sendFailure(scope:String, error:String?, onFailure: @escaping (HTTPStatusCode?, [String:String]?) -> Void, response: RouterResponse) {
+//        self.logger.debug("authenticate :: failure")
+        response.send("Unauthorized")
+        var msg = APIStrategy.BEARER + " scope=\"" + scope + "\""
+        if error != nil {
+            msg += ", error=\"" + error! + "\""
+        }
+        
+        onFailure(.unauthorized, ["WWW-Authenticate": msg])
+    }
+    
+    
+    public func authenticate (request: RouterRequest,
+                              response: RouterResponse,
+                              options: [String:Any],
+                              onSuccess: @escaping (UserProfile) -> Void,
+                              onFailure: @escaping (HTTPStatusCode?, [String:String]?) -> Void,
+                              onPass: @escaping (HTTPStatusCode?, [String:String]?) -> Void,
+                              inProgress: @escaping () -> Void) {
+    
     //    logger.debug("authorizationContext:from:completionHandler:")
-        
+        var authorizationHeader = request.headers[APIStrategy.AUTH_HEADER]
         var requiredScope = APIStrategy.DEFAULT_SCOPE
-        
-        if scope != nil {
-            requiredScope += " " + scope!
+        print("1")
+        if (options["scope"] as? String) != nil {
+            requiredScope += " " + (options["scope"] as! String)
         }
         
         guard authorizationHeader != nil else {
        //     logger.error(MCAErrorInternal.AuthorizationHeaderNotFound.rawValue)
-            completionHandler?(nil, nil)
+            sendFailure(scope:requiredScope, error:"Invalid token", onFailure: onFailure, response: response)
             return
         }
-        
+        print("12")
         let authHeaderComponents:[String]! = authorizationHeader?.components(separatedBy: " ")
         
         guard authHeaderComponents[0] == APIStrategy.BEARER else {
       //      logger.error(MCAErrorInternal.InvalidAuthHeaderFormat.rawValue)
-             completionHandler?(nil, nil)
+sendFailure(scope:requiredScope, error:"Invalid token", onFailure: onFailure, response: response)
             return
         }
-        
+        print("123")
         // authHeader format :: "Bearer accessToken idToken"
         guard authHeaderComponents?.count == 3 || authHeaderComponents?.count == 2 else {
       //      logger.error(MCAErrorInternal.InvalidAuthHeaderFormat.rawValue)
-             completionHandler?(nil, nil)
+sendFailure(scope:requiredScope, error:"Invalid token", onFailure: onFailure, response: response)
             return
         }
-        
+        print("1234")
         let accessTokenString:String = authHeaderComponents[1]
         var accessToken = parseToken(from: accessTokenString)
         let idToken:String? = authHeaderComponents.count == 3 ? authHeaderComponents[2] : nil
         
         guard isAccessTokenValid(accessToken: accessTokenString) else {
-             completionHandler?(nil, nil)
+sendFailure(scope:requiredScope, error:"Invalid token", onFailure: onFailure, response: response)
             return
         }
-        
+        print("12345")
         
         var requiredScopeElements = requiredScope.components(separatedBy: " ")
         var suppliedScopeElements = (accessToken?["scope"] as? String)?.components(separatedBy: " ")
@@ -95,12 +120,14 @@ public class APIStrategy {
             }
             if (!found){
          //       logger.warn("access_token does not contain required scope. Expected ::", requiredScope, " Received ::", accessToken.scope);
-            //    return this.fail(buildWwwAuthenticateHeader(requiredScope, ERROR.INSUFFICIENT_SCOPE), 401);
+                sendFailure(scope:requiredScope, error:"Insufficient scope", onFailure: onFailure, response: response)
+                return
             }
         }
-        }
-        
-        
+           }
+        var userProfile:UserProfile
+        userProfile = UserProfile(id: "1", displayName: "2", provider: "3")
+        onSuccess(userProfile)
 //        if let idToken = idToken, let authContext = try? getAuthorizedIdentities(from: idToken){
 //            // idToken is present and successfully parsed
 //            return completionHandler(nil, authContext)
