@@ -14,15 +14,10 @@
 
 import Foundation
 
-import HeliumLogger
-import LoggerAPI
 
 
 public class APIStrategy {
-    let logger = HeliumLogger()
-    Log.logger = logger
     
-    HeliumLogger.use()
 
     private static let HEADER_AUTHORIZATION = "Authorization"
     private static let BEARER = "Bearer"
@@ -39,14 +34,14 @@ public class APIStrategy {
     private init(){}
     
     public func initialize(options:[String: Any]?) {
-        logger.debug("Initializing")
+    //    logger.debug("Initializing")
         self.options = options ?? [:]
         self.name = APIStrategy.STRATEGY_NAME
         self.serviceConfig = APIStrategyConfig(options: options)
     }
     
     public func authenticate(authorizationHeader:String?, scope:String?, completionHandler: ((_ error: Error?, _ authContext: String?) -> Void)?) {
-        logger.debug("authorizationContext:from:completionHandler:")
+    //    logger.debug("authorizationContext:from:completionHandler:")
         
         var requiredScope = APIStrategy.DEFAULT_SCOPE
         
@@ -55,7 +50,7 @@ public class APIStrategy {
         }
         
         guard authorizationHeader != nil else {
-            logger.error(MCAErrorInternal.AuthorizationHeaderNotFound.rawValue)
+       //     logger.error(MCAErrorInternal.AuthorizationHeaderNotFound.rawValue)
             completionHandler?(nil, nil)
             return
         }
@@ -63,14 +58,14 @@ public class APIStrategy {
         let authHeaderComponents:[String]! = authorizationHeader?.components(separatedBy: " ")
         
         guard authHeaderComponents[0] == APIStrategy.BEARER else {
-            logger.error(MCAErrorInternal.InvalidAuthHeaderFormat.rawValue)
+      //      logger.error(MCAErrorInternal.InvalidAuthHeaderFormat.rawValue)
              completionHandler?(nil, nil)
             return
         }
         
         // authHeader format :: "Bearer accessToken idToken"
         guard authHeaderComponents?.count == 3 || authHeaderComponents?.count == 2 else {
-            logger.error(MCAErrorInternal.InvalidAuthHeaderFormat.rawValue)
+      //      logger.error(MCAErrorInternal.InvalidAuthHeaderFormat.rawValue)
              completionHandler?(nil, nil)
             return
         }
@@ -99,8 +94,8 @@ public class APIStrategy {
                 }
             }
             if (!found){
-                logger.warn("access_token does not contain required scope. Expected ::", requiredScope, " Received ::", accessToken.scope);
-                return this.fail(buildWwwAuthenticateHeader(requiredScope, ERROR.INSUFFICIENT_SCOPE), 401);
+         //       logger.warn("access_token does not contain required scope. Expected ::", requiredScope, " Received ::", accessToken.scope);
+            //    return this.fail(buildWwwAuthenticateHeader(requiredScope, ERROR.INSUFFICIENT_SCOPE), 401);
             }
         }
         }
@@ -119,7 +114,7 @@ public class APIStrategy {
     }
     
     private func isAccessTokenValid(accessToken:String) -> Bool{
-        logger.debug("isAccessTokenValid:")
+    //    logger.debug("isAccessTokenValid:")
         if let jwt = parseToken(from: accessToken) {
             let jwtPayload = jwt["payload"] as? [String: Any]
             let jwtExpirationTimestamp = jwtPayload?["exp"] as? Double

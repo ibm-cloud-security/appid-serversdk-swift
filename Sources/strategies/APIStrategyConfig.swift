@@ -24,17 +24,19 @@ public class APIStrategyConfig {
     static let SERVER_URL = "serverUrl";
     var serviceConfig: [String:Any] = [:]
     public init(options:[String:Any]?) {
-//        logger.debug("Initializing");
+        //        logger.debug("Initializing");
         let options = options ?? [:]
-        let vcapServices: [String:Array<Any>]! = ProcessInfo.processInfo.environment[APIStrategyConfig.VCAP_SERVICES]
+        let vcapServices: [String:Array<Any>]? = ProcessInfo.processInfo.environment[APIStrategyConfig.VCAP_SERVICES] as? [String:Array<Any>]
         var vcapServiceCredentials: [String:Any] = [:]
         // var serviceConfig = {};
-                // Find AppID service config
-        for (key,value) in vcapServices {
-            // Does service name starts with VCAP_SERVICES_SERVICE_NAME
-            if key.hasPrefix(APIStrategyConfig.VCAP_SERVICES_SERVICE_NAME) {
-                vcapServiceCredentials = ((value[0] as? [String:[String:String]])?[APIStrategyConfig.VCAP_SERVICES_CREDENTIALS])!
-                break
+        // Find AppID service config
+        if vcapServices != nil {
+            for (key,value) in vcapServices! {
+                // Does service name starts with VCAP_SERVICES_SERVICE_NAME
+                if key.hasPrefix(APIStrategyConfig.VCAP_SERVICES_SERVICE_NAME) {
+                    vcapServiceCredentials = ((value[0] as? [String:[String:String]])?[APIStrategyConfig.VCAP_SERVICES_CREDENTIALS])!
+                    break
+                }
             }
         }
         
@@ -42,15 +44,15 @@ public class APIStrategyConfig {
         serviceConfig[APIStrategyConfig.SERVER_URL] = options[APIStrategyConfig.SERVER_URL] ?? vcapServiceCredentials[APIStrategyConfig.SERVER_URL] ?? nil
         
         if serviceConfig[APIStrategyConfig.TENANT_ID] == nil || serviceConfig[APIStrategyConfig.SERVER_URL] == nil {
-//            logger.error("Failed to initialize api-strategy. All requests to protected endpoints will be rejected");
-//            logger.error("Ensure your node.js app is either bound to an AppID service instance or pass required parameters in the strategy ructor ");
+            //            logger.error("Failed to initialize api-strategy. All requests to protected endpoints will be rejected");
+            //            logger.error("Ensure your node.js app is either bound to an AppID service instance or pass required parameters in the strategy ructor ");
         }
         
-//        logger.info(TENANT_ID, serviceConfig[TENANT_ID]);
-//        logger.info(SERVER_URL, serviceConfig[SERVER_URL]);
+        //        logger.info(TENANT_ID, serviceConfig[TENANT_ID]);
+        //        logger.info(SERVER_URL, serviceConfig[SERVER_URL]);
         
         
-
+        
     }
     
     
