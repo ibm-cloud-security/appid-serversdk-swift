@@ -13,6 +13,8 @@
 
 
 import Foundation
+import SwiftyJSON
+
 extension String{
     func base64decodedString() -> String?{
         if let data = self.base64decodedData(){
@@ -49,22 +51,21 @@ public class APIStrategyConfig {
     public init(options:[String:Any]?) {
         //        logger.debug("Initializing");
         let options = options ?? [:]
-        let vcapServices: [String:Array<Any>]? = ProcessInfo.processInfo.environment[APIStrategyConfig.VCAP_SERVICES] as? [String:Array<Any>]
-        var vcapServiceCredentials: [String:Any] = [:]
+        let vcapString = ProcessInfo.processInfo.environment[APIStrategyConfig.VCAP_SERVICES] ?? ""
+        let vcapServices = JSON.parse(string: vcapString)
+        var vcapServiceCredentials: [String:Any]? = [:]
         // var serviceConfig = {};
         // Find AppID service config
-        if vcapServices != nil {
-            for (key,value) in vcapServices! {
+            for (key,value) in vcapServices { //TODO: debug and see if this happends
                 // Does service name starts with VCAP_SERVICES_SERVICE_NAME
                 if key.hasPrefix(APIStrategyConfig.VCAP_SERVICES_SERVICE_NAME) {
-                    vcapServiceCredentials = ((value[0] as? [String:[String:String]])?[APIStrategyConfig.VCAP_SERVICES_CREDENTIALS])!
+                    vcapServiceCredentials = (value.array?[0])?.dictionaryObject?[APIStrategyConfig.VCAP_SERVICES_CREDENTIALS] as? [String : Any]
                     break
                 }
             }
-        }
         
-        serviceConfig[APIStrategyConfig.TENANT_ID] = options[APIStrategyConfig.TENANT_ID] ?? vcapServiceCredentials[APIStrategyConfig.TENANT_ID] ?? nil
-        serviceConfig[APIStrategyConfig.SERVER_URL] = options[APIStrategyConfig.SERVER_URL] ?? vcapServiceCredentials[APIStrategyConfig.SERVER_URL] ?? nil
+        serviceConfig[APIStrategyConfig.TENANT_ID] = options[APIStrategyConfig.TENANT_ID] ?? vcapServiceCredentials?[APIStrategyConfig.TENANT_ID] ?? nil
+        serviceConfig[APIStrategyConfig.SERVER_URL] = options[APIStrategyConfig.SERVER_URL] ?? vcapServiceCredentials?[APIStrategyConfig.SERVER_URL] ?? nil
         
         if serviceConfig[APIStrategyConfig.TENANT_ID] == nil || serviceConfig[APIStrategyConfig.SERVER_URL] == nil {
             //            logger.error("Failed to initialize api-strategy. All requests to protected endpoints will be rejected");
