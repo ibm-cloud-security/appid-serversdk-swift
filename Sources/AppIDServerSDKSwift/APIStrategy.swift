@@ -16,6 +16,7 @@ import Foundation
 import Kitura
 import KituraNet
 import Credentials
+import LoggerAPI
 
 public class APIStrategy: CredentialsPluginProtocol {
     
@@ -24,15 +25,13 @@ public class APIStrategy: CredentialsPluginProtocol {
     private static let BEARER = "Bearer"
     private static let AUTH_HEADER = "Authorization"
     private var serviceConfig:APIStrategyConfig?
-    private var options:[String:Any]?
     static let AUTHORIZATION_HEADER = "Authorization"
     static let STRATEGY_NAME = "appid-api-strategy"
     static let DEFAULT_SCOPE = "appid_default"
     
     
     public init(options:[String: Any]?) {
-        //    logger.debug("Initializing")
-        self.options = options ?? [:]
+        Log.debug("Intializing APIStrategy")
         self.serviceConfig = APIStrategyConfig(options: options)
     }
     
@@ -47,7 +46,7 @@ public class APIStrategy: CredentialsPluginProtocol {
     public var usersCache : NSCache<NSString, BaseCacheElement>?
     
     public func sendFailure(scope:String, error:String?, onFailure: @escaping (HTTPStatusCode?, [String:String]?) -> Void, response: RouterResponse) {
-        //        self.logger.debug("authenticate :: failure")
+        Log.debug("APIStrategy : sendFailure")
         response.send("Unauthorized")
         var msg = APIStrategy.BEARER + " scope=\"" + scope + "\""
         if error != nil {
@@ -66,7 +65,7 @@ public class APIStrategy: CredentialsPluginProtocol {
                               onPass: @escaping (HTTPStatusCode?, [String:String]?) -> Void,
                               inProgress: @escaping () -> Void) {
         
-        //    logger.debug("authorizationContext:from:completionHandler:")
+        Log.debug("APIStrategy : authenticate")
         let authorizationHeader = request.headers[APIStrategy.AUTH_HEADER]
         var requiredScope = APIStrategy.DEFAULT_SCOPE
         if (options["scope"] as? String) != nil {
@@ -74,7 +73,7 @@ public class APIStrategy: CredentialsPluginProtocol {
         }
         
         guard let authorizationHeaderUnwrapped = authorizationHeader else {
-            //     logger.error(MCAErrorInternal.AuthorizationHeaderNotFound.rawValue)
+             Log.error("APIStrategy : authorization header not found")
             sendFailure(scope:requiredScope, error:"Invalid token", onFailure: onFailure, response: response)
             return
         }
@@ -82,6 +81,7 @@ public class APIStrategy: CredentialsPluginProtocol {
         let authHeaderComponents:[String] = authorizationHeaderUnwrapped.components(separatedBy: " ")
         
         guard authHeaderComponents[0] == APIStrategy.BEARER else {
+             Log.error("APIStrategy : invalid authorization header format")
             //      logger.error(MCAErrorInternal.InvalidAuthHeaderFormat.rawValue)
             sendFailure(scope:requiredScope, error:"Invalid token", onFailure: onFailure, response: response)
             return
@@ -89,22 +89,22 @@ public class APIStrategy: CredentialsPluginProtocol {
         
         // authHeader format :: "Bearer accessToken idToken"
         guard authHeaderComponents.count == 3 || authHeaderComponents.count == 2 else {
-            //      logger.error(MCAErrorInternal.InvalidAuthHeaderFormat.rawValue)
+             Log.error("APIStrategy : invalid authorization header format")
             sendFailure(scope:requiredScope, error:"Invalid token", onFailure: onFailure, response: response)
             return
         }
         
         let accessTokenString:String = authHeaderComponents[1]
-        let accessToken = TokenUtils.parseToken(from: accessTokenString)
+        let accessToken = Utils.parseToken(from: accessTokenString)
         let idToken:String? = authHeaderComponents.count == 3 ? authHeaderComponents[2] : nil
         
-        guard TokenUtils.isTokenValid(token: accessTokenString) else {
+        guard Utils.isTokenValid(token: accessTokenString) else {
             sendFailure(scope:requiredScope, error:"Invalid token", onFailure: onFailure, response: response)
             return
         }
         
         let requiredScopeElements = requiredScope.components(separatedBy: " ")
-        let suppliedScopeElements = (accessToken?["scope"] as? String)?.components(separatedBy: " ")
+        let suppliedScopeElements = accessToken?["scope"].string?.components(separatedBy: " ")
         if suppliedScopeElements != nil {
             for i in 0...requiredScopeElements.count {
                 let requiredScopeElement = requiredScopeElements[i]
@@ -117,7 +117,8 @@ public class APIStrategy: CredentialsPluginProtocol {
                     }
                 }
                 if (!found){
-                    //       logger.warn("access_token does not contain required scope. Expected ::", requiredScope, " Received ::", accessToken.scope);
+                    let receivedScope = accessToken?["scope"].string ?? ""
+                     Log.warning("APIStrategy : access_token does not contain required scope. Expected " + requiredScope + " received " + receivedScope)
                     sendFailure(scope:requiredScope, error:"Insufficient scope", onFailure: onFailure, response: response)
                     return
                 }
@@ -138,12 +139,13 @@ public class APIStrategy: CredentialsPluginProtocol {
         
         if authHeaderComponents.count == 3 {
             let identityTokenString = authHeaderComponents[2]
-            if TokenUtils.isTokenValid(token: identityTokenString) == false {
-                //logger.debug(bad id token)
+            if Utils.isTokenValid(token: identityTokenString) == false {
+                Log.debug("Id token is malformed")
             } else {
-                //logger.debug(no id token)
+                Log.debug("Missing id token")
             }
             if let idToken = idToken, let authContext = getAuthorizedIdentities(from: idToken){
+                Log.debug("Id token is present and successfully parsed")
                 // idToken is present and successfully parsed
                 
                 authorizationContext["identityToken"] = identityTokenString
@@ -153,7 +155,7 @@ public class APIStrategy: CredentialsPluginProtocol {
                 let amr = (authContext["amr"] as? [String])
                 provider =  amr != nil ? amr![0] : "##N/A##"
             } else if idToken == nil {
-                // idToken is not present
+               Log.debug("Missing id token")
             } else {
                 //            return
             }
@@ -164,10 +166,10 @@ public class APIStrategy: CredentialsPluginProtocol {
     
        
     private func getAuthorizedIdentities(from idToken:String) -> [String: Any]? {
-        //        logger.debug("getAuthorizedIdentities:from:")
+       Log.debug("APIStrategy getAuthorizedIdentities")
         
-        if let jwt = TokenUtils.parseToken(from: idToken) {
-            return jwt["payload"] as? [String: Any]
+        if let jwt = Utils.parseToken(from: idToken) {
+            return jwt["payload"].dictionary
         }
         return nil
         

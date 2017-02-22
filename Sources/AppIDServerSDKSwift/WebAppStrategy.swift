@@ -17,9 +17,10 @@ import Credentials
 import KituraNet
 import KituraRequest
 import SwiftyJSON
+import LoggerAPI
 
 public class WebAppStrategy: CredentialsPluginProtocol {
-
+    
     public static var STRATEGY_NAME = "appid-webapp-strategy"
     public static var DEFAULT_SCOPE = "appid_default"
     public static var ORIGINAL_URL = "APPID_ORIGINAL_URL"
@@ -27,7 +28,6 @@ public class WebAppStrategy: CredentialsPluginProtocol {
     public static var AUTHORIZATION_PATH = "/authorization"
     public static var TOKEN_PATH = "/token"
     private var serviceConfig:WebAppStrategyConfig
-    private var options:[String:Any]
     
     public var redirecting = true
     
@@ -40,111 +40,120 @@ public class WebAppStrategy: CredentialsPluginProtocol {
     
     
     public init(options:[String: Any]?) {
-        //    logger.debug("Initializing")
-        self.options = options ?? [:]
+        Log.debug("Initializing WebAppStrategy")
+        
         self.serviceConfig = WebAppStrategyConfig(options: options)
     }
     
     
     private func handleAuthorization (request: RouterRequest, response: RouterResponse, options: [String:Any], onFailure: @escaping (HTTPStatusCode?, [String:String]?) -> Void) {
-//        logger.debug("handleAuthorization");
+        
+        Log.debug("WebAppStrategy :: handleAuthorization")
         var options = options
         options["allowCreateNewAnonymousUser"] = options["allowCreateNewAnonymousUser"] ?? true
         options["failureRedirect"] = options["failureRedirect"] ?? "/"
         var authUrl = generateAuthorizationUrl(options: options)
         
         // If there's an existing anonymous access token on session - add it to the request url
-        var appIdAuthContext = request.session?[WebAppStrategy.AUTH_CONTEXT]
-        if appIdAuthContext != nil && appIdAuthContext?["accessTokenPayload"]["amr"][0] == "appid_anon" {
-//            logger.debug("handleAuthorization :: added anonymous access_token to url");
-            authUrl += "&appid_access_token=" + appIdAuthContext?.dictionaryObject?["accessToken"]
+        let appIdAuthContext = request.session?[WebAppStrategy.AUTH_CONTEXT].dictionary
+        if let context = appIdAuthContext, context["accessTokenPayload"]?["amr"][0] == "appid_anon" {
+            Log.debug("WebAppStrategy :: handleAuthorization :: added anonymous access_token to url")
+            authUrl += "&appid_access_token=" + (context["accessToken"]?.string ?? "")
         }
         
         // If previous anonymous access token not found and new anonymous users are not allowed - fail
-        var allowAnonLogin = options["allowAnonymousLogin"] as? Bool != nil ? options["allowAnonymousLogin"] as! Bool : false
-        var allowCreate = options["allowCreateNewAnonymousUser"] as? Bool != nil ? options["allowCreateNewAnonymousUser"] as! Bool : true
+        let allowAnonLogin = options["allowAnonymousLogin"] as? Bool ?? false
+        let allowCreate = options["allowCreateNewAnonymousUser"] as? Bool ?? true
         if appIdAuthContext  == nil && allowAnonLogin == true && allowCreate != true {
-//            logger.info("Previous anonymous user not found. Not allowed to create new anonymous users.");
-               onFailure(nil,nil) //TODO: make it better
+            Log.info("Previous anonymous user not found. Not allowed to create new anonymous users.")
+            onFailure(nil,nil) //TODO: make it better
             return
-//            strategy.fail(new Error("Not allowed to create new anonymous users."));
-//            return
         }
-    
-//        logger.debug("handleAuthorization :: redirecting to", authUrl);
+        
+        Log.debug("Redirecting to : " + authUrl)
+        
         do {
-        try response.redirect(authUrl)
+            try response.redirect(authUrl)
         } catch let err {
-            onFailure(nil, nil)
+            onFailure(nil, nil) //TODO: should msg be better here?
         }
     }
     
-    private func handleCallback(request:RouterRequest, options: [String:Any]) {
-////        logger.debug("handleCallback");
-//        options["failureRedirect"] = options["failureRedirect"] ?? "/"
-//        var code = request.queryParameters.code
-//        retrieveTokens(options, strategy, code).then(function(appIdAuthContext){
-//            // Save authorization context to HTTP session
-//            req.session[WebAppStrategy.AUTH_CONTEXT] = appIdAuthContext;
-//            
-//            // Find correct successRedirect
-//            if (options.successRedirect) {
-//                options.successRedirect = options.successRedirect;
-//            } else if (req.session && req.session[WebAppStrategy.ORIGINAL_URL]) {
-//                options.successRedirect = req.session[WebAppStrategy.ORIGINAL_URL];
-//            } else {
-//                options.successRedirect = "/";
-//            }
-//            
-//            logger.debug("completeAuthorizationFlow :: success");
-//            strategy.success(TokenUtil.decode(appIdAuthContext.identityToken) || null);
-//        }).catch(strategy.fail);
-    }
     
     
-    private func retrieveTokens(options:[String:Any], grantCode:String, onFailure: @escaping (HTTPStatusCode?, [String:String]?) -> Void) {
-//        logger.debug("retrieveTokens");
-        var serviceConfig = self.serviceConfig;
+    private func retrieveTokens(options:[String:Any], grantCode:String, onFailure: @escaping (HTTPStatusCode?, [String:String]?) -> Void, originalRequest:RouterRequest, onSuccess: @escaping (UserProfile) -> Void) {
+        Log.debug("WebAppStrategy :: retrieveTokens")
+        let serviceConfig = self.serviceConfig
         
-        var clientId = serviceConfig.clientId
-        var secret = serviceConfig.secret
-        var tokenEndpoint = serviceConfig.oAuthServerUrl + WebAppStrategy.TOKEN_PATH
-        var redirectUri = serviceConfig.redirectUri
-        var authorization = clientId + ":" + secret
-        KituraRequest.request(.post, authorization + "@" + tokenEndpoint, parameters: [
-            "client_id": clientId,
-            "grant_type": "authorization_code",
-            "redirect_uri": redirectUri,
-            "code": grantCode
-            ]).response {
-                request, response, data, error in
-                // do something with data
-
-            if  data == nil || error != nil || response?.status != 200 {
-//                logger.error("Failed to obtain tokens ::", err, response.statusCode, body);
-                onFailure(nil,nil) //TODO: send correct err
-            } else {
-                var body = JSON(data: data!)
-                var accessTokenString = body["access_token"]
-                var identityTokenString = body["id_token"]
-                
-                // Parse access_token
-                var appIdAuthorizationContext = [
-                    "accessToken": accessTokenString,
-                    "accessTokenPayload": TokenUtil.decode(accessTokenString)
-                ]
-                
-                // Parse id_token
-                if identityTokenString != nil {
-                    appIdAuthorizationContext["identityToken"] = identityTokenString
-                    appIdAuthorizationContext["identityTokenPayload"] = TokenUtil.decode(identityTokenString);
-                }
-//                logger.debug("retrieveTokens :: tokens retrieved");
-                
-                return appIdAuthorizationContext
-            }
-        
-}
+        let clientId = serviceConfig.clientId
+        let secret = serviceConfig.secret
+        let tokenEndpoint = serviceConfig.oAuthServerUrl + WebAppStrategy.TOKEN_PATH
+        let redirectUri = serviceConfig.redirectUri
+        let authorization = clientId + ":" + secret
+        KituraRequest.request(.post, tokenEndpoint,
+                              parameters: [
+                                "client_id": clientId,
+                                "grant_type": "authorization_code",
+                                "redirect_uri": redirectUri,
+                                "code": grantCode
+            ],
+                              headers: ["Authorization" : "basic " + Data(authorization.utf8).base64EncodedString()]).response {
+                                request, response, data, error in
+                                
+                                if  data == nil || error != nil || response?.status != 200 {
+                                    let data = data != nil ? String(data: data!, encoding: .utf8) : ""
+                                    let error = error != nil ? error!.localizedDescription : ""
+                                    let code = response?.status != nil ? String(response!.status): ""
+                                    Log.debug("WebAppStrategy :: Failed to obtain tokens" + "err:\(error)\nstatus code \(code)\nbody \(data)")
+                                    onFailure(nil,nil) //TODO: send correct err
+                                } else {
+                                    var body = JSON(data: data!)
+                                    var appIdAuthorizationContext:JSON = [:]
+                                    
+                                    var userId = "##N/A##"
+                                    var displayName = "##N/A##"
+                                    var provider = "##N/A##"
+                                    
+                                    if let accessTokenString = body["access_token"].string, let accessTokenPayload = Utils.parseToken(from: accessTokenString)?["payload"] {
+                                        // Parse access_token
+                                        
+                                        appIdAuthorizationContext["accessToken"].string = accessTokenString
+                                        appIdAuthorizationContext["accessTokenPayload"] = accessTokenPayload
+                                    }
+                                    
+                                    
+                                    if let identityTokenString = body["id_token"].string, let identityTokenPayload = Utils.parseToken(from: identityTokenString)?["payload"] {
+                                        // Parse identity_token
+                                        appIdAuthorizationContext["identityToken"].string = identityTokenString
+                                        appIdAuthorizationContext["identityTokenPayload"] = identityTokenPayload
+                                        userId = identityTokenPayload["sub"].string ?? "##N/A##"
+                                        displayName = identityTokenPayload["name"].string ?? "##N/A##"
+                                        let amr = identityTokenPayload["amr"].array
+                                        provider =  amr?[0].string ?? "##N/A##"
+                                    }
+                                    
+                                    originalRequest.session?[WebAppStrategy.AUTH_CONTEXT] = appIdAuthorizationContext
+                                    var options = options
+                                    //TODO: not sure correct move about options
+                                    // Find correct successRedirect
+                                    let successRedirect:Bool = options["successRedirect"] as? Bool ?? false
+                                    if successRedirect == true {
+                                        options["successRedirect"] = options["successRedirect"]
+                                    } else if (originalRequest.session != nil) && ((originalRequest.session?[WebAppStrategy.ORIGINAL_URL]) != nil) {
+                                        options["successRedirect"] = originalRequest.session?[WebAppStrategy.ORIGINAL_URL]
+                                    } else {
+                                        options["successRedirect"] = "/"
+                                    }
+                                    
+                                    //TODO: extend user profile
+                                    onSuccess(UserProfile(id: userId, displayName: displayName, provider: provider))
+                                    Log.debug("completeAuthorizationFlow :: success")
+                                    Log.debug("retrieveTokens :: tokens retrieved")
+                                    
+                                }
+                                
+                                
+        }
     }
     public func authenticate (request: RouterRequest,
                               response: RouterResponse,
@@ -153,43 +162,49 @@ public class WebAppStrategy: CredentialsPluginProtocol {
                               onFailure: @escaping (HTTPStatusCode?, [String:String]?) -> Void,
                               onPass: @escaping (HTTPStatusCode?, [String:String]?) -> Void,
                               inProgress: @escaping () -> Void) {
-
         
-        guard let session = request.session else {
-//            logger.error("Can't find req.session. Ensure express-session middleware is in use");
-                onFailure(nil,nil) //TODO: should msg be better here?
+        
+        if request.session == nil {
+            Log.error("Can't find request.session. Ensure KituraSession middleware is in use")
+            onFailure(nil,nil) //TODO: should msg be better here?
+            return
         }
         
         
         if let error = request.queryParameters["error"] {
-            //logger.warn("Error returned in callback ::", error);
-             onFailure(nil,nil) //TODO: should msg be better here?
+            Log.warning("Error returned in callback " + error)
+            onFailure(nil,nil) //TODO: should msg be better here?
         } else if let code = request.queryParameters["code"] {
-            return handleCallback(request: request, options: options)
+            return retrieveTokens(options: options, grantCode: code, onFailure: onFailure, originalRequest: request, onSuccess: onSuccess)
         } else {
             return handleAuthorization(request: request, response: response, options: options, onFailure: onFailure)
         }
     }
     
     
-        private func generateAuthorizationUrl(options: [String:Any]) -> String {
-        var serviceConfig = self.serviceConfig
-        var clientId = serviceConfig.clientId
-        var scope = WebAppStrategy.DEFAULT_SCOPE + ((options["scope"] as? String) != nil ? (" " + (options["scope"] as! String)) : "")
-        var authorizationEndpoint = serviceConfig.oAuthServerUrl + WebAppStrategy.AUTHORIZATION_PATH;
-        var redirectUri = serviceConfig.redirectUri
-        var authUrl = encodeURI(authorizationEndpoint +
-        "?client_id=" + clientId +
-        "&response_type=code" +
-        "&redirect_uri=" + redirectUri +
-        "&scope=" + scope)
+    private func generateAuthorizationUrl(options: [String:Any]) -> String {
+        let serviceConfig = self.serviceConfig
+        let clientId = serviceConfig.clientId
+        let scopeAddition = (options["scope"] as? String) != nil ?  (" " + (options["scope"] as! String)) : ""
+        let scope = WebAppStrategy.DEFAULT_SCOPE + scopeAddition
+        let authorizationEndpoint = serviceConfig.oAuthServerUrl + WebAppStrategy.AUTHORIZATION_PATH
+        let redirectUri = serviceConfig.redirectUri
+        var authUrl = Utils.urlEncode("\(authorizationEndpoint)?client_id=\(clientId)&response_type=code&redirect_uri=\(redirectUri)&scope=\(scope)")
         
         if (options["allowAnonymousLogin"] as? Bool) == true {
-        authUrl += "&idp=appid_anon";
+            authUrl += "&idp=appid_anon"
         }
         
-        return authUrl;
+        return authUrl
     }
+    
+    public static func logout(request:RouterRequest) {
+        //TODO: only desroying session logs out. solve it
+        //     request.session?.destroy(callback: {(err: NSError?) in })
+        request.session?.remove(key: WebAppStrategy.ORIGINAL_URL)
+        request.session?.remove(key: WebAppStrategy.AUTH_CONTEXT)
+    }
+    
     
     
 }

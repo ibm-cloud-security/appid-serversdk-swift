@@ -14,31 +14,7 @@
 
 import Foundation
 import SwiftyJSON
-
-extension String{
-    func base64decodedString() -> String?{
-        if let data = self.base64decodedData(){
-            return String(data: data, encoding:String.Encoding.utf8)
-        } else {
-            return nil;
-        }
-    }
-    
-    func base64decodedData() -> Data? {
-        let missing = self.characters.count % 4
-        
-        var ending = ""
-        if missing > 0 {
-            let amount = 4 - missing
-            ending = String(repeating: "=", count: amount)
-        }
-        
-        let base64 = self.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/") + ending
-        
-        return Data(base64Encoded: base64, options: Data.Base64DecodingOptions())
-    }
-}
-
+import LoggerAPI
 
 public class APIStrategyConfig {
     static let VCAP_SERVICES = "VCAP_SERVICES";
@@ -49,32 +25,30 @@ public class APIStrategyConfig {
     static let SERVER_URL = "serverUrl";
     var serviceConfig: [String:Any] = [:]
     public init(options:[String:Any]?) {
-        //        logger.debug("Initializing");
+        Log.debug("Intializing APIStrategyConfig")
         let options = options ?? [:]
         let vcapString = ProcessInfo.processInfo.environment[APIStrategyConfig.VCAP_SERVICES] ?? ""
         let vcapServices = JSON.parse(string: vcapString)
         var vcapServiceCredentials: [String:Any]? = [:]
-        // var serviceConfig = {};
-        // Find AppID service config
-            for (key,value) in vcapServices { //TODO: debug and see if this happends
-                // Does service name starts with VCAP_SERVICES_SERVICE_NAME
+        if vcapServices.dictionary != nil {
+            for (key,value) in vcapServices.dictionary! {
                 if key.hasPrefix(APIStrategyConfig.VCAP_SERVICES_SERVICE_NAME) {
                     vcapServiceCredentials = (value.array?[0])?.dictionaryObject?[APIStrategyConfig.VCAP_SERVICES_CREDENTIALS] as? [String : Any]
                     break
                 }
             }
+        }
         
         serviceConfig[APIStrategyConfig.TENANT_ID] = options[APIStrategyConfig.TENANT_ID] ?? vcapServiceCredentials?[APIStrategyConfig.TENANT_ID] ?? nil
         serviceConfig[APIStrategyConfig.SERVER_URL] = options[APIStrategyConfig.SERVER_URL] ?? vcapServiceCredentials?[APIStrategyConfig.SERVER_URL] ?? nil
         
         if serviceConfig[APIStrategyConfig.TENANT_ID] == nil || serviceConfig[APIStrategyConfig.SERVER_URL] == nil {
-            //            logger.error("Failed to initialize api-strategy. All requests to protected endpoints will be rejected");
-            //            logger.error("Ensure your node.js app is either bound to an AppID service instance or pass required parameters in the strategy ructor ");
+            Log.error("Failed to initialize api-strategy. All requests to protected endpoints will be rejected")
+            Log.error("Ensure your app is either bound to an AppID service instance or pass required parameters in the strategy constructor ")
         }
         
-        //        logger.info(TENANT_ID, serviceConfig[TENANT_ID]);
-        //        logger.info(SERVER_URL, serviceConfig[SERVER_URL]);
-        
+        Log.info(APIStrategyConfig.TENANT_ID + "=" + ((serviceConfig[APIStrategyConfig.TENANT_ID] as? String) ?? ""))
+        Log.info(APIStrategyConfig.SERVER_URL + "=" + ((serviceConfig[APIStrategyConfig.SERVER_URL] as? String) ?? ""))
         
         
     }
