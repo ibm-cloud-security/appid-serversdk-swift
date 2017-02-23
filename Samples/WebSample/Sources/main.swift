@@ -24,7 +24,7 @@ var LOGIN_URL = "/ibm/bluemix/appid/login"
 var LOGIN_ANON_URL = "/ibm/bluemix/appid/loginanon"
 var CALLBACK_URL = "/ibm/bluemix/appid/callback"
 var LOGOUT_URL = "/ibm/bluemix/appid/logout"
-var LANDING_PAGE_URL = "/web-app-sample.html"
+var LANDING_PAGE_URL = "/index.html"
 
 var options = [
     "clientId": "85ed8be9-a820-4bbb-a78e-44eee50c57f2",

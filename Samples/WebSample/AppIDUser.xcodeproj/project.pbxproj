@@ -205,7 +205,6 @@
 		OBJ_525 /* Credentials.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = OBJ_182 /* Credentials.framework */; };
 		OBJ_526 /* KituraRequest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = OBJ_183 /* KituraRequest.framework */; };
 		OBJ_527 /* AppIDServerSDKSwift.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = OBJ_184 /* AppIDServerSDKSwift.framework */; };
-		OBJ_528 /* HeliumLogger.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = OBJ_185 /* HeliumLogger.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -664,13 +663,6 @@
 			remoteGlobalIDString = OBJ_463;
 			remoteInfo = AppIDServerSDKSwift;
 		};
-		EF820C611E5C9BCD00D23B2B /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = OBJ_1 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = OBJ_498;
-			remoteInfo = HeliumLogger;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -996,7 +988,6 @@
 				OBJ_525 /* Credentials.framework in Frameworks */,
 				OBJ_526 /* KituraRequest.framework in Frameworks */,
 				OBJ_527 /* AppIDServerSDKSwift.framework in Frameworks */,
-				OBJ_528 /* HeliumLogger.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1273,7 +1264,7 @@
 			path = HTTP;
 			sourceTree = "<group>";
 		};
-		OBJ_5 /*  */ = {
+		OBJ_5 = {
 			isa = PBXGroup;
 			children = (
 				OBJ_6 /* Package.swift */,
@@ -1281,7 +1272,6 @@
 				OBJ_170 /* Tests */,
 				OBJ_171 /* Products */,
 			);
-			name = "";
 			sourceTree = "<group>";
 		};
 		OBJ_52 /* HTTPParser */ = {
@@ -1712,7 +1702,6 @@
 				OBJ_539 /* PBXTargetDependency */,
 				OBJ_540 /* PBXTargetDependency */,
 				OBJ_541 /* PBXTargetDependency */,
-				OBJ_542 /* PBXTargetDependency */,
 			);
 			name = AppIDUser;
 			productName = AppIDUser;
@@ -1734,7 +1723,7 @@
 			knownRegions = (
 				en,
 			);
-			mainGroup = OBJ_5 /*  */;
+			mainGroup = OBJ_5;
 			productRefGroup = OBJ_171 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -2336,11 +2325,6 @@
 			isa = PBXTargetDependency;
 			target = OBJ_463 /* AppIDServerSDKSwift */;
 			targetProxy = EF820C601E5C9BCD00D23B2B /* PBXContainerItemProxy */;
-		};
-		OBJ_542 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = OBJ_498 /* HeliumLogger */;
-			targetProxy = EF820C611E5C9BCD00D23B2B /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
