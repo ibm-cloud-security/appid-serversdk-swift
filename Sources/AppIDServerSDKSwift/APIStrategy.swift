@@ -82,7 +82,6 @@ public class APIStrategy: CredentialsPluginProtocol {
         
         guard authHeaderComponents[0] == APIStrategy.BEARER else {
              Log.error("APIStrategy : invalid authorization header format")
-            //      logger.error(MCAErrorInternal.InvalidAuthHeaderFormat.rawValue)
             sendFailure(scope:requiredScope, error:"Invalid token", onFailure: onFailure, response: response)
             return
         }
@@ -95,7 +94,7 @@ public class APIStrategy: CredentialsPluginProtocol {
         }
         
         let accessTokenString:String = authHeaderComponents[1]
-        let accessToken = Utils.parseToken(from: accessTokenString)
+        let accessToken = try? Utils.parseToken(from: accessTokenString)
         let idToken:String? = authHeaderComponents.count == 3 ? authHeaderComponents[2] : nil
         
         guard Utils.isTokenValid(token: accessTokenString) else {
@@ -144,16 +143,15 @@ public class APIStrategy: CredentialsPluginProtocol {
             } else {
                 Log.debug("Missing id token")
             }
-            if let idToken = idToken, let authContext = getAuthorizedIdentities(from: idToken){
+            if let idToken = idToken, let authContext = Utils.getAuthorizedIdentities(from: idToken){
                 Log.debug("Id token is present and successfully parsed")
                 // idToken is present and successfully parsed
-                
+                request.userInfo["AppIDAuthContext"] = authContext
                 authorizationContext["identityToken"] = identityTokenString
                 authorizationContext["identityTokenPayload"] = idToken
-                userId = (authContext["sub"] as? String) ?? "##N/A##"
-                displayName = (authContext["name"] as? String) ?? "##N/A##"
-                let amr = (authContext["amr"] as? [String])
-                provider =  amr != nil ? amr![0] : "##N/A##"
+                userId = (authContext.userIdentity.id)
+                displayName = (authContext.userIdentity.displayName)
+                provider = authContext.userIdentity.authBy.count > 0 ? authContext.userIdentity.authBy[0]["provider"].stringValue : ""
             } else if idToken == nil {
                Log.debug("Missing id token")
             } else {
@@ -162,17 +160,6 @@ public class APIStrategy: CredentialsPluginProtocol {
         }
         request.userInfo["appIdAuthorizationContext"] = authorizationContext
         onSuccess(UserProfile(id: userId, displayName: displayName, provider: provider))
-    }
-    
-       
-    private func getAuthorizedIdentities(from idToken:String) -> [String: Any]? {
-       Log.debug("APIStrategy getAuthorizedIdentities")
-        
-        if let jwt = Utils.parseToken(from: idToken) {
-            return jwt["payload"].dictionary
-        }
-        return nil
-        
     }
     
     }

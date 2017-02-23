@@ -42,15 +42,23 @@ extension String{
 
 public class Utils {
     
-    public static func parseToken(from tokenString:String) -> JSON? {
+    
+    public static func getAuthorizedIdentities(from idToken:String) -> AuthorizationContext? {
+        Log.debug("APIStrategy getAuthorizedIdentities")
+        if let jwt = try? Utils.parseToken(from: idToken) {
+            return  AuthorizationContext(idTokenPayload: jwt["payload"])
+        }
+        return nil
+    }
+    
+    public static func parseToken(from tokenString:String) throws -> JSON {
         Log.debug("parseToken")
         
         let tokenComponents = tokenString.components(separatedBy: ".")
         
         guard tokenComponents.count == 3 else {
             Log.error("Invalid access token format")
-            // throw MCAErrorInternal.InvalidAccessTokenFormat
-            return nil
+            throw AppIDErrorInternal.InvalidAccessTokenFormat
         }
         
         let jwtHeaderData = tokenComponents[0].base64decodedData()
@@ -59,8 +67,7 @@ public class Utils {
         
         guard jwtHeaderData != nil && jwtPayloadData != nil else {
             Log.error("Invalid access token format")
-            //      throw MCAErrorInternal.InvalidAccessTokenFormat
-            return nil
+            throw AppIDErrorInternal.InvalidAccessTokenFormat
         }
         
         let jwtHeader = JSON(data: jwtHeaderData!)
@@ -75,7 +82,7 @@ public class Utils {
     
     public static func isTokenValid(token:String) -> Bool{
         Log.debug("isTokenValid")
-        if let jwt = parseToken(from: token) {
+        if let jwt = try? parseToken(from: token) {
             let jwtPayload = jwt["payload"].dictionary
             
             guard let jwtExpirationTimestamp = jwtPayload?["exp"]?.double else {

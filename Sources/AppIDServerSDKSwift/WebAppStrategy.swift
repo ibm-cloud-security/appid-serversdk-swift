@@ -18,7 +18,7 @@ import KituraNet
 import KituraRequest
 import SwiftyJSON
 import LoggerAPI
-
+import KituraSession
 public class WebAppStrategy: CredentialsPluginProtocol {
     
     public static var STRATEGY_NAME = "appid-webapp-strategy"
@@ -46,9 +46,77 @@ public class WebAppStrategy: CredentialsPluginProtocol {
     }
     
     
-    private func handleAuthorization (request: RouterRequest, response: RouterResponse, options: [String:Any], onFailure: @escaping (HTTPStatusCode?, [String:String]?) -> Void) {
+    private func restoreUserProfile(from session: SessionState) -> UserProfile? {
+        let sessionUserProfile = session["userProfile"]
+        if sessionUserProfile.type != .null  {
+            if let dictionary = sessionUserProfile.dictionaryObject,
+                let displayName = dictionary["displayName"] as? String,
+                let provider = dictionary["provider"] as? String,
+                let id = dictionary["id"] as? String {
+                
+                var userName: UserProfile.UserProfileName?
+                if let familyName = dictionary["familyName"] as? String,
+                    let givenName = dictionary["givenName"] as? String,
+                    let middleName = dictionary["middleName"] as? String {
+                    userName = UserProfile.UserProfileName(familyName: familyName, givenName: givenName, middleName: middleName)
+                }
+                
+                var userEmails: Array<UserProfile.UserProfileEmail>?
+                if let emails = dictionary["emails"] as? [String], let types = dictionary["emailTypes"] as? [String] {
+                    userEmails = Array()
+                    for (index, email) in emails.enumerated() {
+                        let userEmail = UserProfile.UserProfileEmail(value: email, type: types[index])
+                        userEmails!.append(userEmail)
+                    }
+                }
+                
+                var userPhotos: Array<UserProfile.UserProfilePhoto>?
+                if let photos = dictionary["photos"] as? [String] {
+                    userPhotos = Array()
+                    for photo in photos {
+                        let userPhoto = UserProfile.UserProfilePhoto(photo)
+                        userPhotos!.append(userPhoto)
+                    }
+                }
+                
+                return UserProfile(id: id, displayName: displayName, provider: provider, name: userName, emails: userEmails, photos: userPhotos, extendedProperties: dictionary["extendedProperties"] as? [String:Any])
+            }
+        }
+        return nil
+    }
+
+    
+    
+    private func handleAuthorization (request: RouterRequest, response: RouterResponse, options: [String:Any], onFailure: @escaping (HTTPStatusCode?, [String:String]?) -> Void, onSuccess: @escaping (UserProfile) -> Void) {
         
         Log.debug("WebAppStrategy :: handleAuthorization")
+        
+        // If user is already authenticated and new login is not enforced - end processing
+        // Otherwise - persist original request url and redirect to authorization
+        let sessionProfile = request.session?["userProfile"]
+        let requestProfile = request.userProfile
+        if options["forceLogin"] as? Bool != true
+            && options["allowAnonymousLogin"] as? Bool != true {
+            
+            if requestProfile != nil {
+                onSuccess(requestProfile!)
+                return
+            }
+            
+            if sessionProfile != nil && (sessionProfile?.count)! > 0 {
+                onSuccess(restoreUserProfile(from: request.session!)!)
+                return
+            }
+        }
+        
+        
+        if options["successRedirect"] as? Bool == true {
+            request.session?[WebAppStrategy.ORIGINAL_URL].string = options["successRedirect"] as? String
+        } else {
+            request.session?[WebAppStrategy.ORIGINAL_URL].string = request.originalURL
+            //TODO: options is let
+            // options["successRedirect"] = request.originalURL
+        }
         var options = options
         options["allowCreateNewAnonymousUser"] = options["allowCreateNewAnonymousUser"] ?? true
         options["failureRedirect"] = options["failureRedirect"] ?? "/"
@@ -114,7 +182,7 @@ public class WebAppStrategy: CredentialsPluginProtocol {
                                     var displayName = "##N/A##"
                                     var provider = "##N/A##"
                                     
-                                    if let accessTokenString = body["access_token"].string, let accessTokenPayload = Utils.parseToken(from: accessTokenString)?["payload"] {
+                                    if let accessTokenString = body["access_token"].string, let accessTokenPayload = try? Utils.parseToken(from: accessTokenString)["payload"] {
                                         // Parse access_token
                                         
                                         appIdAuthorizationContext["accessToken"].string = accessTokenString
@@ -122,14 +190,17 @@ public class WebAppStrategy: CredentialsPluginProtocol {
                                     }
                                     
                                     
-                                    if let identityTokenString = body["id_token"].string, let identityTokenPayload = Utils.parseToken(from: identityTokenString)?["payload"] {
+                                    if let identityTokenString = body["id_token"].string, let identityTokenPayload = try? Utils.parseToken(from: identityTokenString)["payload"], let context = Utils.getAuthorizedIdentities(from: identityTokenString) {
                                         // Parse identity_token
                                         appIdAuthorizationContext["identityToken"].string = identityTokenString
                                         appIdAuthorizationContext["identityTokenPayload"] = identityTokenPayload
-                                        userId = identityTokenPayload["sub"].string ?? "##N/A##"
-                                        displayName = identityTokenPayload["name"].string ?? "##N/A##"
-                                        let amr = identityTokenPayload["amr"].array
-                                        provider =  amr?[0].string ?? "##N/A##"
+                                        userId = context.userIdentity.id
+                                        displayName = context.userIdentity.displayName
+                                        if context.userIdentity.authBy.count > 0 && context.userIdentity.authBy[0]["provider"].string != nil {
+                                            provider =  context.userIdentity.authBy[0]["provider"].stringValue
+                                        } else {
+                                            provider =  "##N/A##"
+                                        }
                                     }
                                     
                                     originalRequest.session?[WebAppStrategy.AUTH_CONTEXT] = appIdAuthorizationContext
@@ -144,8 +215,6 @@ public class WebAppStrategy: CredentialsPluginProtocol {
                                     } else {
                                         options["successRedirect"] = "/"
                                     }
-                                    
-                                    //TODO: extend user profile
                                     onSuccess(UserProfile(id: userId, displayName: displayName, provider: provider))
                                     Log.debug("completeAuthorizationFlow :: success")
                                     Log.debug("retrieveTokens :: tokens retrieved")
@@ -177,7 +246,7 @@ public class WebAppStrategy: CredentialsPluginProtocol {
         } else if let code = request.queryParameters["code"] {
             return retrieveTokens(options: options, grantCode: code, onFailure: onFailure, originalRequest: request, onSuccess: onSuccess)
         } else {
-            return handleAuthorization(request: request, response: response, options: options, onFailure: onFailure)
+            return handleAuthorization(request: request, response: response, options: options, onFailure: onFailure, onSuccess: onSuccess)
         }
     }
     
@@ -199,8 +268,6 @@ public class WebAppStrategy: CredentialsPluginProtocol {
     }
     
     public static func logout(request:RouterRequest) {
-        //TODO: only desroying session logs out. solve it
-        //     request.session?.destroy(callback: {(err: NSError?) in })
         request.session?.remove(key: WebAppStrategy.ORIGINAL_URL)
         request.session?.remove(key: WebAppStrategy.AUTH_CONTEXT)
     }
