@@ -14,7 +14,7 @@ import Foundation
 import SwiftyJSON
 import LoggerAPI
 
-class WebAppStrategyConfig {
+internal class WebAppStrategyConfig {
     
     static let VCAP_SERVICES = "VCAP_SERVICES"
     static let VCAP_SERVICES_CREDENTIALS = "credentials"

@@ -19,7 +19,7 @@ public enum AppIDError: String, Error {
     case FailedParsingAuthContext = "Failed to parse authorization context"
 }
 
-public enum AppIDErrorInternal: String, Error {
+internal enum AppIDErrorInternal: String, Error {
     case AuthorizationHeaderNotFound = "Authorization header not found"
     case InvalidAuthHeaderFormat = "Invalid authorization header format. Expected format 'Bearer accessToken idToken'"
     case InvalidAccessToken = "Invalid access token"

@@ -40,9 +40,7 @@ extension String{
     }
 }
 
-public class Utils {
-    
-    
+internal class Utils {
     public static func getAuthorizedIdentities(from idToken:String) -> AuthorizationContext? {
         Log.debug("APIStrategy getAuthorizedIdentities")
         if let jwt = try? Utils.parseToken(from: idToken) {

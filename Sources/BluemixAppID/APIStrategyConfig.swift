@@ -16,7 +16,7 @@ import Foundation
 import SwiftyJSON
 import LoggerAPI
 
-public class APIStrategyConfig {
+internal class APIStrategyConfig {
     static let VCAP_SERVICES = "VCAP_SERVICES";
     static let VCAP_SERVICES_CREDENTIALS = "credentials";
     static let VCAP_SERVICES_SERVICE_NAME = "AdvancedMobileAccess";
@@ -24,7 +24,8 @@ public class APIStrategyConfig {
     static let TENANT_ID = "tenantId";
     static let SERVER_URL = "serverUrl";
     var serviceConfig: [String:Any] = [:]
-    public init(options:[String:Any]?) {
+	
+	public init(options:[String:Any]?) {
         Log.debug("Intializing APIStrategyConfig")
         let options = options ?? [:]
         let vcapString = ProcessInfo.processInfo.environment[APIStrategyConfig.VCAP_SERVICES] ?? ""

@@ -19,23 +19,23 @@ import KituraRequest
 import SwiftyJSON
 import LoggerAPI
 import KituraSession
+
 public class WebAppStrategy: CredentialsPluginProtocol {
     
-    public static var STRATEGY_NAME = "appid-webapp-strategy"
-    public static var DEFAULT_SCOPE = "appid_default"
-    public static var ORIGINAL_URL = "APPID_ORIGINAL_URL"
-    public static var AUTH_CONTEXT = "APPID_AUTH_CONTEXT"
-    public static var AUTHORIZATION_PATH = "/authorization"
-    public static var TOKEN_PATH = "/token"
+    public static var name = "appid-webapp-strategy"
+    private static var DefaultScope = "appid_default"
+    private static var OriginalUrl = "APPID_ORIGINAL_URL"
+    private static var AuthContext = "APPID_AUTH_CONTEXT"
+    private static var AuthorizationPath = "/authorization"
+    private static var TokenPath = "/token"
     private var serviceConfig:WebAppStrategyConfig
     
     public var redirecting = true
     
     public var usersCache : NSCache<NSString, BaseCacheElement>?
     
-    
     public var name: String {
-        return WebAppStrategy.STRATEGY_NAME
+        return WebAppStrategy.name
     }
     
     
@@ -111,9 +111,9 @@ public class WebAppStrategy: CredentialsPluginProtocol {
         
         
         if options["successRedirect"] as? Bool == true {
-            request.session?[WebAppStrategy.ORIGINAL_URL].string = options["successRedirect"] as? String
+            request.session?[WebAppStrategy.OriginalUrl].string = options["successRedirect"] as? String
         } else {
-            request.session?[WebAppStrategy.ORIGINAL_URL].string = request.originalURL
+            request.session?[WebAppStrategy.OriginalUrl].string = request.originalURL
             //TODO: options is let
             // options["successRedirect"] = request.originalURL
         }
@@ -123,7 +123,7 @@ public class WebAppStrategy: CredentialsPluginProtocol {
         var authUrl = generateAuthorizationUrl(options: options)
         
         // If there's an existing anonymous access token on session - add it to the request url
-        let appIdAuthContext = request.session?[WebAppStrategy.AUTH_CONTEXT].dictionary
+        let appIdAuthContext = request.session?[WebAppStrategy.AuthContext].dictionary
         if let context = appIdAuthContext, context["accessTokenPayload"]?["amr"][0] == "appid_anon" {
             Log.debug("WebAppStrategy :: handleAuthorization :: added anonymous access_token to url")
             authUrl += "&appid_access_token=" + (context["accessToken"]?.string ?? "")
@@ -153,7 +153,7 @@ public class WebAppStrategy: CredentialsPluginProtocol {
         
         let clientId = serviceConfig.clientId
         let secret = serviceConfig.secret
-        let tokenEndpoint = serviceConfig.oAuthServerUrl + WebAppStrategy.TOKEN_PATH
+        let tokenEndpoint = serviceConfig.oAuthServerUrl + WebAppStrategy.TokenPath
         let redirectUri = serviceConfig.redirectUri
         let authorization = clientId + ":" + secret
         KituraRequest.request(.post, tokenEndpoint,
@@ -201,15 +201,15 @@ public class WebAppStrategy: CredentialsPluginProtocol {
                                         }
                                     }
                                     
-                                    originalRequest.session?[WebAppStrategy.AUTH_CONTEXT] = appIdAuthorizationContext
+                                    originalRequest.session?[WebAppStrategy.AuthContext] = appIdAuthorizationContext
                                     var options = options
                                     //TODO: not sure correct move about options
                                     // Find correct successRedirect
                                     let successRedirect:Bool = options["successRedirect"] as? Bool ?? false
                                     if successRedirect == true {
                                         options["successRedirect"] = options["successRedirect"]
-                                    } else if (originalRequest.session != nil) && ((originalRequest.session?[WebAppStrategy.ORIGINAL_URL]) != nil) {
-                                        options["successRedirect"] = originalRequest.session?[WebAppStrategy.ORIGINAL_URL]
+                                    } else if (originalRequest.session != nil) && ((originalRequest.session?[WebAppStrategy.OriginalUrl]) != nil) {
+                                        options["successRedirect"] = originalRequest.session?[WebAppStrategy.OriginalUrl]
                                     } else {
                                         options["successRedirect"] = "/"
                                     }
@@ -253,8 +253,8 @@ public class WebAppStrategy: CredentialsPluginProtocol {
         let serviceConfig = self.serviceConfig
         let clientId = serviceConfig.clientId
         let scopeAddition = (options["scope"] as? String) != nil ?  (" " + (options["scope"] as! String)) : ""
-        let scope = WebAppStrategy.DEFAULT_SCOPE + scopeAddition
-        let authorizationEndpoint = serviceConfig.oAuthServerUrl + WebAppStrategy.AUTHORIZATION_PATH
+        let scope = WebAppStrategy.DefaultScope + scopeAddition
+        let authorizationEndpoint = serviceConfig.oAuthServerUrl + WebAppStrategy.AuthorizationPath
         let redirectUri = serviceConfig.redirectUri
         var authUrl = Utils.urlEncode("\(authorizationEndpoint)?client_id=\(clientId)&response_type=code&redirect_uri=\(redirectUri)&scope=\(scope)")
         
@@ -266,8 +266,8 @@ public class WebAppStrategy: CredentialsPluginProtocol {
     }
     
     public static func logout(request:RouterRequest) {
-        request.session?.remove(key: WebAppStrategy.ORIGINAL_URL)
-        request.session?.remove(key: WebAppStrategy.AUTH_CONTEXT)
+        request.session?.remove(key: WebAppStrategy.OriginalUrl)
+        request.session?.remove(key: WebAppStrategy.AuthContext)
     }
     
     

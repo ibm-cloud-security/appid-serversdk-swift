@@ -20,25 +20,21 @@ import LoggerAPI
 
 public class APIStrategy: CredentialsPluginProtocol {
     
-    
-    private static let HEADER_AUTHORIZATION = "Authorization"
-    private static let BEARER = "Bearer"
-    private static let AUTH_HEADER = "Authorization"
-    private var serviceConfig:APIStrategyConfig?
-    static let AUTHORIZATION_HEADER = "Authorization"
-    static let STRATEGY_NAME = "appid-api-strategy"
-    static let DEFAULT_SCOPE = "appid_default"
-    
-    
+	public static let name = "appid-api-strategy"
+
+	private static let Bearer = "Bearer"
+    private static let AuthHeader = "Authorization"
+    private static let DefaultScope = "appid_default"
+
+	private var serviceConfig:APIStrategyConfig?
+	
     public init(options:[String: Any]?) {
         Log.debug("Intializing APIStrategy")
         self.serviceConfig = APIStrategyConfig(options: options)
     }
-    
-    
-    
+	
     public var name: String {
-        return APIStrategy.STRATEGY_NAME
+        return APIStrategy.name
     }
     
     public var redirecting = false
@@ -48,7 +44,7 @@ public class APIStrategy: CredentialsPluginProtocol {
     public func sendFailure(scope:String, error:String?, onFailure: @escaping (HTTPStatusCode?, [String:String]?) -> Void, response: RouterResponse) {
         Log.debug("APIStrategy : sendFailure")
         response.send("Unauthorized")
-        var msg = APIStrategy.BEARER + " scope=\"" + scope + "\""
+        var msg = APIStrategy.Bearer + " scope=\"" + scope + "\""
         if error != nil {
             msg += ", error=\"" + error! + "\""
         }
@@ -66,30 +62,30 @@ public class APIStrategy: CredentialsPluginProtocol {
                               inProgress: @escaping () -> Void) {
         
         Log.debug("APIStrategy : authenticate")
-        let authorizationHeader = request.headers[APIStrategy.AUTH_HEADER]
-        var requiredScope = APIStrategy.DEFAULT_SCOPE
+        let authorizationHeader = request.headers[APIStrategy.AuthHeader]
+        var requiredScope = APIStrategy.DefaultScope
         if (options["scope"] as? String) != nil {
             requiredScope += " " + (options["scope"] as! String)
         }
         
         guard let authorizationHeaderUnwrapped = authorizationHeader else {
-             Log.error("APIStrategy : authorization header not found")
-            sendFailure(scope:requiredScope, error:"Invalid token", onFailure: onFailure, response: response)
+			Log.error("APIStrategy : authorization header not found")
+            sendFailure(scope:requiredScope, error:"invalid_token", onFailure: onFailure, response: response)
             return
         }
         
         let authHeaderComponents:[String] = authorizationHeaderUnwrapped.components(separatedBy: " ")
         
-        guard authHeaderComponents[0] == APIStrategy.BEARER else {
-             Log.error("APIStrategy : invalid authorization header format")
-            sendFailure(scope:requiredScope, error:"Invalid token", onFailure: onFailure, response: response)
+        guard authHeaderComponents[0] == APIStrategy.Bearer else {
+			Log.error("APIStrategy : invalid authorization header format")
+            sendFailure(scope:requiredScope, error:"invalid_token", onFailure: onFailure, response: response)
             return
         }
         
         // authHeader format :: "Bearer accessToken idToken"
         guard authHeaderComponents.count == 3 || authHeaderComponents.count == 2 else {
              Log.error("APIStrategy : invalid authorization header format")
-            sendFailure(scope:requiredScope, error:"Invalid token", onFailure: onFailure, response: response)
+            sendFailure(scope:requiredScope, error:"invalid_token", onFailure: onFailure, response: response)
             return
         }
         
@@ -98,7 +94,7 @@ public class APIStrategy: CredentialsPluginProtocol {
         let idToken:String? = authHeaderComponents.count == 3 ? authHeaderComponents[2] : nil
         
         guard Utils.isTokenValid(token: accessTokenString) else {
-            sendFailure(scope:requiredScope, error:"Invalid token", onFailure: onFailure, response: response)
+            sendFailure(scope:requiredScope, error:"invalid_token", onFailure: onFailure, response: response)
             return
         }
         
@@ -118,24 +114,21 @@ public class APIStrategy: CredentialsPluginProtocol {
                 if (!found){
                     let receivedScope = accessToken?["scope"].string ?? ""
                      Log.warning("APIStrategy : access_token does not contain required scope. Expected " + requiredScope + " received " + receivedScope)
-                    sendFailure(scope:requiredScope, error:"Insufficient scope", onFailure: onFailure, response: response)
+                    sendFailure(scope:requiredScope, error:"insufficient_scope", onFailure: onFailure, response: response)
                     return
                 }
             }
         }
-        
-        
-        var authorizationContext:[String:Any] = [
+
+		var authorizationContext:[String:Any] = [
             "accessToken": accessTokenString,
             "accessTokenPayload": accessToken as Any
         ]
         
-        
-        var userId = "##N/A##"
-        var displayName = "##N/A##"
-        var provider = "##N/A##"
-        
-        
+		var userId = ""
+		var displayName = ""
+		var provider = ""
+		
         if authHeaderComponents.count == 3 {
             let identityTokenString = authHeaderComponents[2]
             if Utils.isTokenValid(token: identityTokenString) == false {
@@ -143,7 +136,8 @@ public class APIStrategy: CredentialsPluginProtocol {
             } else {
                 Log.debug("Missing id token")
             }
-            if let idToken = idToken, let authContext = Utils.getAuthorizedIdentities(from: idToken){
+
+			if let idToken = idToken, let authContext = Utils.getAuthorizedIdentities(from: idToken){
                 Log.debug("Id token is present and successfully parsed")
                 // idToken is present and successfully parsed
                 request.userInfo["AppIDAuthContext"] = authContext
@@ -155,11 +149,10 @@ public class APIStrategy: CredentialsPluginProtocol {
             } else if idToken == nil {
                Log.debug("Missing id token")
             } else {
-                //            return
+                // return
             }
         }
         request.userInfo["appIdAuthorizationContext"] = authorizationContext
         onSuccess(UserProfile(id: userId, displayName: displayName, provider: provider))
     }
-    
-    }
+}

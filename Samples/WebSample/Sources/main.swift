@@ -49,7 +49,7 @@ let anonCredentials = Credentials(options: [
     ])
 
 
-//TODO: two different credetilas needed for anon and not anon. add to logout anon call to anon credentials logout
+// TODO: two different credetilas needed for anon and not anon. add to logout anon call to anon credentials logout
 
 credentials.register(plugin: web)
 credentials.options["failureRedirect"] = LOGIN_URL
@@ -89,4 +89,3 @@ Kitura.addHTTPServer(onPort: 3002, with: router)
 
 // Start the Kitura runloop (this call never returns)
 Kitura.run()
-
