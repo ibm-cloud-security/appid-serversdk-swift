@@ -142,12 +142,10 @@ public class WebAppStrategy: CredentialsPluginProtocol {
         
         do {
             try response.redirect(authUrl)
-        } catch let err {
+        } catch {
             onFailure(nil, nil) //TODO: should msg be better here?
         }
-    }
-    
-    
+    }   
     
     private func retrieveTokens(options:[String:Any], grantCode:String, onFailure: @escaping (HTTPStatusCode?, [String:String]?) -> Void, originalRequest:RouterRequest, onSuccess: @escaping (UserProfile) -> Void) {
         Log.debug("WebAppStrategy :: retrieveTokens")
