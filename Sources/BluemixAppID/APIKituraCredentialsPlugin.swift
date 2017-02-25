@@ -16,25 +16,28 @@ import Foundation
 import Kitura
 import KituraNet
 import Credentials
-import LoggerAPI
+import SimpleLogger
 
-public class APIStrategy: CredentialsPluginProtocol {
+public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
     
-	public static let name = "appid-api-strategy"
+	public static let name = "appid-api-kitura-credentials-plugin"
 
-	private static let Bearer = "Bearer"
-    private static let AuthHeader = "Authorization"
-    private static let DefaultScope = "appid_default"
+	private let Bearer = "Bearer"
+    private let AuthHeader = "Authorization"
+    private let DefaultScope = "appid_default"
+	
+	private let logger = Logger(forName: "APIKituraCredentialsPlugin")
 
-	private var serviceConfig:APIStrategyConfig?
+	private var serviceConfig:APIKituraCredentialsPluginConfig?
 	
     public init(options:[String: Any]?) {
-        Log.debug("Intializing APIStrategy")
-        self.serviceConfig = APIStrategyConfig(options: options)
+        logger.debug("Intializing APIKituraCredentialsPlugin")
+		logger.warn("This is a beta version of APIKituraCredentialsPlugin, it should not be used for production environments!");
+        self.serviceConfig = APIKituraCredentialsPluginConfig(options: options)
     }
 	
     public var name: String {
-        return APIStrategy.name
+        return APIKituraCredentialsPlugin.name
     }
     
     public var redirecting = false
@@ -42,14 +45,14 @@ public class APIStrategy: CredentialsPluginProtocol {
     public var usersCache : NSCache<NSString, BaseCacheElement>?
     
     public func sendFailure(scope:String, error:String?, onFailure: @escaping (HTTPStatusCode?, [String:String]?) -> Void, response: RouterResponse) {
-        Log.debug("APIStrategy : sendFailure")
+        logger.debug("ApiKituraCredentialsPlugin : sendFailure")
         response.send("Unauthorized")
-        var msg = APIStrategy.Bearer + " scope=\"" + scope + "\""
+        var msg = Bearer + " scope=\"" + scope + "\""
         if error != nil {
             msg += ", error=\"" + error! + "\""
         }
         
-        onFailure(.unauthorized, ["WWW-Authenticate": msg])
+        onFailure(.unauthorized, ["Www-Authenticate": msg])
     }
     
     
@@ -61,30 +64,30 @@ public class APIStrategy: CredentialsPluginProtocol {
                               onPass: @escaping (HTTPStatusCode?, [String:String]?) -> Void,
                               inProgress: @escaping () -> Void) {
         
-        Log.debug("APIStrategy : authenticate")
-        let authorizationHeader = request.headers[APIStrategy.AuthHeader]
-        var requiredScope = APIStrategy.DefaultScope
+        logger.debug("ApiKituraCredentialsPlugin : authenticate")
+        let authorizationHeader = request.headers[AuthHeader]
+        var requiredScope = DefaultScope
         if (options["scope"] as? String) != nil {
             requiredScope += " " + (options["scope"] as! String)
         }
         
         guard let authorizationHeaderUnwrapped = authorizationHeader else {
-			Log.error("APIStrategy : authorization header not found")
+			logger.warn("ApiKituraCredentialsPlugin : authorization header not found")
             sendFailure(scope:requiredScope, error:"invalid_token", onFailure: onFailure, response: response)
             return
         }
         
         let authHeaderComponents:[String] = authorizationHeaderUnwrapped.components(separatedBy: " ")
         
-        guard authHeaderComponents[0] == APIStrategy.Bearer else {
-			Log.error("APIStrategy : invalid authorization header format")
+        guard authHeaderComponents[0] == Bearer else {
+			logger.warn("ApiKituraCredentialsPlugin : invalid authorization header format")
             sendFailure(scope:requiredScope, error:"invalid_token", onFailure: onFailure, response: response)
             return
         }
         
         // authHeader format :: "Bearer accessToken idToken"
         guard authHeaderComponents.count == 3 || authHeaderComponents.count == 2 else {
-             Log.error("APIStrategy : invalid authorization header format")
+			logger.warn("ApiKituraCredentialsPlugin : invalid authorization header format")
             sendFailure(scope:requiredScope, error:"invalid_token", onFailure: onFailure, response: response)
             return
         }
@@ -113,7 +116,7 @@ public class APIStrategy: CredentialsPluginProtocol {
                 }
                 if (!found){
                     let receivedScope = accessToken?["scope"].string ?? ""
-                     Log.warning("APIStrategy : access_token does not contain required scope. Expected " + requiredScope + " received " + receivedScope)
+					logger.warn("ApiKituraCredentialsPlugin : access_token does not contain required scope. Expected " + requiredScope + " received " + receivedScope)
                     sendFailure(scope:requiredScope, error:"insufficient_scope", onFailure: onFailure, response: response)
                     return
                 }
@@ -132,13 +135,13 @@ public class APIStrategy: CredentialsPluginProtocol {
         if authHeaderComponents.count == 3 {
             let identityTokenString = authHeaderComponents[2]
             if Utils.isTokenValid(token: identityTokenString) == false {
-                Log.debug("Id token is malformed")
+                logger.debug("Id token is malformed")
             } else {
-                Log.debug("Missing id token")
+                logger.debug("Missing id token")
             }
 
 			if let idToken = idToken, let authContext = Utils.getAuthorizedIdentities(from: idToken){
-                Log.debug("Id token is present and successfully parsed")
+                logger.debug("Id token is present and successfully parsed")
                 // idToken is present and successfully parsed
                 request.userInfo["AppIDAuthContext"] = authContext
                 authorizationContext["identityToken"] = identityTokenString
@@ -147,7 +150,7 @@ public class APIStrategy: CredentialsPluginProtocol {
                 displayName = (authContext.userIdentity.displayName)
                 provider = authContext.userIdentity.authBy.count > 0 ? authContext.userIdentity.authBy[0]["provider"].stringValue : ""
             } else if idToken == nil {
-               Log.debug("Missing id token")
+               logger.debug("Missing id token")
             } else {
                 // return
             }

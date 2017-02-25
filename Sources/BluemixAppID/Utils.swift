@@ -13,8 +13,8 @@
 
 
 import Foundation
-import LoggerAPI
 import SwiftyJSON
+import SimpleLogger
 
 extension String{
     func base64decodedString() -> String?{
@@ -41,8 +41,11 @@ extension String{
 }
 
 internal class Utils {
+	
+	private static let logger = Logger(forName: "BluemixAppIDUtils");
+	
     public static func getAuthorizedIdentities(from idToken:String) -> AuthorizationContext? {
-        Log.debug("APIStrategy getAuthorizedIdentities")
+        logger.debug("APIStrategy getAuthorizedIdentities")
         if let jwt = try? Utils.parseToken(from: idToken) {
             return  AuthorizationContext(idTokenPayload: jwt["payload"])
         }
@@ -50,12 +53,12 @@ internal class Utils {
     }
     
     public static func parseToken(from tokenString:String) throws -> JSON {
-        Log.debug("parseToken")
+        logger.debug("parseToken")
         
         let tokenComponents = tokenString.components(separatedBy: ".")
         
         guard tokenComponents.count == 3 else {
-            Log.error("Invalid access token format")
+            logger.error("Invalid access token format")
             throw AppIDErrorInternal.InvalidAccessTokenFormat
         }
         
@@ -64,7 +67,7 @@ internal class Utils {
         let jwtSignature = tokenComponents[2]
         
         guard jwtHeaderData != nil && jwtPayloadData != nil else {
-            Log.error("Invalid access token format")
+            logger.error("Invalid access token format")
             throw AppIDErrorInternal.InvalidAccessTokenFormat
         }
         
@@ -79,7 +82,7 @@ internal class Utils {
     }
     
     public static func isTokenValid(token:String) -> Bool{
-        Log.debug("isTokenValid")
+        logger.debug("isTokenValid")
         if let jwt = try? parseToken(from: token) {
             let jwtPayload = jwt["payload"].dictionary
             
