@@ -1,1 +1,242 @@
-# appid-serversdk-swift
+# Bluemix AppID
+Swift SDK for the Bluemix AppID service
+
+[![Bluemix powered][img-bluemix-powered]][url-bluemix]
+[![Travis][img-travis-master]][url-travis-master]
+[![Coveralls][img-coveralls-master]][url-coveralls-master]
+[![Codacy][img-codacy]][url-codacy]
+[![Version][img-version]][url-repo]
+[![DownloadsMonthly][img-downloads-monthly]][url-repo]
+[![DownloadsTotal][img-downloads-total]][url-repo]
+[![License][img-license]][url-repo]
+
+[![GithubWatch][img-github-watchers]][url-github-watchers]
+[![GithubStars][img-github-stars]][url-github-stars]
+[![GithubForks][img-github-forks]][url-github-forks]
+
+### Table of Contents
+* [Summary](#summary)
+* [Requirements](#requirements)
+* [Installation](#installation)
+* [Example Usage](#example-usage)
+* [License](#license)
+
+### Summary
+
+This SDK provides Kitura Credentials plugins for protecting two types of resources - APIs and Web applications. The major difference between these two resource types is the way client is challenged.
+
+If you use the APIKituraCredentialsPlugin the unauthenticated client will get HTTP 401 response with list of scopes to obtain authorization for as described below.
+
+> Note that APIKituraCredentialsPlugin is currently in Beta phase and it should not be used in production environment. Due to the fact that CommonCrypto is not yet available in open sourced version of Swift the access token digital signature is not being validated.
+
+If you use the WebAppKituraCredentialsPlugin the unauthenticated client will get HTTP 302 redirect to the login page hosted by AppID service (or, depending on configuration, directly to identity provider login page). WebAppKituraCredentialsPlugin, as name suggests, best fit for building web applications.
+
+Read the [official documentation](TODO: ADD LINK) for information about getting started with Bluemix AppID Service.
+
+### Requirements
+* Swift 3.0.2
+* Kitura 1.6
+
+### Installation
+```swift
+import PackageDescription
+
+let package = Package(
+    dependencies: [
+        .Package(url: "https://github.com/ibm-cloud-security/appid-serversdk-swift.git", majorVersion: 0)
+    ]
+)
+```
+* 0.0.x releases were tested on OSX and Linux with Swift 3.0.2
+
+### Example Usage
+Below find two examples of using this SDK to protect APIs and Web applications.
+
+#### Protecting APIs using the APIKituraCredentialsPlugin
+APIKituraCredentialsPlugin expects the request to contain an Authorization header with valid access token and optionally identity token. See AppID docs for additional information. The expected header structure is `Authorization=Bearer {access_token} [{id_token}]`
+
+In case of invalid/expired tokens the APIKituraCredentialsPlugin will return HTTP 401 with `Www-Authenticate=Bearer scope="{scope}" error="{error}"`. The `error` component is optional.
+
+In case of valid tokens the APIKituraCredentialsPlugin will pass control to the next middleware while injecting the `appIdAuthorizationContext` property into request object. This property will contain original access and identity tokens as well as decoded payload information as plain JSON objects.
+
+```swift
+import Kitura
+import Credentials
+
+let router = Router()
+
+// The oauthServerUrl value can be obtained from Service Credentials
+// tab in the AppID Dashboard. You're not required to provide this argument if
+// your Kitura application runs on Bluemix and is bound to the
+// AppID service instance. In this case AppID configuration will be obtained
+// using VCAP_SERVICES environment variable.
+let options = [
+	"oauthServerUrl": "https://appid-oauth.stage1.mybluemix.net/oauth/v3/768b5d51-37b0-44f7-a351-54fe59a67d18"
+]
+
+let apiKituraCredentialsPlugin = APIKituraCredentialsPlugin(options: options)
+let kituraCredentials = Credentials()
+kituraCredentials.register(plugin: apiKituraCredentialsPlugin)
+
+// Declare the API you want to protect
+router.all("/api/protected", middleware: [BodyParser(), kituraCredentials])
+
+router.get("/api/protected") { (req, res, next) in
+	let name = req.userProfile?.displayName ?? "Anonymous"
+	res.status(.OK)
+	res.send("Hello from protected resource, \(name)")
+	next()
+}
+
+Kitura.addHTTPServer(onPort: 1234, with: router)
+Kitura.run()
+```
+
+#### Protecting web applications using WebAppKituraCredentialsPlugin
+WebAppKituraCredentialsPlugin is based on the OAuth2 authorization_code grant flow and should be used for web applications that use browsers. The plugin provides tools to easily implement authentication and authorization flows. WebAppKituraCredentialsPlugin provides mechanisms to detect unauthenticated attempts to access protected resources. The WebAppKituraCredentialsPlugin will automatically redirect user's browser to the authentication page. After successful authentication user will be taken back to the web application's callback URL (redirectUri), which will once again use WebAppKituraCredentialsPlugin to obtain access and identity tokens from AppID service. After obtaining these tokens the WebAppKituraCredentialsPlugin will store them in HTTP session under WebAppKituraCredentialsPlugin.AuthContext key. In a scalable cloud environment it is recommended to persist HTTP sessions in a scalable storage like Redis to ensure they're available accross server app instances.
+
+```swift
+import Kitura
+import KituraSession
+import Credentials
+import SwiftyJSON
+
+// Below URLs will be used for AppID OAuth flows
+var LOGIN_URL = "/ibm/bluemix/appid/login"
+var CALLBACK_URL = "/ibm/bluemix/appid/callback"
+var LOGOUT_URL = "/ibm/bluemix/appid/logout"
+var LANDING_PAGE_URL = "/index.html"
+
+// Setup Kitura to use session middleware
+// Must be configured with proper session storage for production
+// environments. See https://github.com/IBM-Swift/Kitura-Session for
+// additional documentation
+let router = Router()
+let session = Session(secret: "Some secret")
+router.all(middleware: session)
+
+// Use static resources if required directory
+router.all("/", middleware: StaticFileServer(path: "./Tests/BluemixAppIDTests/public"))
+
+// Below configuration can be obtained from Service Credentials
+// tab in the AppID Dashboard. You're not required to manually provide below
+// configuration if your Kitura application runs on Bluemix and is bound to the
+// AppID service instance. In this case AppID configuration will be obtained
+// automatically using VCAP_SERVICES environment variable.
+//
+// The redirectUri value can be supplied in three ways:
+// 1. Manually in new WebAppKituraCredentialsPlugin options
+// 2. As environment variable named `redirectUri`
+// 3. If none of the above was supplied the AppID SDK will try to retrieve
+//    application_uri of the application running on Bluemix and append a
+//    default suffix "/ibm/bluemix/appid/callback"
+let options = [
+	"clientId": "{client-id}",
+	"secret": "{secret}",
+	"tenantId": "{tenant-id}",
+	"oauthServerUrl": "{oauth-server-url}",
+	"redirectUri": "{app-url}" + CALLBACK_URL
+]
+let webappKituraCredentialsPlugin = WebAppKituraCredentialsPlugin(options: options)
+let kituraCredentials = Credentials()
+kituraCredentials.register(plugin: webappKituraCredentialsPlugin)
+
+// Explicit login endpoint
+router.get(LOGIN_URL,
+		   handler: kituraCredentials.authenticate(credentialsType: webappKituraCredentialsPlugin.name,
+												   successRedirect: LANDING_PAGE_URL,
+												   failureRedirect: LANDING_PAGE_URL
+))
+
+// Callback to finish the authorization process. Will retrieve access and identity tokens from AppID
+router.get(CALLBACK_URL,
+		   handler: kituraCredentials.authenticate(credentialsType: webappKituraCredentialsPlugin.name,
+												   successRedirect: LANDING_PAGE_URL,
+												   failureRedirect: LANDING_PAGE_URL
+))
+
+// Logout endpoint. Clears authentication information from session
+router.get(LOGOUT_URL, handler:  { (request, response, next) in
+	kituraCredentials.logOut(request: request)
+	webappKituraCredentialsPlugin.logout(request: request)
+	_ = try? response.redirect(self.LANDING_PAGE_URL)
+})
+
+// Protected area
+router.get("/protected", handler: { (request, response, next) in
+	let appIdAuthContext:JSON? = request.session?[WebAppKituraCredentialsPlugin.AuthContext]
+	let identityTokenPayload:JSON? = appIdAuthContext?["identityTokenPayload"]
+
+	guard appIdAuthContext?.dictionary != nil, identityTokenPayload?.dictionary != nil else {
+		response.status(.unauthorized)
+		return next()
+	}
+
+	response.send(json: identityTokenPayload!)
+	next()
+})
+
+// Start the server!
+Kitura.addHTTPServer(onPort: 1234, with: router)
+Kitura.run()
+```
+
+#### Anonymous login
+WebAppKituraCredentialsPlugin allows users to login to your web application anonymously, meaning without requiring any credentials. After successful login the anonymous user access token will be persisted in HTTP session, making it available as long as HTTP session is kept alive. Once HTTP session is destroyed or expired the anonymous user access token will be destroyed as well.  
+
+To allow anonymous login for a particular URL use two configuration properties as shown on a code snippet below:
+* `WebAppKituraCredentialsPlugin.AllowAnonymousLogin` - set this value to true if you want to allow your users to login anonymously when accessing this endpoint. If this property is set to true no authentication will be required. The default value of this property is `false`, therefore you must set it explicitly to allow anonymous login.
+* `WebAppKituraCredentialsPlugin.AllowCreateNewAnonymousUser` - By default a new anonymous user will be created every time this method is invoked unless there's an existing anonymous access_token stored in the current HTTP session. In some cases you want to explicitly control whether you want to automatically create new anonymous user or not. Set this property to `false` if you want to disable automatic creation of new anonymous users. The default value of this property is `true`.  
+
+```swift
+var LOGIN_ANON_URL = "/ibm/bluemix/appid/loginanon"
+
+let webappKituraCredentialsPlugin = WebAppKituraCredentialsPlugin(options: options)
+let kituraCredentialsAnonymous = Credentials(options: [
+	WebAppKituraCredentialsPlugin.AllowAnonymousLogin: true,
+	WebAppKituraCredentialsPlugin.AllowCreateNewAnonymousUser: true
+])
+
+// Explicit anonymous login endpoint
+router.get(LOGIN_ANON_URL,
+		   handler: kituraCredentialsAnonymous.authenticate(credentialsType: webappKituraCredentialsPlugin.name,
+															successRedirect: LANDING_PAGE_URL,
+															failureRedirect: LANDING_PAGE_URL
+))
+
+router.get(LOGOUT_URL, handler:  { (request, response, next) in
+	kituraCredentialsAnonymous.logOut(request: request)
+	webappKituraCredentialsPlugin.logout(request: request)
+	_ = try? response.redirect(self.LANDING_PAGE_URL)
+})
+
+```
+
+As mentioned previously the anonymous access_token and identity_token will be automatically persisted in HTTP session by AppID SDK. You can retrieve them from HTTP session via same mechanisms as regular tokens. Access and identity tokens will be kept in HTTP session and will be used until either them or HTTP session expires.
+
+### License
+This package contains code licensed under the Apache License, Version 2.0 (the "License"). You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 and may also view the License in the LICENSE file within this package.
+
+[img-bluemix-powered]: https://img.shields.io/badge/bluemix-powered-blue.svg
+[url-bluemix]: http://bluemix.net
+[url-repo]: https://github.com/ibm-cloud-security/appid-serversdk-swift
+[img-license]: https://img.shields.io/github/license/ibm-cloud-security/appid-serversdk-swift.svg
+[img-version]: https://img.shields.io/github/release/ibm-cloud-security/appid-serversdk-swift.svg
+[img-downloads-monthly]: https://img.shields.io/github/downloads/ibm-cloud-security/appid-serversdk-swift/latest/total.svg
+[img-downloads-total]: https://img.shields.io/github/downloads/ibm-cloud-security/appid-serversdk-swift/total.svg
+
+[img-github-watchers]: https://img.shields.io/github/watchers/ibm-cloud-security/appid-serversdk-swift.svg?style=social&label=Watch
+[url-github-watchers]: https://github.com/ibm-cloud-security/appid-serversdk-swift/watchers
+[img-github-stars]: https://img.shields.io/github/stars/ibm-cloud-security/appid-serversdk-swift.svg?style=social&label=Star
+[url-github-stars]: https://github.com/ibm-cloud-security/appid-serversdk-swift/stargazers
+[img-github-forks]: https://img.shields.io/github/forks/ibm-cloud-security/appid-serversdk-swift.svg?style=social&label=Fork
+[url-github-forks]: https://github.com/ibm-cloud-security/appid-serversdk-swift/network
+
+[img-travis-master]: https://travis-ci.org/ibm-cloud-security/appid-serversdk-swift.svg
+[url-travis-master]: https://travis-ci.org/ibm-cloud-security/appid-serversdk-swift
+
+[img-coveralls-master]: https://coveralls.io/repos/github/ibm-cloud-security/appid-serversdk-swift/badge.svg
+[url-coveralls-master]: https://coveralls.io/github/ibm-cloud-security/appid-serversdk-swift
+
+[img-codacy]: https://api.codacy.com/project/badge/Grade/a6952171ff5c4adaa6cf41a8652516d4?branch=master
+[url-codacy]: https://www.codacy.com/app/ibm-cloud-security/appid-serversdk-swift
