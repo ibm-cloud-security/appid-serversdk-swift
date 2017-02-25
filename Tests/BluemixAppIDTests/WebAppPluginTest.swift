@@ -44,18 +44,23 @@ class WebAppPluginTest: XCTestCase {
 		kituraCredentials.register(plugin: webappKituraCredentialsPlugin)
 		kituraCredentialsAnonymous.register(plugin: webappKituraCredentialsPlugin)
 
-		router.get(LOGIN_URL, handler: kituraCredentials.authenticate(credentialsType: webappKituraCredentialsPlugin.name,
-		                                                              successRedirect: LANDING_PAGE_URL,
-		                                                              failureRedirect: LANDING_PAGE_URL
-		));
+		router.get(LOGIN_URL,
+		           handler: kituraCredentials.authenticate(credentialsType: webappKituraCredentialsPlugin.name,
+		                                                   successRedirect: LANDING_PAGE_URL,
+		                                                   failureRedirect: LANDING_PAGE_URL
+		))
 
-		router.get(LOGIN_ANON_URL, handler: kituraCredentialsAnonymous.authenticate(credentialsType: webappKituraCredentialsPlugin.name,
-		                                                                            successRedirect: LANDING_PAGE_URL,
-		                                                                            failureRedirect: LANDING_PAGE_URL));
+		router.get(LOGIN_ANON_URL,
+		           handler: kituraCredentialsAnonymous.authenticate(credentialsType: webappKituraCredentialsPlugin.name,
+		                                                            successRedirect: LANDING_PAGE_URL,
+		                                                            failureRedirect: LANDING_PAGE_URL
+		))
 
-		router.get(CALLBACK_URL, handler: kituraCredentials.authenticate(credentialsType: webappKituraCredentialsPlugin.name,
-		                                                                 successRedirect: LANDING_PAGE_URL,
-		                                                                 failureRedirect: LANDING_PAGE_URL))
+		router.get(CALLBACK_URL,
+		           handler: kituraCredentials.authenticate(credentialsType: webappKituraCredentialsPlugin.name,
+		                                                   successRedirect: LANDING_PAGE_URL,
+		                                                   failureRedirect: LANDING_PAGE_URL
+		))
 		
 		router.get(LOGOUT_URL, handler:  { (request, response, next) in
 			kituraCredentials.logOut(request: request)
