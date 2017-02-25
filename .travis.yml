@@ -39,7 +39,7 @@ after_success:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       gem install slather;
       swift package generate-xcodeproj;
-      slather setup SimpleLogger.xcodeproj
+      slather setup BluemixAppID.xcodeproj;
       xcodebuild -project BluemixAppID.xcodeproj -scheme BluemixAppID build;
       xcodebuild -project BluemixAppID.xcodeproj -scheme BluemixAppID -enableCodeCoverage YES test;
       slather coverage --coveralls --binary-basename BluemixAppID.framework -v;
