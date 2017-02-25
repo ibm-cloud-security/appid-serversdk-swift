@@ -3,3 +3,5 @@ xcodeproj: BluemixAppID.xcodeproj
 scheme: BluemixAppID
 ignore:
   - Tests/*
+  - Packages/*
+  - .build/
