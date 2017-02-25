@@ -13,7 +13,8 @@ class ApiPluginTest: XCTestCase {
 	
 	let logger = Logger(forName:"ApiPluginTest")
 	
-	func testRunApiServer(){
+	// Remove off_ for running
+	func off_testRunApiServer(){
 		logger.debug("Starting")
 		
 		let router = Router()
@@ -31,6 +32,4 @@ class ApiPluginTest: XCTestCase {
 		Kitura.addHTTPServer(onPort: 1234, with: router)
 		Kitura.run()
 	}
-	
-		
 }

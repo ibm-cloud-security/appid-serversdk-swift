@@ -25,7 +25,8 @@ class WebAppPluginTest: XCTestCase {
 
 	let logger = Logger(forName:"WebAppPluginTest")
 	
-	func testRunWebAppServer(){
+	// Remove off_ for running
+	func off_testRunWebAppServer(){
 		logger.debug("Starting")
 		
 		let router = Router()

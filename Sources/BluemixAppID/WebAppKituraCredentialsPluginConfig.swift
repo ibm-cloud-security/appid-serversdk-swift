@@ -92,8 +92,9 @@ internal class WebAppKituraCredentialsPluginConfig {
         if serviceConfig[REDIRECT_URI] == nil {
             let vcapApplication = ProcessInfo.processInfo.environment[VCAP_APPLICATION]
             if vcapApplication != nil {
-                var vcapApplicationJson = JSON.parse(string: vcapApplication!)
-                let uri = (vcapApplicationJson.dictionaryObject?["application_uris"] as? Array)?[0] ?? ""
+                let vcapApplicationJson = JSON.parse(string: vcapApplication!)
+				let applicationUris = vcapApplicationJson["application_uris"]
+				let uri = applicationUris.count > 0 ? applicationUris[0] : ""
                 serviceConfig[REDIRECT_URI] = "https://\(uri)/ibm/bluemix/appid/callback"
             }
         }
