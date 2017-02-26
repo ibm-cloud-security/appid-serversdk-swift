@@ -20,22 +20,22 @@ import SimpleLogger
 
 public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
     
-	public static let name = "appid-api-kitura-credentials-plugin"
-
-	private let Bearer = "Bearer"
+    public static let name = "appid-api-kitura-credentials-plugin"
+    
+    private let Bearer = "Bearer"
     private let AuthHeader = "Authorization"
     private let DefaultScope = "appid_default"
-	
-	private let logger = Logger(forName: "APIKituraCredentialsPlugin")
-
-	private var serviceConfig:APIKituraCredentialsPluginConfig?
-	
+    
+    private let logger = Logger(forName: "APIKituraCredentialsPlugin")
+    
+    private var serviceConfig:APIKituraCredentialsPluginConfig?
+    
     public init(options:[String: Any]?) {
         logger.debug("Intializing APIKituraCredentialsPlugin")
-		logger.warn("This is a beta version of APIKituraCredentialsPlugin, it should not be used for production environments!");
+        logger.warn("This is a beta version of APIKituraCredentialsPlugin, it should not be used for production environments!");
         self.serviceConfig = APIKituraCredentialsPluginConfig(options: options)
     }
-	
+    
     public var name: String {
         return APIKituraCredentialsPlugin.name
     }
@@ -72,7 +72,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
         }
         
         guard let authorizationHeaderUnwrapped = authorizationHeader else {
-			logger.warn("ApiKituraCredentialsPlugin : authorization header not found")
+            logger.warn("ApiKituraCredentialsPlugin : authorization header not found")
             sendFailure(scope:requiredScope, error:"invalid_token", onFailure: onFailure, response: response)
             return
         }
@@ -80,21 +80,21 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
         let authHeaderComponents:[String] = authorizationHeaderUnwrapped.components(separatedBy: " ")
         
         guard authHeaderComponents[0] == Bearer else {
-			logger.warn("ApiKituraCredentialsPlugin : invalid authorization header format")
+            logger.warn("ApiKituraCredentialsPlugin : invalid authorization header format")
             sendFailure(scope:requiredScope, error:"invalid_token", onFailure: onFailure, response: response)
             return
         }
         
         // authHeader format :: "Bearer accessToken idToken"
         guard authHeaderComponents.count == 3 || authHeaderComponents.count == 2 else {
-			logger.warn("ApiKituraCredentialsPlugin : invalid authorization header format")
+            logger.warn("ApiKituraCredentialsPlugin : invalid authorization header format")
             sendFailure(scope:requiredScope, error:"invalid_token", onFailure: onFailure, response: response)
             return
         }
         
         let accessTokenString:String = authHeaderComponents[1]
         let accessToken = try? Utils.parseToken(from: accessTokenString)
-        let idToken:String? = authHeaderComponents.count == 3 ? authHeaderComponents[2] : nil
+        let idTokenString:String? = authHeaderComponents.count == 3 ? authHeaderComponents[2] : nil
         
         guard Utils.isTokenValid(token: accessTokenString) else {
             sendFailure(scope:requiredScope, error:"invalid_token", onFailure: onFailure, response: response)
@@ -116,43 +116,43 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
                 }
                 if (!found){
                     let receivedScope = accessToken?["scope"].string ?? ""
-					logger.warn("ApiKituraCredentialsPlugin : access_token does not contain required scope. Expected " + requiredScope + " received " + receivedScope)
+                    logger.warn("ApiKituraCredentialsPlugin : access_token does not contain required scope. Expected " + requiredScope + " received " + receivedScope)
                     sendFailure(scope:requiredScope, error:"insufficient_scope", onFailure: onFailure, response: response)
                     return
                 }
             }
         }
-
-		var authorizationContext:[String:Any] = [
+        
+        var authorizationContext:[String:Any] = [
             "accessToken": accessTokenString,
-            "accessTokenPayload": accessToken as Any
+            "accessTokenPayload": accessToken?["payload"] as Any
         ]
         
-		var userId = ""
-		var displayName = ""
-		var provider = ""
-		
+        var userId = ""
+        var displayName = ""
+        var provider = ""
+        
         if authHeaderComponents.count == 3 {
             let identityTokenString = authHeaderComponents[2]
             if Utils.isTokenValid(token: identityTokenString) == false {
                 logger.debug("Id token is malformed")
+                
+                if let idTokenString = idTokenString, let idToken = try? Utils.parseToken(from: idTokenString), let authContext = Utils.getAuthorizedIdentities(from: idToken){
+                    logger.debug("Id token is present and successfully parsed")
+                    // idToken is present and successfully parsed
+                    request.userInfo["AppIDAuthContext"] = authContext
+                    authorizationContext["identityToken"] = identityTokenString
+                    authorizationContext["identityTokenPayload"] = idToken["payload"]
+                    userId = (authContext.userIdentity.id)
+                    displayName = (authContext.userIdentity.displayName)
+                    provider = authContext.userIdentity.authBy.count > 0 ? authContext.userIdentity.authBy[0]["provider"].stringValue : ""
+                } else if idTokenString == nil {
+                    logger.debug("Missing id token")
+                } else {
+                    logger.debug("id token is malformed")
+                }
             } else {
                 logger.debug("Missing id token")
-            }
-
-			if let idToken = idToken, let authContext = Utils.getAuthorizedIdentities(from: idToken){
-                logger.debug("Id token is present and successfully parsed")
-                // idToken is present and successfully parsed
-                request.userInfo["AppIDAuthContext"] = authContext
-                authorizationContext["identityToken"] = identityTokenString
-                authorizationContext["identityTokenPayload"] = idToken
-                userId = (authContext.userIdentity.id)
-                displayName = (authContext.userIdentity.displayName)
-                provider = authContext.userIdentity.authBy.count > 0 ? authContext.userIdentity.authBy[0]["provider"].stringValue : ""
-            } else if idToken == nil {
-               logger.debug("Missing id token")
-            } else {
-                // return
             }
         }
         request.userInfo["appIdAuthorizationContext"] = authorizationContext

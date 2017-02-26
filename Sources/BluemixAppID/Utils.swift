@@ -40,16 +40,13 @@ extension String{
     }
 }
 
-internal class Utils {
+public  class Utils {
 	
 	private static let logger = Logger(forName: "BluemixAppIDUtils");
 	
-    public static func getAuthorizedIdentities(from idToken:String) -> AuthorizationContext? {
+    public static func getAuthorizedIdentities(from idToken:JSON) -> AuthorizationContext? {
         logger.debug("APIStrategy getAuthorizedIdentities")
-        if let jwt = try? Utils.parseToken(from: idToken) {
-            return  AuthorizationContext(idTokenPayload: jwt["payload"])
-        }
-        return nil
+        return  AuthorizationContext(idTokenPayload: idToken["payload"])
     }
     
     public static func parseToken(from tokenString:String) throws -> JSON {

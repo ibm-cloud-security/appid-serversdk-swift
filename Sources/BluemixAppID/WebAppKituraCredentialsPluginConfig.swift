@@ -86,9 +86,8 @@ internal class WebAppKituraCredentialsPluginConfig {
         serviceConfig[SECRET] = options[SECRET] ?? vcapServiceCredentials?[SECRET]
         serviceConfig[OAUTH_SERVER_URL] = options[OAUTH_SERVER_URL] ?? vcapServiceCredentials?[OAUTH_SERVER_URL]
         
-        serviceConfig[REDIRECT_URI] = options[REDIRECT_URI] ?? vcapServiceCredentials?[REDIRECT_URI]
+        serviceConfig[REDIRECT_URI] = options[REDIRECT_URI] ?? ProcessInfo.processInfo.environment[REDIRECT_URI]
         
-        //TODO: WHAT IS VCAP_APPLICATION
         if serviceConfig[REDIRECT_URI] == nil {
             let vcapApplication = ProcessInfo.processInfo.environment[VCAP_APPLICATION]
             if vcapApplication != nil {
