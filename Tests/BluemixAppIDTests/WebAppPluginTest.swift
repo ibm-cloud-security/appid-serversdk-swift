@@ -128,8 +128,8 @@ class WebAppPluginTest: XCTestCase {
     
     func testWebAuthenticate() {
         let web = WebAppKituraCredentialsPlugin(options: fullOptions)
-        let httpRequest = HTTPServerRequest(socket: try! Socket.create(family: .inet))
-        let httpResponse = HTTPServerResponse(processor: IncomingHTTPSocketProcessor(socket: try! Socket.create(family: .inet), using: delegate()))
+        let httpRequest =  HTTPServerRequest(socket: try! Socket.create(family: .inet), httpParser: nil)
+        let httpResponse = HTTPServerResponse(processor: IncomingHTTPSocketProcessor(socket: try! Socket.create(family: .inet), using: delegate()), request: httpRequest)
         let request = RouterRequest(request: httpRequest)
         var response = RouterResponse(response: httpResponse, router: Router(), request: request)
         
@@ -147,8 +147,8 @@ class WebAppPluginTest: XCTestCase {
             }
             public override func redirect(_ path: String, status: HTTPStatusCode = .movedTemporarily)  -> RouterResponse {
                 XCTAssertEqual(path, redirectUri)
-                let httpRequest = HTTPServerRequest(socket: try! Socket.create(family: .inet))
-                let httpResponse = HTTPServerResponse(processor: IncomingHTTPSocketProcessor(socket: try! Socket.create(family: .inet), using: delegate()))
+                let httpRequest =  HTTPServerRequest(socket: try! Socket.create(family: .inet), httpParser: nil)
+                let httpResponse = HTTPServerResponse(processor: IncomingHTTPSocketProcessor(socket: try! Socket.create(family: .inet), using: delegate()), request: httpRequest)
                 let request = RouterRequest(request: httpRequest)
                 let response = RouterResponse(response: httpResponse, router: Router(), request: request)
                 return response

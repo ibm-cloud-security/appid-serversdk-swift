@@ -86,32 +86,36 @@ class ApiPluginTest: XCTestCase {
     func testApiAuthenticate() {
         //no authorization header
         let api = APIKituraCredentialsPlugin(options:[:])
-        let httpRequest = HTTPServerRequest(socket: try! Socket.create(family: .inet))
-        let httpResponse = HTTPServerResponse(processor: IncomingHTTPSocketProcessor(socket: try! Socket.create(family: .inet), using: delegate()))
+        let parser = HTTPParser(isRequest: true)
+        let httpRequest =  HTTPServerRequest(socket: try! Socket.create(family: .inet), httpParser: parser)
+        let httpResponse = HTTPServerResponse(processor: IncomingHTTPSocketProcessor(socket: try! Socket.create(family: .inet), using: delegate()), request: httpRequest)
+
+
         var request = RouterRequest(request: httpRequest)
         var response = RouterResponse(response: httpResponse, router: Router(), request: request)
         api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(shouldFail: true), onFailure: setOnFailure(expected: "Bearer scope=\"appid_default\", error=\"invalid_token\""), onPass: onPass, inProgress:inProgress)
         
         //auth header does not start with bearer
-        httpRequest.headers["Authorization"] =  [ACCESS_TOKEN]
+        parser.headers["Authorization"] =  [ACCESS_TOKEN]
         request = RouterRequest(request: httpRequest)
         response = RouterResponse(response: httpResponse, router: Router(), request: request)
         api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(shouldFail: true), onFailure: setOnFailure(expected: "Bearer scope=\"appid_default\", error=\"invalid_token\""), onPass: onPass, inProgress:inProgress)
         
         //auth header does not have correct structure
-        httpRequest.headers["Authorization"] =  ["Bearer"]
+        parser.headers["Authorization"] =  ["Bearer"]
         request = RouterRequest(request: httpRequest)
         response = RouterResponse(response: httpResponse, router: Router(), request: request)
         api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(shouldFail: true), onFailure: setOnFailure(expected: "Bearer scope=\"appid_default\", error=\"invalid_token\""), onPass: onPass, inProgress:inProgress)
         
         //expired access token
-        httpRequest.headers["Authorization"] =  ["Bearer " + EXPIRED_ACCESS_TOKEN]
+        parser.headers["Authorization"] =  ["Bearer " + EXPIRED_ACCESS_TOKEN]
         request = RouterRequest(request: httpRequest)
         response = RouterResponse(response: httpResponse, router: Router(), request: request)
         api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(shouldFail: true), onFailure: setOnFailure(expected: "Bearer scope=\"appid_default\", error=\"invalid_token\""), onPass: onPass, inProgress:inProgress)
         
         //happy flow with no id token
-        httpRequest.headers["Authorization"] =  ["Bearer " + ACCESS_TOKEN]
+        parser.headers["Authorization"] = ["Bearer " + ACCESS_TOKEN]
+        print(httpRequest.headers)
         request = RouterRequest(request: httpRequest)
         response = RouterResponse(response: httpResponse, router: Router(), request: request)
         api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "", name: "", provider: ""), onFailure: setOnFailure(expected: "", failTest: true), onPass: onPass, inProgress:inProgress)
@@ -128,7 +132,7 @@ class ApiPluginTest: XCTestCase {
         //        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "", name: "", provider: ""), onFailure: setOnFailure(expected: "", failTest: true), onPass: onPass, inProgress:inProgress)
         
         //happy flow with id token
-        httpRequest.headers["Authorization"] =  ["Bearer " + ACCESS_TOKEN + " " + ID_TOKEN]
+        parser.headers["Authorization"] =  ["Bearer " + ACCESS_TOKEN + " " + ID_TOKEN]
         request = RouterRequest(request: httpRequest)
         response = RouterResponse(response: httpResponse, router: Router(), request: request)
         api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "b4dff015-3370-4082-b5e0-7dabed91e206", name: "Don Lon", provider: "facebook"), onFailure: setOnFailure(expected: "", failTest: true), onPass: onPass, inProgress:inProgress)
