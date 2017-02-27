@@ -20,36 +20,47 @@ class ApiPluginTest: XCTestCase {
     let logger = Logger(forName:"ApiPluginTest")
     
     func testApiConfig() {
-        //TODO: add tests with VCAP
+        unsetenv("VCAP_SERVICES")
         var config = APIKituraCredentialsPluginConfig(options:[:])
         XCTAssertEqual(config.serviceConfig.count, 0)
         XCTAssertNil(config.serverUrl)
         config = APIKituraCredentialsPluginConfig(options: ["oauthServerUrl": "someurl"])
         XCTAssertEqual(config.serverUrl, "someurl")
+        
+        //with VCAP_SERVICES
+        setenv("VCAP_SERVICES", "{\n  \"AdvancedMobileAccess\": [\n    {\n      \"credentials\": {\n      \"oauthServerUrl\": \"https://testvcap/oauth/v3/test\"},    }\n  ]\n}", 1)
+        config = APIKituraCredentialsPluginConfig(options: nil)
+        
+        XCTAssertEqual(config.serverUrl, "https://testvcap/oauth/v3/test")
+        config = APIKituraCredentialsPluginConfig(options: ["oauthServerUrl": "someurl"])
+        XCTAssertEqual(config.serverUrl, "someurl")
+        unsetenv("VCAP_SERVICES")
     }
     
-    func setOnFailure(expected:String, failTest:Bool = false) -> ((_ code: HTTPStatusCode?, _ headers: [String:String]?) -> Void) {
+    func setOnFailure(expected:String, expectation:XCTestExpectation? = nil) -> ((_ code: HTTPStatusCode?, _ headers: [String:String]?) -> Void) {
         
         return { (code: HTTPStatusCode?, headers: [String:String]?) -> Void in
-            if failTest {
+            if expectation == nil {
                 XCTFail()
+            } else {
+                XCTAssertEqual(code, .unauthorized)
+                XCTAssertEqual(headers?["Www-Authenticate"], expected)
+                expectation?.fulfill()
             }
-            XCTAssertEqual(code, .unauthorized)
-            XCTAssertEqual(headers?["Www-Authenticate"], expected)
         }
     }
-    func onFailure(_ code: HTTPStatusCode?, _ headers: [String:String]?) -> Void {
-        
-    }
-    func setOnSuccess(id:String = "", name:String = "", provider:String = "", shouldFail:Bool = false) -> ((_:UserProfile ) -> Void) {
+    
+    func setOnSuccess(id:String = "", name:String = "", provider:String = "", expectation:XCTestExpectation? = nil) -> ((_:UserProfile ) -> Void) {
         
         return { (profile:UserProfile) -> Void in
-            if shouldFail {
+            if expectation == nil {
                 XCTFail()
+            } else {
+                XCTAssertEqual(profile.id, id)
+                XCTAssertEqual(profile.displayName, name)
+                XCTAssertEqual(profile.provider, provider)
+                expectation?.fulfill()
             }
-            XCTAssertEqual(profile.id, id)
-            XCTAssertEqual(profile.displayName, name)
-            XCTAssertEqual(profile.provider, provider)
         }
         
     }
@@ -63,25 +74,10 @@ class ApiPluginTest: XCTestCase {
     }
     
     class delegate: ServerDelegate {
-        /// Handle new incoming requests to the server
-        ///
-        /// - Parameter request: The ServerRequest class instance for working with this request.
-        ///                     The ServerRequest object enables you to get the query parameters, headers, and body amongst other
-        ///                     information about the incoming request.
-        /// - Parameter response: The ServerResponse class instance for working with this request.
-        ///                     The ServerResponse object enables you to build and send your response to the client who sent
-        ///                     the request. This includes headers, the body, and the response code.
         func handle(request: ServerRequest, response: ServerResponse) {
             return
         }
     }
-    let EXPIRED_ACCESS_TOKEN = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpPU0UifQ.eyJpc3MiOiJtb2JpbGVjbGllbnRhY2Nlc3Muc3RhZ2UxLm5nLmJsdWVtaXgubmV0IiwiZXhwIjoxNDg3MDg0ODc4LCJhdWQiOiIyNmNiMDEyZWIzMjdjNjEyZDkwYTY4MTkxNjNiNmJjYmQ0ODQ5Y2JiIiwiaWF0IjoxNDg3MDgxMjc4LCJhdXRoX2J5IjoiZmFjZWJvb2siLCJ0ZW5hbnQiOiI0ZGJhOTQzMC01NGU2LTRjZjItYTUxNi02ZjczZmViNzAyYmIiLCJzY29wZSI6ImFwcGlkX2RlZmF1bHQgYXBwaWRfcmVhZHByb2ZpbGUgYXBwaWRfcmVhZHVzZXJhdHRyIGFwcGlkX3dyaXRldXNlcmF0dHIifQ.RDUrrVlMMrhBHxMpKEzQwwQZ5i4hHLSloFVQHwo2SyDYlU83oDgAUXBsCqehXr19PEFPOL5kjXrEeU6V5W8nyRiz3iOBQX7z004-ddf_heY2HEuvAAjqwox9kMlhpYMlMGpwuYwtKYAEcC28qHvg5UKN4CPfzUmP6bSqK2X4A5J11d4oEYNzcHCJpiQgMqbJ_it6UFGXkiQU26SVUq74_gW0_AUHuPmQxCU3-abW1F_PenRE9mJhdcOG2iWYKv5qzP7-DUx0j02ar4ylXjcMmwK0xK3iigoD-ZN_MJs6tUGg2X5ZSk_6rNmtWUlpWZkQNQw4XOBL3K9OAu5pmE-YNg"
-    let ACCESS_TOKEN =
-    "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpPU0UifQ.eyJpc3MiOiJtb2JpbGVjbGllbnRhY2Nlc3Muc3RhZ2UxLm5nLmJsdWVtaXgubmV0IiwiZXhwIjoyNDg3MDg0ODc4LCJhdWQiOiIyNmNiMDEyZWIzMjdjNjEyZDkwYTY4MTkxNjNiNmJjYmQ0ODQ5Y2JiIiwiaWF0IjoxNDg3MDgxMjc4LCJhdXRoX2J5IjoiZmFjZWJvb2siLCJ0ZW5hbnQiOiI0ZGJhOTQzMC01NGU2LTRjZjItYTUxNi02ZjczZmViNzAyYmIiLCJzY29wZSI6ImFwcGlkX2RlZmF1bHQgYXBwaWRfcmVhZHByb2ZpbGUgYXBwaWRfcmVhZHVzZXJhdHRyIGFwcGlkX3dyaXRldXNlcmF0dHIifQ.RDUrrVlMMrhBHxMpKEzQwwQZ5i4hHLSloFVQHwo2SyDYlU83oDgAUXBsCqehXr19PEFPOL5kjXrEeU6V5W8nyRiz3iOBQX7z004-ddf_heY2HEuvAAjqwox9kMlhpYMlMGpwuYwtKYAEcC28qHvg5UKN4CPfzUmP6bSqK2X4A5J11d4oEYNzcHCJpiQgMqbJ_it6UFGXkiQU26SVUq74_gW0_AUHuPmQxCU3-abW1F_PenRE9mJhdcOG2iWYKv5qzP7-DUx0j02ar4ylXjcMmwK0xK3iigoD-ZN_MJs6tUGg2X5ZSk_6rNmtWUlpWZkQNQw4XOBL3K9OAu5pmE-YNg"
-    
-    let ID_TOKEN = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpPU0UifQ.eyJpc3MiOiJhcHBpZC1vYXV0aC5zdGFnZTEubXlibHVlbWl4Lm5ldCIsImF1ZCI6ImI1MmJlYjA5NDE2ODgyNjE2ZDdhYjEzMGI0ZTA3YzZiN2UyM2UyMTIiLCJleHAiOjE0ODc4NjIyNTMsInRlbmFudCI6Ijc2OGI1ZDUxLTM3YjAtNDRmNy1hMzUxLTU0ZmU1OWE2N2QxOCIsImlhdCI6MTQ4Nzg1ODY1MywiZW1haWwiOiJkb25sb25xd2VydHlAZ21haWwuY29tIiwibmFtZSI6IkRvbiBMb24iLCJwaWN0dXJlIjoiaHR0cHM6Ly9zY29udGVudC54eC5mYmNkbi5uZXQvdi90MS4wLTEvcDUweDUwLzEzNTAxNTUxXzI4NjQwNzgzODM3ODg5Ml8xNzg1NzY2MjExNzY2NzMwNjk3X24uanBnP29oPTE0OGQyZWVlNjRiYjE0YWZjZDg5MWIyZDVjMWQ2Zjg2Jm9lPTU5MkYzRUJDIiwic3ViIjoiYjRkZmYwMTUtMzM3MC00MDgyLWI1ZTAtN2RhYmVkOTFlMjA2IiwiaWRlbnRpdGllcyI6W3sicHJvdmlkZXIiOiJmYWNlYm9vayIsImlkIjoiMzc3NDQwMTU5Mjc1NjU5In1dLCJhbXIiOlsiZmFjZWJvb2siXSwib2F1dGhfY2xpZW50Ijp7Im5hbWUiOiJPZGVkQXBwSURhcHBpZCIsInR5cGUiOiJtb2JpbGVhcHAiLCJzb2Z0d2FyZV9pZCI6Ik9kZWRBcHBJRGFwcGlkSUQiLCJzb2Z0d2FyZV92ZXJzaW9uIjoiMS4wIiwiZGV2aWNlX2lkIjoiMTkzNDY0M0EtMDczRS00RkI5LTkwNzYtNDVGNzE3OTBENTYxIiwiZGV2aWNlX21vZGVsIjoiaVBob25lIiwiZGV2aWNlX29zIjoiaU9TIn19.Ftx-yfFOHcw1m29QqsTHp08bDi44k9BlWPKEM7O8bdFCpxN96n6qeVL-T_7WbS_RkV-nzPPGo5txUGVmXE_FhVeX4gh2JtSiTotMbCJlIJTf5BLGZQwKcPIGIMDrSD-MYlWbMWikP2xYtSpcc71wZ8M-Xrzft3apNrcpi68VcynQ7dCT6CpuhWw6KTW9LwfQ6I1tZc-Ol1cxEFAOVoTZ2z5or6dSWCUPdYzh4liZV3hzmpW2LMkLYnxSLVi_Tnjg_YsDuBoXHdUlLKRt4RmSFoZOmv0LKCm-J9PcuCfuUbkDyCp9Ncc1epWQqUj12Jqhnd6gnf2E4fKYmUFDgxfyIg"
-    
-    
     
     func testApiAuthenticate() {
         //no authorization header
@@ -89,60 +85,77 @@ class ApiPluginTest: XCTestCase {
         let parser = HTTPParser(isRequest: true)
         let httpRequest =  HTTPServerRequest(socket: try! Socket.create(family: .inet), httpParser: parser)
         let httpResponse = HTTPServerResponse(processor: IncomingHTTPSocketProcessor(socket: try! Socket.create(family: .inet), using: delegate()), request: httpRequest)
-
-
+        
+        
         var request = RouterRequest(request: httpRequest)
         var response = RouterResponse(response: httpResponse, router: Router(), request: request)
-        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(shouldFail: true), onFailure: setOnFailure(expected: "Bearer scope=\"appid_default\", error=\"invalid_token\""), onPass: onPass, inProgress:inProgress)
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(expected: "Bearer scope=\"appid_default\", error=\"invalid_token\"", expectation: expectation(description: "test1")), onPass: onPass, inProgress:inProgress)
         
         //auth header does not start with bearer
-        parser.headers["Authorization"] =  [ACCESS_TOKEN]
+        parser.headers["Authorization"] =  [TestConstants.ACCESS_TOKEN]
         request = RouterRequest(request: httpRequest)
         response = RouterResponse(response: httpResponse, router: Router(), request: request)
-        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(shouldFail: true), onFailure: setOnFailure(expected: "Bearer scope=\"appid_default\", error=\"invalid_token\""), onPass: onPass, inProgress:inProgress)
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(expected: "Bearer scope=\"appid_default\", error=\"invalid_token\"", expectation: expectation(description: "test2")), onPass: onPass, inProgress:inProgress)
         
         //auth header does not have correct structure
         parser.headers["Authorization"] =  ["Bearer"]
         request = RouterRequest(request: httpRequest)
         response = RouterResponse(response: httpResponse, router: Router(), request: request)
-        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(shouldFail: true), onFailure: setOnFailure(expected: "Bearer scope=\"appid_default\", error=\"invalid_token\""), onPass: onPass, inProgress:inProgress)
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(expected: "Bearer scope=\"appid_default\", error=\"invalid_token\"", expectation: expectation(description: "test3")), onPass: onPass, inProgress:inProgress)
         
         //expired access token
-        parser.headers["Authorization"] =  ["Bearer " + EXPIRED_ACCESS_TOKEN]
+        parser.headers["Authorization"] =  ["Bearer " + TestConstants.EXPIRED_ACCESS_TOKEN]
         request = RouterRequest(request: httpRequest)
         response = RouterResponse(response: httpResponse, router: Router(), request: request)
-        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(shouldFail: true), onFailure: setOnFailure(expected: "Bearer scope=\"appid_default\", error=\"invalid_token\""), onPass: onPass, inProgress:inProgress)
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(expected: "Bearer scope=\"appid_default\", error=\"invalid_token\"", expectation: expectation(description: "test4")), onPass: onPass, inProgress:inProgress)
         
         //happy flow with no id token
-        parser.headers["Authorization"] = ["Bearer " + ACCESS_TOKEN]
-        print(httpRequest.headers)
+        parser.headers["Authorization"] = ["Bearer " + TestConstants.ACCESS_TOKEN]
         request = RouterRequest(request: httpRequest)
         response = RouterResponse(response: httpResponse, router: Router(), request: request)
-        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "", name: "", provider: ""), onFailure: setOnFailure(expected: "", failTest: true), onPass: onPass, inProgress:inProgress)
+        api.authenticate(request: request, response: response, options: ["scope" : "appid_readuserattr"] , onSuccess: setOnSuccess(id: "", name: "", provider: "", expectation: expectation(description: "test5.01")), onFailure: setOnFailure(expected: ""), onPass: onPass, inProgress:inProgress)
         
         
-        XCTAssertEqual(((request.userInfo as [String:Any])["appIdAuthorizationContext"] as? [String:Any])?["accessToken"] as? String , ACCESS_TOKEN)
-        XCTAssertEqual(((request.userInfo as [String:Any])["appIdAuthorizationContext"] as? [String:Any])?["accessTokenPayload"] as? JSON , try? Utils.parseToken(from: ACCESS_TOKEN)["payload"])
-        //test the scope part
+        XCTAssertEqual(((request.userInfo as [String:Any])["appIdAuthorizationContext"] as? [String:Any])?["accessToken"] as? String , TestConstants.ACCESS_TOKEN)
+        XCTAssertEqual(((request.userInfo as [String:Any])["appIdAuthorizationContext"] as? [String:Any])?["accessTokenPayload"] as? JSON , try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"])
+       
+        //insufficient scope error
+        
+        parser.headers["Authorization"] = ["Bearer " + TestConstants.ACCESS_TOKEN]
+        request = RouterRequest(request: httpRequest)
+        response = RouterResponse(response: httpResponse, router: Router(), request: request)
+        api.authenticate(request: request, response: response, options: ["scope" : "SomeScope"], onSuccess: setOnSuccess(), onFailure: setOnFailure(expected: "Bearer scope=\"appid_default SomeScope\", error=\"insufficient_scope\"", expectation: expectation(description: "test5.1")), onPass: onPass, inProgress:inProgress)
+        
+        
+        
+        
+        
         //expired id token
         
-        //        httpRequest.headers["Authorization"] =  ["Bearer " + ACCESS_TOKEN + " " + EXPIRED_ID_TOKEN]
-        //        request = RouterRequest(request: httpRequest)
-        //        response = RouterResponse(response: httpResponse, router: Router(), request: request)
-        //        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "", name: "", provider: ""), onFailure: setOnFailure(expected: "", failTest: true), onPass: onPass, inProgress:inProgress)
-        
-        //happy flow with id token
-        parser.headers["Authorization"] =  ["Bearer " + ACCESS_TOKEN + " " + ID_TOKEN]
+        httpRequest.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN + " " + TestConstants.EXPIRED_ID_TOKEN]
         request = RouterRequest(request: httpRequest)
         response = RouterResponse(response: httpResponse, router: Router(), request: request)
-        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "b4dff015-3370-4082-b5e0-7dabed91e206", name: "Don Lon", provider: "facebook"), onFailure: setOnFailure(expected: "", failTest: true), onPass: onPass, inProgress:inProgress)
-        XCTAssertEqual(((request.userInfo as [String:Any])["appIdAuthorizationContext"] as? [String:Any])?["accessToken"] as? String , ACCESS_TOKEN)
-        XCTAssertEqual(((request.userInfo as [String:Any])["appIdAuthorizationContext"] as? [String:Any])?["accessTokenPayload"] as? JSON , try? Utils.parseToken(from: ACCESS_TOKEN)["payload"])
-        XCTAssertEqual(((request.userInfo as [String:Any])["appIdAuthorizationContext"] as? [String:Any])?["identityToken"] as? String , ID_TOKEN)
-        XCTAssertEqual(((request.userInfo as [String:Any])["appIdAuthorizationContext"] as? [String:Any])?["identityTokenPayload"] as? JSON , try? Utils.parseToken(from: ID_TOKEN)["payload"])
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(expectation: expectation(description: "test5.5")), onFailure: setOnFailure(expected: ""), onPass: onPass, inProgress:inProgress)
         
+        //happy flow with id token
+        parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN + " " + TestConstants.ID_TOKEN]
+        request = RouterRequest(request: httpRequest)
+        response = RouterResponse(response: httpResponse, router: Router(), request: request)
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "subject", name: "test name", provider: "someprov", expectation: expectation(description: "test6")), onFailure: setOnFailure(expected: ""), onPass: onPass, inProgress:inProgress)
+        XCTAssertEqual(((request.userInfo as [String:Any])["appIdAuthorizationContext"] as? [String:Any])?["accessToken"] as? String , TestConstants.ACCESS_TOKEN)
+        XCTAssertEqual(((request.userInfo as [String:Any])["appIdAuthorizationContext"] as? [String:Any])?["accessTokenPayload"] as? JSON , try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"])
+        XCTAssertEqual(((request.userInfo as [String:Any])["appIdAuthorizationContext"] as? [String:Any])?["identityToken"] as? String , TestConstants.ID_TOKEN)
+        XCTAssertEqual(((request.userInfo as [String:Any])["appIdAuthorizationContext"] as? [String:Any])?["identityTokenPayload"] as? JSON , try? Utils.parseToken(from: TestConstants.ID_TOKEN)["payload"])
+        waitForExpectations(timeout: 1) { error in
+            if let error = error {
+                XCTFail("err: \(error)")
+            }
+        }
         
     }
+    
+    
+  
     
     
     

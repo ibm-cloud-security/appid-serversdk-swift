@@ -95,7 +95,6 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         }
         
         let sessionProfile = request.session?["userProfile"]
-        //TODO: check that the profile is only on session
         let requestProfile = request.userProfile
         if options["forceLogin"] as? Bool != true && options["allowAnonymousLogin"] as? Bool != true {
             if requestProfile != nil || (sessionProfile != nil && (sessionProfile?.count)! > 0) {
@@ -129,6 +128,51 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         }
     }
     
+    internal func handleTokenResponse(tokenRequest:ClientRequest?, tokenResponse:ClientResponse?, tokenData: Data?, tokenError: Swift.Error?, originalRequest:RouterRequest, onFailure: @escaping (HTTPStatusCode?, [String:String]?) -> Void, onSuccess: @escaping (UserProfile) -> Void) {
+        if  tokenData == nil || tokenError != nil || tokenResponse?.status != 200 {
+            let tokenData = tokenData != nil ? String(data: tokenData!, encoding: .utf8) : ""
+            let tokenError = tokenError != nil ? tokenError!.localizedDescription : ""
+            let code = tokenResponse?.status != nil ? String(tokenResponse!.status): ""
+            self.logger.debug("WebAppKituraCredentialsPlugin :: Failed to obtain tokens" + "err:\(tokenError)\nstatus code \(code)\nbody \(tokenData)")
+            onFailure(nil,nil)
+        } else {
+            var body = JSON(data: tokenData!)
+            var appIdAuthorizationContext:JSON = [:]
+            
+            
+            var kituraUserId = ""
+            var kituraDisplayName = ""
+            var kituraProvider = ""
+            
+            if let accessTokenString = body["access_token"].string, let accessTokenPayload = try? Utils.parseToken(from: accessTokenString)["payload"] {
+                // Parse access_token
+                
+                appIdAuthorizationContext["accessToken"].string = accessTokenString
+                appIdAuthorizationContext["accessTokenPayload"] = accessTokenPayload
+            }
+            
+            if let identityTokenString = body["id_token"].string, let identityToken = try? Utils.parseToken(from: identityTokenString), let context = Utils.getAuthorizedIdentities(from: identityToken) {
+                // Parse identity_token
+                appIdAuthorizationContext["identityToken"].string = identityTokenString
+                appIdAuthorizationContext["identityTokenPayload"] = identityToken["payload"]
+                kituraUserId = context.userIdentity.id
+                kituraDisplayName = context.userIdentity.displayName
+                if context.userIdentity.authBy.count > 0 && context.userIdentity.authBy[0]["provider"].string != nil {
+                    kituraProvider =  context.userIdentity.authBy[0]["provider"].stringValue
+                } else {
+                    kituraProvider =  ""
+                }
+            }
+            
+            originalRequest.session?[WebAppKituraCredentialsPlugin.AuthContext] = appIdAuthorizationContext
+            
+            let userProfile = UserProfile(id: kituraUserId, displayName: kituraDisplayName, provider: kituraProvider)
+            onSuccess(userProfile)
+            self.logger.debug("retrieveTokens :: tokens retrieved")
+        }
+    }
+    
+    
     private func retrieveTokens(options:[String:Any], grantCode:String, onFailure: @escaping (HTTPStatusCode?, [String:String]?) -> Void, request:RouterRequest, onSuccess: @escaping (UserProfile) -> Void) {
         logger.debug("WebAppKituraCredentialsPlugin :: retrieveTokens")
         let serviceConfig = self.serviceConfig
@@ -147,48 +191,8 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
             ],
                               headers: ["Authorization" : "basic " + Data(authorization.utf8).base64EncodedString()]).response {
                                 tokenRequest, tokenResponse, tokenData, tokenError in
+                                self.handleTokenResponse(tokenRequest: tokenRequest, tokenResponse: tokenResponse, tokenData: tokenData, tokenError: tokenError, originalRequest: request, onFailure: onFailure, onSuccess: onSuccess)
                                 
-                                if  tokenData == nil || tokenError != nil || tokenResponse?.status != 200 {
-                                    let tokenData = tokenData != nil ? String(data: tokenData!, encoding: .utf8) : ""
-                                    let tokenError = tokenError != nil ? tokenError!.localizedDescription : ""
-                                    let code = tokenResponse?.status != nil ? String(tokenResponse!.status): ""
-                                    self.logger.debug("WebAppKituraCredentialsPlugin :: Failed to obtain tokens" + "err:\(tokenError)\nstatus code \(code)\nbody \(tokenData)")
-                                    onFailure(nil,nil)
-                                } else {
-                                    var body = JSON(data: tokenData!)
-                                    var appIdAuthorizationContext:JSON = [:]
-                                    
-                                    
-                                    var kituraUserId = ""
-                                    var kituraDisplayName = ""
-                                    var kituraProvider = ""
-                                    
-                                    if let accessTokenString = body["access_token"].string, let accessTokenPayload = try? Utils.parseToken(from: accessTokenString)["payload"] {
-                                        // Parse access_token
-                                        
-                                        appIdAuthorizationContext["accessToken"].string = accessTokenString
-                                        appIdAuthorizationContext["accessTokenPayload"] = accessTokenPayload
-                                    }
-                                    
-                                    if let identityTokenString = body["id_token"].string, let identityTokenPayload = try? Utils.parseToken(from: identityTokenString)["payload"], let context = Utils.getAuthorizedIdentities(from: identityTokenPayload) {
-                                        // Parse identity_token
-                                        appIdAuthorizationContext["identityToken"].string = identityTokenString
-                                        appIdAuthorizationContext["identityTokenPayload"] = identityTokenPayload
-                                        kituraUserId = context.userIdentity.id
-                                        kituraDisplayName = context.userIdentity.displayName
-                                        if context.userIdentity.authBy.count > 0 && context.userIdentity.authBy[0]["provider"].string != nil {
-                                            kituraProvider =  context.userIdentity.authBy[0]["provider"].stringValue
-                                        } else {
-                                            kituraProvider =  ""
-                                        }
-                                    }
-                                    
-                                    request.session?[WebAppKituraCredentialsPlugin.AuthContext] = appIdAuthorizationContext
-                                    
-                                    let userProfile = UserProfile(id: kituraUserId, displayName: kituraDisplayName, provider: kituraProvider)
-                                    onSuccess(userProfile)
-                                    self.logger.debug("retrieveTokens :: tokens retrieved")
-                                }
         }
     }
     

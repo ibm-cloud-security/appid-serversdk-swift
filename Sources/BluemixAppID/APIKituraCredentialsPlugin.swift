@@ -102,12 +102,12 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
         }
         
         let requiredScopeElements = requiredScope.components(separatedBy: " ")
-        let suppliedScopeElements = accessToken?["scope"].string?.components(separatedBy: " ")
+        let suppliedScopeElements = accessToken?["payload"]["scope"].string?.components(separatedBy: " ")
         if suppliedScopeElements != nil {
-            for i in 0...requiredScopeElements.count {
+            for i in 0..<requiredScopeElements.count {
                 let requiredScopeElement = requiredScopeElements[i]
                 var found = false
-                for j in 0...suppliedScopeElements!.count {
+                for j in 0..<suppliedScopeElements!.count {
                     let suppliedScopeElement = suppliedScopeElements?[j]
                     if (requiredScopeElement == suppliedScopeElement) {
                         found = true
@@ -134,7 +134,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
         
         if authHeaderComponents.count == 3 {
             let identityTokenString = authHeaderComponents[2]
-            if Utils.isTokenValid(token: identityTokenString) == false {
+            if Utils.isTokenValid(token: identityTokenString) == true {
                 logger.debug("Id token is malformed")
                 
                 if let idTokenString = idTokenString, let idToken = try? Utils.parseToken(from: idTokenString), let authContext = Utils.getAuthorizedIdentities(from: idToken){
