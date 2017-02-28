@@ -201,12 +201,12 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         let scope = DefaultScope + scopeAddition
         let authorizationEndpoint = serviceConfig.oAuthServerUrl + AuthorizationPath
         let redirectUri = serviceConfig.redirectUri
-        var authUrl = "\(authorizationEndpoint)?client_id=\(clientId)&response_type=code&redirect_uri=\(redirectUri)&scope=\(scope)"
-        
+        var query = "client_id=\(clientId)&response_type=code&redirect_uri=\(redirectUri)&scope=\(scope)"
         if (options["allowAnonymousLogin"] as? Bool) == true {
-            authUrl += "&idp=appid_anon"
+            query += "&idp=appid_anon"
         }
-        
+        query = query.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) ?? query
+        let authUrl = "\(authorizationEndpoint)?\(query)"
         return authUrl
     }
     

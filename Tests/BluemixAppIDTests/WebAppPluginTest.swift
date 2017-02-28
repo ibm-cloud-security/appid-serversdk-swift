@@ -51,7 +51,7 @@ class WebAppPluginTest: XCTestCase {
                         "secret": "somesecret",
                         "tenantId": "sometenant",
                         "oauthServerUrl": "someurl",
-                        "redirectUri": "someredirect"]
+                        "redirectUri": "http://someredirect"]
     
     
     func testWebConfig() {
@@ -88,7 +88,7 @@ class WebAppPluginTest: XCTestCase {
         XCTAssertEqual(config.clientId, "someclient")
         XCTAssertEqual(config.tenantId, "sometenant")
         XCTAssertEqual(config.secret, "somesecret")
-        XCTAssertEqual(config.redirectUri, "someredirect")
+        XCTAssertEqual(config.redirectUri, "http://someredirect")
         unsetenv("VCAP_SERVICES")
         unsetenv("VCAP_APPLICATION")
         
@@ -205,7 +205,7 @@ class WebAppPluginTest: XCTestCase {
             }
         }
         // redirect
-        response =  testRouterResponse(response: httpResponse, router: Router(), request: request, redirectUri: "someurl/authorization?client_id=someclient&response_type=code&redirect_uri=someredirect&scope=appid_default", expectation: expectation(description: "test2"))
+        response =  testRouterResponse(response: httpResponse, router: Router(), request: request, redirectUri: "someurl/authorization?client_id=someclient&response_type=code&redirect_uri=http:%2F%2Fsomeredirect&scope=appid_default", expectation: expectation(description: "test2"))
         web.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(), onPass: onPass, inProgress:setInProgress())
         //error on query
         class testRouterRequest : RouterRequest {
@@ -229,7 +229,7 @@ class WebAppPluginTest: XCTestCase {
         
         //redriect with anon scope
         request.session?["userProfile"] = ["key" : "val"]
-        response =  testRouterResponse(response: httpResponse, router: Router(), request: request, redirectUri: "someurl/authorization?client_id=someclient&response_type=code&redirect_uri=someredirect&scope=appid_default&idp=appid_anon", expectation: expectation(description: "test4"))
+        response =  testRouterResponse(response: httpResponse, router: Router(), request: request, redirectUri: "someurl/authorization?client_id=someclient&response_type=code&redirect_uri=http:%2F%2Fsomeredirect&scope=appid_default&idp=appid_anon", expectation: expectation(description: "test4"))
         web.authenticate(request: request, response: response, options: ["allowAnonymousLogin" : true], onSuccess: setOnSuccess(), onFailure: setOnFailure(), onPass: onPass, inProgress:setInProgress())
         
         request.session?["userProfile"] = nil
@@ -251,7 +251,7 @@ class WebAppPluginTest: XCTestCase {
         request.session?[WebAppKituraCredentialsPlugin.AuthContext] = [:]
         
         request.session?[WebAppKituraCredentialsPlugin.AuthContext]["accessTokenPayload"] = try! Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"]
-        response =  testRouterResponse(response: httpResponse, router: Router(), request: request, redirectUri: "someurl/authorization?client_id=someclient&response_type=code&redirect_uri=someredirect&scope=appid_default", expectation: expectation(description: "test8"))
+        response =  testRouterResponse(response: httpResponse, router: Router(), request: request, redirectUri: "someurl/authorization?client_id=someclient&response_type=code&redirect_uri=http:%2F%2Fsomeredirect&scope=appid_default", expectation: expectation(description: "test8"))
         web.authenticate(request: request, response: response, options: ["forceLogin": true], onSuccess: setOnSuccess(), onFailure: setOnFailure(), onPass: onPass, inProgress:setInProgress())
         
         request.session?["userProfile"] = nil
@@ -260,7 +260,7 @@ class WebAppPluginTest: XCTestCase {
         
         request.session?[WebAppKituraCredentialsPlugin.AuthContext]["accessTokenPayload"] = try! Utils.parseToken(from: TestConstants.ANON_TOKEN)["payload"]
         request.session?[WebAppKituraCredentialsPlugin.AuthContext]["accessToken"] = "someaccesstoken"
-        response =  testRouterResponse(response: httpResponse, router: Router(), request: request, redirectUri: "someurl/authorization?client_id=someclient&response_type=code&redirect_uri=someredirect&scope=appid_default&appid_access_token=someaccesstoken", expectation: expectation(description: "test9"))
+        response =  testRouterResponse(response: httpResponse, router: Router(), request: request, redirectUri: "someurl/authorization?client_id=someclient&response_type=code&redirect_uri=http:%2F%2Fsomeredirect&scope=appid_default&appid_access_token=someaccesstoken", expectation: expectation(description: "test9"))
         
         web.authenticate(request: request, response: response, options: ["forceLogin": true], onSuccess: setOnSuccess(), onFailure: setOnFailure(), onPass: onPass, inProgress:setInProgress())
         waitForExpectations(timeout: 1) { error in
