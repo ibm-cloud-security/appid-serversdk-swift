@@ -96,9 +96,15 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         }
         logger.debug("debug msg7")
         let sessionProfile = request.session?["userProfile"]
+        logger.debug("debug msg8")
         let requestProfile = request.userProfile
-        if options["forceLogin"] as? Bool != true && options["allowAnonymousLogin"] as? Bool != true {
-            if requestProfile != nil || (sessionProfile != nil && (sessionProfile?.count)! > 0) {
+        logger.debug("debug msg9")
+        if forceLogin != true && allowAnonymousLogin != true {
+             logger.debug("debug msg10")
+            logger.debug(sessionProfile == nil ? "nil" : "notnil")
+            logger.debug(sessionProfile?.count != nil ? String(sessionProfile!.count)  : "0")
+            
+            if requestProfile != nil || (sessionProfile != nil && (sessionProfile!.count) > 0) {
                 logger.debug("ALREADY AUTHENTICATED!!!")
                 return inProgress()
             }
