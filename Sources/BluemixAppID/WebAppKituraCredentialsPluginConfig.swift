@@ -86,16 +86,15 @@ internal class WebAppKituraCredentialsPluginConfig {
         serviceConfig[SECRET] = options[SECRET] ?? vcapServiceCredentials?[SECRET]
         serviceConfig[OAUTH_SERVER_URL] = options[OAUTH_SERVER_URL] ?? vcapServiceCredentials?[OAUTH_SERVER_URL]
         
-        serviceConfig[REDIRECT_URI] = options[REDIRECT_URI] ?? vcapServiceCredentials?[REDIRECT_URI]
+        serviceConfig[REDIRECT_URI] = options[REDIRECT_URI] ?? ProcessInfo.processInfo.environment[REDIRECT_URI]
         
-        //TODO: WHAT IS VCAP_APPLICATION
         if serviceConfig[REDIRECT_URI] == nil {
             let vcapApplication = ProcessInfo.processInfo.environment[VCAP_APPLICATION]
             if vcapApplication != nil {
                 let vcapApplicationJson = JSON.parse(string: vcapApplication!)
 				let applicationUris = vcapApplicationJson["application_uris"]
 				let uri = applicationUris.count > 0 ? applicationUris[0] : ""
-                serviceConfig[REDIRECT_URI] = "https://\(uri)/ibm/bluemix/appid/callback"
+                serviceConfig[REDIRECT_URI] = "https://\(uri.stringValue)/ibm/bluemix/appid/callback"
             }
         }
         

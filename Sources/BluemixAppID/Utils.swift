@@ -17,13 +17,6 @@ import SwiftyJSON
 import SimpleLogger
 
 extension String{
-    func base64decodedString() -> String?{
-        if let data = self.base64decodedData(){
-            return String(data: data, encoding:String.Encoding.utf8)
-        } else {
-            return nil;
-        }
-    }
     
     func base64decodedData() -> Data? {
         let missing = self.characters.count % 4
@@ -40,16 +33,13 @@ extension String{
     }
 }
 
-internal class Utils {
-	
-	private static let logger = Logger(forName: "BluemixAppIDUtils");
-	
-    public static func getAuthorizedIdentities(from idToken:String) -> AuthorizationContext? {
+public  class Utils {
+    
+    private static let logger = Logger(forName: "BluemixAppIDUtils");
+    
+    public static func getAuthorizedIdentities(from idToken:JSON) -> AuthorizationContext? {
         logger.debug("APIStrategy getAuthorizedIdentities")
-        if let jwt = try? Utils.parseToken(from: idToken) {
-            return  AuthorizationContext(idTokenPayload: jwt["payload"])
-        }
-        return nil
+        return  AuthorizationContext(idTokenPayload: idToken["payload"])
     }
     
     public static func parseToken(from tokenString:String) throws -> JSON {
@@ -81,7 +71,7 @@ internal class Utils {
         return json
     }
     
-    public static func isTokenValid(token:String) -> Bool{
+    public static func isTokenValid(token:String) -> Bool {
         logger.debug("isTokenValid")
         if let jwt = try? parseToken(from: token) {
             let jwtPayload = jwt["payload"].dictionary
@@ -119,5 +109,5 @@ internal class Utils {
             return "nil"
         }
     }
-
+    
 }

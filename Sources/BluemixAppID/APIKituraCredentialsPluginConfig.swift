@@ -17,11 +17,11 @@ import SwiftyJSON
 import SimpleLogger
 
 internal class APIKituraCredentialsPluginConfig {
-    private let VCAP_SERVICES = "VCAP_SERVICES";
-    private let VCAP_SERVICES_CREDENTIALS = "credentials";
-    private let VCAP_SERVICES_SERVICE_NAME = "AdvancedMobileAccess";
-    private let VCAP_APPLICATION = "VCAP_APPLICATION";
-    private let OAUTH_SERVER_URL = "oauthServerUrl";
+    private let VCAP_SERVICES = "VCAP_SERVICES"
+    private let VCAP_SERVICES_CREDENTIALS = "credentials"
+    private let VCAP_SERVICES_SERVICE_NAME = "AdvancedMobileAccess"
+    private let VCAP_APPLICATION = "VCAP_APPLICATION"
+    private let OAUTH_SERVER_URL = "oauthServerUrl"
 	private let logger = Logger(forName: "APIKituraCredentialsPluginConfig")
     var serviceConfig: [String:Any] = [:]
 	
