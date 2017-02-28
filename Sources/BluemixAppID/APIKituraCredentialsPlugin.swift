@@ -25,7 +25,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
     private let Bearer = "Bearer"
     private let AuthHeader = "Authorization"
     private let DefaultScope = "appid_default"
-    
+    public  let AuthContext = "APPID_AUTH_CONTEXT"
     private let logger = Logger(forName: "APIKituraCredentialsPlugin")
     
     private var serviceConfig:APIKituraCredentialsPluginConfig?
@@ -140,7 +140,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
                 if let idTokenString = idTokenString, let idToken = try? Utils.parseToken(from: idTokenString), let authContext = Utils.getAuthorizedIdentities(from: idToken){
                     logger.debug("Id token is present and successfully parsed")
                     // idToken is present and successfully parsed
-                    request.userInfo["AppIDAuthContext"] = authContext
+                    request.userInfo[AuthContext] = authContext
                     authorizationContext["identityToken"] = identityTokenString
                     authorizationContext["identityTokenPayload"] = idToken["payload"]
                     userId = (authContext.userIdentity.id)
@@ -155,7 +155,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
                 logger.debug("Missing id token")
             }
         }
-        request.userInfo["appIdAuthorizationContext"] = authorizationContext
+        request.userInfo[AuthContext] = authorizationContext
         onSuccess(UserProfile(id: userId, displayName: displayName, provider: provider))
     }
 }

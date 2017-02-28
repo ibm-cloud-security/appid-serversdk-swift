@@ -1,3 +1,15 @@
+/*
+ Copyright 2017 IBM Corp.
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+ http://www.apache.org/licenses/LICENSE-2.0
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ */
 import XCTest
 import Kitura
 import SimpleLogger
@@ -116,8 +128,8 @@ class ApiPluginTest: XCTestCase {
         api.authenticate(request: request, response: response, options: ["scope" : "appid_readuserattr"] , onSuccess: setOnSuccess(id: "", name: "", provider: "", expectation: expectation(description: "test5.01")), onFailure: setOnFailure(expected: ""), onPass: onPass, inProgress:inProgress)
         
         
-        XCTAssertEqual(((request.userInfo as [String:Any])["appIdAuthorizationContext"] as? [String:Any])?["accessToken"] as? String , TestConstants.ACCESS_TOKEN)
-        XCTAssertEqual(((request.userInfo as [String:Any])["appIdAuthorizationContext"] as? [String:Any])?["accessTokenPayload"] as? JSON , try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"])
+        XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessToken"] as? String , TestConstants.ACCESS_TOKEN)
+        XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessTokenPayload"] as? JSON , try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"])
        
         //insufficient scope error
         
@@ -142,10 +154,10 @@ class ApiPluginTest: XCTestCase {
         request = RouterRequest(request: httpRequest)
         response = RouterResponse(response: httpResponse, router: Router(), request: request)
         api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "subject", name: "test name", provider: "someprov", expectation: expectation(description: "test6")), onFailure: setOnFailure(expected: ""), onPass: onPass, inProgress:inProgress)
-        XCTAssertEqual(((request.userInfo as [String:Any])["appIdAuthorizationContext"] as? [String:Any])?["accessToken"] as? String , TestConstants.ACCESS_TOKEN)
-        XCTAssertEqual(((request.userInfo as [String:Any])["appIdAuthorizationContext"] as? [String:Any])?["accessTokenPayload"] as? JSON , try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"])
-        XCTAssertEqual(((request.userInfo as [String:Any])["appIdAuthorizationContext"] as? [String:Any])?["identityToken"] as? String , TestConstants.ID_TOKEN)
-        XCTAssertEqual(((request.userInfo as [String:Any])["appIdAuthorizationContext"] as? [String:Any])?["identityTokenPayload"] as? JSON , try? Utils.parseToken(from: TestConstants.ID_TOKEN)["payload"])
+        XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessToken"] as? String , TestConstants.ACCESS_TOKEN)
+        XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessTokenPayload"] as? JSON , try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"])
+        XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["identityToken"] as? String , TestConstants.ID_TOKEN)
+        XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["identityTokenPayload"] as? JSON , try? Utils.parseToken(from: TestConstants.ID_TOKEN)["payload"])
         waitForExpectations(timeout: 1) { error in
             if let error = error {
                 XCTFail("err: \(error)")
