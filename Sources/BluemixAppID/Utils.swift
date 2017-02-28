@@ -90,27 +90,22 @@ public  class Utils {
         var encodedString = ""
         var unchangedCharacters = ""
         let FORM_ENCODE_SET = " \"':;<=>@[]^`{}|/\\?#&!$(),~%"
-        logger.debug("start encode")
+        
         for element: Int in 0x20..<0x7f {
             if !FORM_ENCODE_SET.contains(String(describing: UnicodeScalar(element))) {
                 unchangedCharacters += String(Character(UnicodeScalar(element)!))
             }
         }
-        logger.debug("encode1")
-
+        
         encodedString = str.trimmingCharacters(in: CharacterSet(charactersIn: "\n\r\t"))
         let charactersToRemove = ["\n", "\r", "\t"]
-         logger.debug("encode2")
         for char in charactersToRemove {
             encodedString = encodedString.replacingOccurrences(of: char, with: "")
         }
-         logger.debug("encode3")
         if let encodedString = encodedString.addingPercentEncoding(withAllowedCharacters: CharacterSet(charactersIn: unchangedCharacters)) {
-             logger.debug("encode4")
             return encodedString
         }
         else {
-             logger.debug("encode5")
             return "nil"
         }
     }

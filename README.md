@@ -159,7 +159,7 @@ router.get(CALLBACK_URL,
 router.get(LOGOUT_URL, handler:  { (request, response, next) in
 	kituraCredentials.logOut(request: request)
 	webappKituraCredentialsPlugin.logout(request: request)
-	_ = try? response.redirect(self.LANDING_PAGE_URL)
+	_ = try? response.redirect(LANDING_PAGE_URL)
 })
 
 // Protected area
@@ -196,6 +196,7 @@ let kituraCredentialsAnonymous = Credentials(options: [
 	WebAppKituraCredentialsPlugin.AllowAnonymousLogin: true,
 	WebAppKituraCredentialsPlugin.AllowCreateNewAnonymousUser: true
 ])
+kituraCredentialsAnonymous.register(plugin: webappKituraCredentialsPlugin)
 
 // Explicit anonymous login endpoint
 router.get(LOGIN_ANON_URL,
@@ -204,10 +205,11 @@ router.get(LOGIN_ANON_URL,
 															failureRedirect: LANDING_PAGE_URL
 ))
 
+
 router.get(LOGOUT_URL, handler:  { (request, response, next) in
 	kituraCredentialsAnonymous.logOut(request: request)
 	webappKituraCredentialsPlugin.logout(request: request)
-	_ = try? response.redirect(self.LANDING_PAGE_URL)
+	_ = try? response.redirect(LANDING_PAGE_URL)
 })
 
 ```

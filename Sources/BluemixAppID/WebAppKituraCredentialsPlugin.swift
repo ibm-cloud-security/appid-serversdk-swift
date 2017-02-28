@@ -84,38 +84,27 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         let forceLogin:Bool = options[WebAppKituraCredentialsPlugin.ForceLogin] as? Bool ?? false
         let allowAnonymousLogin:Bool = options[WebAppKituraCredentialsPlugin.AllowAnonymousLogin] as? Bool ?? false
         let allowCreateNewAnonymousUser:Bool = options[WebAppKituraCredentialsPlugin.AllowCreateNewAnonymousUser] as? Bool ?? true
-        logger.debug("debug msg0")
         // If user is already authenticated and new login is not enforced - end processing
         // Otherwise - persist original request url and redirect to authorization
         if (request.userProfile != nil && !forceLogin && !allowAnonymousLogin){
             logger.debug("ALREADY AUTHENTICATED!!!")
             return inProgress()
         } else {
-            logger.debug("debug msg6")
             //			request.session?[OriginalUrl] = JSON(request.originalURL)
         }
-        logger.debug("debug msg7")
         let sessionProfile = request.session?["userProfile"]
-        logger.debug("debug msg8")
         let requestProfile = request.userProfile
-        logger.debug("debug msg9")
         if forceLogin != true && allowAnonymousLogin != true {
-             logger.debug("debug msg10")
-            logger.debug(sessionProfile == nil ? "nil" : "notnil")
-            logger.debug(sessionProfile?.count != nil ? String(sessionProfile!.count)  : "0")
-            
             if requestProfile != nil || (sessionProfile != nil && (sessionProfile!.count) > 0) {
                 logger.debug("ALREADY AUTHENTICATED!!!")
                 return inProgress()
             }
         }
-         logger.debug("debug msg1")
         
         var authUrl = generateAuthorizationUrl(options: options)
-         logger.debug("debug msg100")
+        
         // If there's an existing anonymous access token on session - add it to the request url
         let appIdAuthContext = request.session?[WebAppKituraCredentialsPlugin.AuthContext].dictionary
-         logger.debug("debug msg200")
         if let context = appIdAuthContext, context["accessTokenPayload"]?["amr"][0] == "appid_anon" {
             logger.debug("WebAppKituraCredentialsPlugin :: handleAuthorization :: added anonymous access_token to url")
             authUrl += "&appid_access_token=" + (context["accessToken"]?.string ?? "")
@@ -123,7 +112,6 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         
         // If previous anonymous access token not found and new anonymous users are not allowed - fail
         if appIdAuthContext  == nil && allowAnonymousLogin == true && allowCreateNewAnonymousUser != true {
-             logger.debug("debug msg2")
             logger.warn("Previous anonymous user not found. Not allowed to create new anonymous users.")
             return onFailure(nil,nil)
         }
@@ -207,22 +195,18 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
     }
     
     private func generateAuthorizationUrl(options: [String:Any]) -> String {
-        logger.debug("debug msg110")
         let serviceConfig = self.serviceConfig
         let clientId = serviceConfig.clientId
         let scopeAddition = (options["scope"] as? String) != nil ?  (" " + (options["scope"] as! String)) : ""
         let scope = DefaultScope + scopeAddition
-        logger.debug("debug msg120")
         let authorizationEndpoint = serviceConfig.oAuthServerUrl + AuthorizationPath
         let redirectUri = serviceConfig.redirectUri
-        logger.debug("debug msg130")
-        logger.debug(("\(authorizationEndpoint)?client_id=\(clientId)&response_type=code&redirect_uri=\(redirectUri)&scope=\(scope)"))
         var authUrl = "\(authorizationEndpoint)?client_id=\(clientId)&response_type=code&redirect_uri=\(redirectUri)&scope=\(scope)"
-         logger.debug("debug msg140")
+        
         if (options["allowAnonymousLogin"] as? Bool) == true {
             authUrl += "&idp=appid_anon"
         }
-         logger.debug("debug msg150")
+        
         return authUrl
     }
     
