@@ -146,9 +146,10 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
             
             if let accessTokenString = body["access_token"].string, let accessTokenPayload = try? Utils.parseToken(from: accessTokenString)["payload"] {
                 // Parse access_token
-                
                 appIdAuthorizationContext["accessToken"].string = accessTokenString
                 appIdAuthorizationContext["accessTokenPayload"] = accessTokenPayload
+            } else {
+                return onFailure(nil,nil)
             }
             
             if let identityTokenString = body["id_token"].string, let identityToken = try? Utils.parseToken(from: identityTokenString), let context = Utils.getAuthorizedIdentities(from: identityToken) {
