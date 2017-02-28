@@ -18,7 +18,7 @@ import Credentials
 @testable import Kitura
 import Socket
 import SwiftyJSON
-
+import Foundation
 @testable import BluemixAppID
 
 class ApiPluginTest: XCTestCase {
