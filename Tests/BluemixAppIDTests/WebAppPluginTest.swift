@@ -13,7 +13,7 @@ import SimpleLogger
 @testable import KituraSession
 import Socket
 import SwiftyJSON
-
+import Foundation
 
 @testable import BluemixAppID
 
