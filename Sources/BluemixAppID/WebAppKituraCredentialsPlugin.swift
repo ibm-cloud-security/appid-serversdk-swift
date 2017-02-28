@@ -84,16 +84,17 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         let forceLogin:Bool = options[WebAppKituraCredentialsPlugin.ForceLogin] as? Bool ?? false
         let allowAnonymousLogin:Bool = options[WebAppKituraCredentialsPlugin.AllowAnonymousLogin] as? Bool ?? false
         let allowCreateNewAnonymousUser:Bool = options[WebAppKituraCredentialsPlugin.AllowCreateNewAnonymousUser] as? Bool ?? true
-        
+        logger.debug("debug msg0")
         // If user is already authenticated and new login is not enforced - end processing
         // Otherwise - persist original request url and redirect to authorization
         if (request.userProfile != nil && !forceLogin && !allowAnonymousLogin){
             logger.debug("ALREADY AUTHENTICATED!!!")
             return inProgress()
         } else {
+            logger.debug("debug msg6")
             //			request.session?[OriginalUrl] = JSON(request.originalURL)
         }
-        
+        logger.debug("debug msg7")
         let sessionProfile = request.session?["userProfile"]
         let requestProfile = request.userProfile
         if options["forceLogin"] as? Bool != true && options["allowAnonymousLogin"] as? Bool != true {
@@ -102,7 +103,7 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
                 return inProgress()
             }
         }
-        
+         logger.debug("debug msg1")
         
         var authUrl = generateAuthorizationUrl(options: options)
         
@@ -115,6 +116,7 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         
         // If previous anonymous access token not found and new anonymous users are not allowed - fail
         if appIdAuthContext  == nil && allowAnonymousLogin == true && allowCreateNewAnonymousUser != true {
+             logger.debug("debug msg2")
             logger.warn("Previous anonymous user not found. Not allowed to create new anonymous users.")
             return onFailure(nil,nil)
         }
