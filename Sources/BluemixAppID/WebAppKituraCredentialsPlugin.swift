@@ -112,9 +112,10 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
          logger.debug("debug msg1")
         
         var authUrl = generateAuthorizationUrl(options: options)
-        
+         logger.debug("debug msg100")
         // If there's an existing anonymous access token on session - add it to the request url
         let appIdAuthContext = request.session?[WebAppKituraCredentialsPlugin.AuthContext].dictionary
+         logger.debug("debug msg200")
         if let context = appIdAuthContext, context["accessTokenPayload"]?["amr"][0] == "appid_anon" {
             logger.debug("WebAppKituraCredentialsPlugin :: handleAuthorization :: added anonymous access_token to url")
             authUrl += "&appid_access_token=" + (context["accessToken"]?.string ?? "")
@@ -206,18 +207,21 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
     }
     
     private func generateAuthorizationUrl(options: [String:Any]) -> String {
+        logger.debug("debug msg110")
         let serviceConfig = self.serviceConfig
         let clientId = serviceConfig.clientId
         let scopeAddition = (options["scope"] as? String) != nil ?  (" " + (options["scope"] as! String)) : ""
         let scope = DefaultScope + scopeAddition
+        logger.debug("debug msg120")
         let authorizationEndpoint = serviceConfig.oAuthServerUrl + AuthorizationPath
         let redirectUri = serviceConfig.redirectUri
+        logger.debug("debug msg130")
         var authUrl = Utils.urlEncode("\(authorizationEndpoint)?client_id=\(clientId)&response_type=code&redirect_uri=\(redirectUri)&scope=\(scope)")
-        
+         logger.debug("debug msg140")
         if (options["allowAnonymousLogin"] as? Bool) == true {
             authUrl += "&idp=appid_anon"
         }
-        
+         logger.debug("debug msg150")
         return authUrl
     }
     
