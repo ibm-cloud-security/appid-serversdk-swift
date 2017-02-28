@@ -217,7 +217,7 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         let redirectUri = serviceConfig.redirectUri
         logger.debug("debug msg130")
         logger.debug(("\(authorizationEndpoint)?client_id=\(clientId)&response_type=code&redirect_uri=\(redirectUri)&scope=\(scope)"))
-        var authUrl = Utils.urlEncode("\(authorizationEndpoint)?client_id=\(clientId)&response_type=code&redirect_uri=\(redirectUri)&scope=\(scope)")
+        var authUrl = "\(authorizationEndpoint)?client_id=\(clientId)&response_type=code&redirect_uri=\(redirectUri)&scope=\(scope)"
          logger.debug("debug msg140")
         if (options["allowAnonymousLogin"] as? Bool) == true {
             authUrl += "&idp=appid_anon"
