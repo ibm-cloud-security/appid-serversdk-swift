@@ -226,9 +226,14 @@ class WebAppPluginTest: XCTestCase {
         request2.session = SessionState(id: "someSession", store: InMemoryStore())
         response = RouterResponse(response: httpResponse, router: Router(), request: request2)
         web.authenticate(request: request2, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(expectation: expectation(description: "test3")), onPass: onPass, inProgress:setInProgress())
-        let profile:[String:AnyObject] = ["id" : "someid" as AnyObject, "displayName" : "disp name" as AnyObject, "provider" : "prov" as AnyObject]
-        let json:JSON = JSON(jsonDictionary: profile)
+//        let profile:[String:JSON] = ["id" : , "displayName" : , "provider" : ]
+//        let json:JSON = JSON(jsonDictionary: profile)
         //redriect with anon scope
+        var dictionary = [String:Any]()
+        dictionary["displayName"] = "disp name"
+        dictionary["provider"] = "prov"
+        dictionary["id"] = "someid"
+        let json =  JSON(dictionary)
         request.session?["userProfile"] = json
 
         response =  testRouterResponse(response: httpResponse, router: Router(), request: request, redirectUri: "someurl/authorization?client_id=someclient&response_type=code&redirect_uri=http:%2F%2Fsomeredirect&scope=appid_default&idp=appid_anon", expectation: expectation(description: "test4"))
