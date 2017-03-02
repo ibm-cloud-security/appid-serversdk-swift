@@ -163,17 +163,17 @@ router.get(LOGOUT_URL, handler:  { (request, response, next) in
 })
 
 // Protected area
-router.get("/protected", handler: { (request, response, next) in
-	let appIdAuthContext:JSON? = request.session?[WebAppKituraCredentialsPlugin.AuthContext]
-	let identityTokenPayload:JSON? = appIdAuthContext?["identityTokenPayload"]
+router.get("/protected", handler: kituraCredentials.authenticate(credentialsType: webappKituraCredentialsPlugin.name), { (request, response, next) in
+    let appIdAuthContext:JSON? = request.session?[WebAppKituraCredentialsPlugin.AuthContext]
+    let identityTokenPayload:JSON? = appIdAuthContext?["identityTokenPayload"]
 
-	guard appIdAuthContext?.dictionary != nil, identityTokenPayload?.dictionary != nil else {
-		response.status(.unauthorized)
-		return next()
-	}
+    guard appIdAuthContext?.dictionary != nil, identityTokenPayload?.dictionary != nil else {
+        response.status(.unauthorized)
+        return next()
+    }
 
-	response.send(json: identityTokenPayload!)
-	next()
+    response.send(json: identityTokenPayload!)
+    next()
 })
 
 // Start the server!
