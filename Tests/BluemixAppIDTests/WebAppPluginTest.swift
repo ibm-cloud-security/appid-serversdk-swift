@@ -226,16 +226,17 @@ class WebAppPluginTest: XCTestCase {
         request2.session = SessionState(id: "someSession", store: InMemoryStore())
         response = RouterResponse(response: httpResponse, router: Router(), request: request2)
         web.authenticate(request: request2, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(expectation: expectation(description: "test3")), onPass: onPass, inProgress:setInProgress())
-        
+        var profile:[String:Any] = ["id" : "someid", "displayName" : "disp name", "provider" : "prov"]
+        var json:JSON = JSON(jsonDictionary: profile)
         //redriect with anon scope
-        request.session?["userProfile"] = JSON(jsonDictionary: ["id" : "someid", "displayName" : "disp name", "provider" : "prov"])
+        request.session?["userProfile"] = json
 
         response =  testRouterResponse(response: httpResponse, router: Router(), request: request, redirectUri: "someurl/authorization?client_id=someclient&response_type=code&redirect_uri=http:%2F%2Fsomeredirect&scope=appid_default&idp=appid_anon", expectation: expectation(description: "test4"))
         web.authenticate(request: request, response: response, options: ["allowAnonymousLogin" : true], onSuccess: setOnSuccess(), onFailure: setOnFailure(), onPass: onPass, inProgress:setInProgress(expectation: expectation(description: "test4.5")))
         
         request.session?["userProfile"] = nil
         //session has user profile on it
-        request.session?["userProfile"] = JSON(jsonDictionary: ["id" : "someid", "displayName" : "disp name", "provider" : "prov"])
+        request.session?["userProfile"] = json
             web.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "someid", name: "disp name", provider: "prov", expectation: expectation(description: "test5")), onFailure: setOnFailure(), onPass: onPass, inProgress:setInProgress())
         
         request.session?["userProfile"] = nil
@@ -248,8 +249,7 @@ class WebAppPluginTest: XCTestCase {
         request.userProfile = UserProfile(id:"1", displayName: "2", provider: "3")
         web.authenticate(request: request, response: response, options: ["forceLogin" : true, "allowAnonymousLogin" : true, "allowCreateNewAnonymousUser": false], onSuccess: setOnSuccess(), onFailure: setOnFailure(expectation: expectation(description: "test7")), onPass: onPass, inProgress:setInProgress())
         //a previous access token exists - not anonymous context
-        request.session?["userProfile"] = JSON(jsonDictionary: ["id" : "someid", "displayName" : "disp name", "provider" : "prov"])
-
+        request.session?["userProfile"] = json
         request.session?[WebAppKituraCredentialsPlugin.AuthContext] = [:]
         
         request.session?[WebAppKituraCredentialsPlugin.AuthContext]["accessTokenPayload"] = try! Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"]
