@@ -86,28 +86,4 @@ public  class Utils {
         }
     }
     
-    public static func urlEncode(_ str:String) -> String{
-        var encodedString = ""
-        var unchangedCharacters = ""
-        let FORM_ENCODE_SET = " \"':;<=>@[]^`{}|/\\?#&!$(),~%"
-        
-        for element: Int in 0x20..<0x7f {
-            if !FORM_ENCODE_SET.contains(String(describing: UnicodeScalar(element))) {
-                unchangedCharacters += String(Character(UnicodeScalar(element)!))
-            }
-        }
-        
-        encodedString = str.trimmingCharacters(in: CharacterSet(charactersIn: "\n\r\t"))
-        let charactersToRemove = ["\n", "\r", "\t"]
-        for char in charactersToRemove {
-            encodedString = encodedString.replacingOccurrences(of: char, with: "")
-        }
-        if let encodedString = encodedString.addingPercentEncoding(withAllowedCharacters: CharacterSet(charactersIn: unchangedCharacters)) {
-            return encodedString
-        }
-        else {
-            return "nil"
-        }
-    }
-    
 }

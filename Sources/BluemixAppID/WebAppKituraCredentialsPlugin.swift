@@ -72,6 +72,45 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         }
     }
     
+    private func restoreUserProfile(from session: SessionState) -> UserProfile? {
+        let sessionUserProfile = session["userProfile"]
+        if sessionUserProfile.type != .null  {
+            if let dictionary = sessionUserProfile.dictionaryObject,
+                let displayName = dictionary["displayName"] as? String,
+                let provider = dictionary["provider"] as? String,
+                let id = dictionary["id"] as? String {
+                
+                var userName: UserProfile.UserProfileName?
+                if let familyName = dictionary["familyName"] as? String,
+                    let givenName = dictionary["givenName"] as? String,
+                    let middleName = dictionary["middleName"] as? String {
+                    userName = UserProfile.UserProfileName(familyName: familyName, givenName: givenName, middleName: middleName)
+                }
+                
+                var userEmails: Array<UserProfile.UserProfileEmail>?
+                if let emails = dictionary["emails"] as? [String], let types = dictionary["emailTypes"] as? [String] {
+                    userEmails = Array()
+                    for (index, email) in emails.enumerated() {
+                        let userEmail = UserProfile.UserProfileEmail(value: email, type: types[index])
+                        userEmails!.append(userEmail)
+                    }
+                }
+                
+                var userPhotos: Array<UserProfile.UserProfilePhoto>?
+                if let photos = dictionary["photos"] as? [String] {
+                    userPhotos = Array()
+                    for photo in photos {
+                        let userPhoto = UserProfile.UserProfilePhoto(photo)
+                        userPhotos!.append(userPhoto)
+                    }
+                }
+                
+                return UserProfile(id: id, displayName: displayName, provider: provider, name: userName, emails: userEmails, photos: userPhotos, extendedProperties: dictionary["extendedProperties"] as? [String:Any])
+            }
+        }
+        return nil
+    }
+    
     private func handleAuthorization (request: RouterRequest,
                                       response: RouterResponse,
                                       options: [String:Any], // Options is read only
@@ -84,25 +123,24 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         let forceLogin:Bool = options[WebAppKituraCredentialsPlugin.ForceLogin] as? Bool ?? false
         let allowAnonymousLogin:Bool = options[WebAppKituraCredentialsPlugin.AllowAnonymousLogin] as? Bool ?? false
         let allowCreateNewAnonymousUser:Bool = options[WebAppKituraCredentialsPlugin.AllowCreateNewAnonymousUser] as? Bool ?? true
-        
         // If user is already authenticated and new login is not enforced - end processing
         // Otherwise - persist original request url and redirect to authorization
         if (request.userProfile != nil && !forceLogin && !allowAnonymousLogin){
             logger.debug("ALREADY AUTHENTICATED!!!")
-            return inProgress()
+            return onSuccess(request.userProfile!)
         } else {
             //			request.session?[OriginalUrl] = JSON(request.originalURL)
         }
-        
         let sessionProfile = request.session?["userProfile"]
         let requestProfile = request.userProfile
-        if options["forceLogin"] as? Bool != true && options["allowAnonymousLogin"] as? Bool != true {
-            if requestProfile != nil || (sessionProfile != nil && (sessionProfile?.count)! > 0) {
+        if forceLogin != true && allowAnonymousLogin != true {
+            if requestProfile != nil || (sessionProfile != nil && (sessionProfile!.count) > 0) {
                 logger.debug("ALREADY AUTHENTICATED!!!")
-                return inProgress()
+                if let profile = restoreUserProfile(from: request.session!) {
+                    return onSuccess(profile)
+                }
             }
         }
-        
         
         var authUrl = generateAuthorizationUrl(options: options)
         
@@ -123,6 +161,7 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         
         do {
             try response.redirect(authUrl)
+            inProgress()
         } catch {
             onFailure(nil, nil)
         }
@@ -204,12 +243,12 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         let scope = DefaultScope + scopeAddition
         let authorizationEndpoint = serviceConfig.oAuthServerUrl + AuthorizationPath
         let redirectUri = serviceConfig.redirectUri
-        var authUrl = Utils.urlEncode("\(authorizationEndpoint)?client_id=\(clientId)&response_type=code&redirect_uri=\(redirectUri)&scope=\(scope)")
-        
+        var query = "client_id=\(clientId)&response_type=code&redirect_uri=\(redirectUri)&scope=\(scope)"
         if (options["allowAnonymousLogin"] as? Bool) == true {
-            authUrl += "&idp=appid_anon"
+            query += "&idp=appid_anon"
         }
-        
+        query = query.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) ?? query
+        let authUrl = "\(authorizationEndpoint)?\(query)"
         return authUrl
     }
     
