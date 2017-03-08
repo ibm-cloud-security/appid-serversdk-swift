@@ -62,7 +62,7 @@ In case of valid tokens the APIKituraCredentialsPlugin will pass control to the 
 ```swift
 import Kitura
 import Credentials
-
+import BluemixAppID
 let router = Router()
 
 // The oauthServerUrl value can be obtained from Service Credentials
@@ -100,6 +100,7 @@ import Kitura
 import KituraSession
 import Credentials
 import SwiftyJSON
+import BluemixAppID
 
 // Below URLs will be used for AppID OAuth flows
 var LOGIN_URL = "/ibm/bluemix/appid/login"
