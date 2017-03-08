@@ -62,7 +62,7 @@ In case of valid tokens the APIKituraCredentialsPlugin will pass control to the 
 ```swift
 import Kitura
 import Credentials
-
+import BluemixAppID
 let router = Router()
 
 // The oauthServerUrl value can be obtained from Service Credentials
@@ -100,6 +100,7 @@ import Kitura
 import KituraSession
 import Credentials
 import SwiftyJSON
+import BluemixAppID
 
 // Below URLs will be used for AppID OAuth flows
 var LOGIN_URL = "/ibm/bluemix/appid/login"
@@ -159,21 +160,21 @@ router.get(CALLBACK_URL,
 router.get(LOGOUT_URL, handler:  { (request, response, next) in
 	kituraCredentials.logOut(request: request)
 	webappKituraCredentialsPlugin.logout(request: request)
-	_ = try? response.redirect(self.LANDING_PAGE_URL)
+	_ = try? response.redirect(LANDING_PAGE_URL)
 })
 
 // Protected area
-router.get("/protected", handler: { (request, response, next) in
-	let appIdAuthContext:JSON? = request.session?[WebAppKituraCredentialsPlugin.AuthContext]
-	let identityTokenPayload:JSON? = appIdAuthContext?["identityTokenPayload"]
+router.get("/protected", handler: kituraCredentials.authenticate(credentialsType: webappKituraCredentialsPlugin.name), { (request, response, next) in
+    let appIdAuthContext:JSON? = request.session?[WebAppKituraCredentialsPlugin.AuthContext]
+    let identityTokenPayload:JSON? = appIdAuthContext?["identityTokenPayload"]
 
-	guard appIdAuthContext?.dictionary != nil, identityTokenPayload?.dictionary != nil else {
-		response.status(.unauthorized)
-		return next()
-	}
+    guard appIdAuthContext?.dictionary != nil, identityTokenPayload?.dictionary != nil else {
+        response.status(.unauthorized)
+        return next()
+    }
 
-	response.send(json: identityTokenPayload!)
-	next()
+    response.send(json: identityTokenPayload!)
+    next()
 })
 
 // Start the server!
@@ -196,6 +197,7 @@ let kituraCredentialsAnonymous = Credentials(options: [
 	WebAppKituraCredentialsPlugin.AllowAnonymousLogin: true,
 	WebAppKituraCredentialsPlugin.AllowCreateNewAnonymousUser: true
 ])
+kituraCredentialsAnonymous.register(plugin: webappKituraCredentialsPlugin)
 
 // Explicit anonymous login endpoint
 router.get(LOGIN_ANON_URL,
@@ -204,10 +206,11 @@ router.get(LOGIN_ANON_URL,
 															failureRedirect: LANDING_PAGE_URL
 ))
 
+
 router.get(LOGOUT_URL, handler:  { (request, response, next) in
 	kituraCredentialsAnonymous.logOut(request: request)
 	webappKituraCredentialsPlugin.logout(request: request)
-	_ = try? response.redirect(self.LANDING_PAGE_URL)
+	_ = try? response.redirect(LANDING_PAGE_URL)
 })
 
 ```
