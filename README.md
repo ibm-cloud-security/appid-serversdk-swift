@@ -40,7 +40,7 @@ import PackageDescription
 
 let package = Package(
     dependencies: [
-        .Package(url: "https://github.com/ibm-cloud-security/appid-serversdk-swift.git", majorVersion: 0)
+        .Package(url: "https://github.com/ibm-cloud-security/appid-serversdk-swift.git", majorVersion: 1)
     ]
 )
 ```
