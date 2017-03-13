@@ -23,13 +23,10 @@ Swift SDK for the Bluemix AppID service
 
 ### Summary
 
-This SDK provides Kitura Credentials plugins for protecting two types of resources - APIs and Web applications. The major difference between these two resource types is the way client is challenged.
+This SDK provides Kitura Credentials plugins for protecting Web applications.
 
-If you use the APIKituraCredentialsPlugin the unauthenticated client will get HTTP 401 response with list of scopes to obtain authorization for as described below.
 
-> Note that APIKituraCredentialsPlugin is currently in Beta phase and it should not be used in production environment. Due to the fact that CommonCrypto is not yet available in open sourced version of Swift the access token digital signature is not being validated.
-
-If you use the WebAppKituraCredentialsPlugin the unauthenticated client will get HTTP 302 redirect to the login page hosted by AppID service (or, depending on configuration, directly to identity provider login page). WebAppKituraCredentialsPlugin, as name suggests, best fit for building web applications.
+When using WebAppKituraCredentialsPlugin the unauthenticated client will get HTTP 302 redirect to the login page hosted by AppID service (or, depending on configuration, directly to identity provider login page).
 
 Read the [official documentation](TODO: ADD LINK) for information about getting started with Bluemix AppID Service.
 
@@ -43,54 +40,14 @@ import PackageDescription
 
 let package = Package(
     dependencies: [
-        .Package(url: "https://github.com/ibm-cloud-security/appid-serversdk-swift.git", majorVersion: 0)
+        .Package(url: "https://github.com/ibm-cloud-security/appid-serversdk-swift.git", majorVersion: 1)
     ]
 )
 ```
 * 0.0.x releases were tested on OSX and Linux with Swift 3.0.2
 
 ### Example Usage
-Below find two examples of using this SDK to protect APIs and Web applications.
-
-#### Protecting APIs using the APIKituraCredentialsPlugin
-APIKituraCredentialsPlugin expects the request to contain an Authorization header with valid access token and optionally identity token. See AppID docs for additional information. The expected header structure is `Authorization=Bearer {access_token} [{id_token}]`
-
-In case of invalid/expired tokens the APIKituraCredentialsPlugin will return HTTP 401 with `Www-Authenticate=Bearer scope="{scope}" error="{error}"`. The `error` component is optional.
-
-In case of valid tokens the APIKituraCredentialsPlugin will pass control to the next middleware while injecting the `appIdAuthorizationContext` property into request object. This property will contain original access and identity tokens as well as decoded payload information as plain JSON objects.
-
-```swift
-import Kitura
-import Credentials
-import BluemixAppID
-let router = Router()
-
-// The oauthServerUrl value can be obtained from Service Credentials
-// tab in the AppID Dashboard. You're not required to provide this argument if
-// your Kitura application runs on Bluemix and is bound to the
-// AppID service instance. In this case AppID configuration will be obtained
-// using VCAP_SERVICES environment variable.
-let options = [
-	"oauthServerUrl": "https://appid-oauth.stage1.mybluemix.net/oauth/v3/768b5d51-37b0-44f7-a351-54fe59a67d18"
-]
-
-let apiKituraCredentialsPlugin = APIKituraCredentialsPlugin(options: options)
-let kituraCredentials = Credentials()
-kituraCredentials.register(plugin: apiKituraCredentialsPlugin)
-
-// Declare the API you want to protect
-router.all("/api/protected", middleware: [BodyParser(), kituraCredentials])
-
-router.get("/api/protected") { (req, res, next) in
-	let name = req.userProfile?.displayName ?? "Anonymous"
-	res.status(.OK)
-	res.send("Hello from protected resource, \(name)")
-	next()
-}
-
-Kitura.addHTTPServer(onPort: 1234, with: router)
-Kitura.run()
-```
+Below is an example of using this SDK to protect Web applications.
 
 #### Protecting web applications using WebAppKituraCredentialsPlugin
 WebAppKituraCredentialsPlugin is based on the OAuth2 authorization_code grant flow and should be used for web applications that use browsers. The plugin provides tools to easily implement authentication and authorization flows. WebAppKituraCredentialsPlugin provides mechanisms to detect unauthenticated attempts to access protected resources. The WebAppKituraCredentialsPlugin will automatically redirect user's browser to the authentication page. After successful authentication user will be taken back to the web application's callback URL (redirectUri), which will once again use WebAppKituraCredentialsPlugin to obtain access and identity tokens from AppID service. After obtaining these tokens the WebAppKituraCredentialsPlugin will store them in HTTP session under WebAppKituraCredentialsPlugin.AuthContext key. In a scalable cloud environment it is recommended to persist HTTP sessions in a scalable storage like Redis to ensure they're available accross server app instances.
