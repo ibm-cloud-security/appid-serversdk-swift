@@ -100,7 +100,7 @@ internal class WebAppKituraCredentialsPluginConfig {
         
         guard serviceConfig[CLIENT_ID] != nil && serviceConfig[SECRET] != nil && serviceConfig[OAUTH_SERVER_URL] != nil && serviceConfig[TENANT_ID] != nil && serviceConfig[REDIRECT_URI] != nil else {
             logger.error("Failed to initialize WebAppKituraCredentialsPluginConfig. All requests to protected endpoints will be rejected")
-            logger.error("Ensure your app is either bound to an AppID service instance or pass required parameters in the strategy constructor")
+            logger.error("Ensure your app is either bound to an App ID service instance or pass required parameters in the strategy constructor")
             return
         }
         
