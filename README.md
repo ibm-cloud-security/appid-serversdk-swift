@@ -28,7 +28,7 @@ This SDK provides Kitura Credentials plugins for protecting Web applications.
 
 When using WebAppKituraCredentialsPlugin the unauthenticated client will get HTTP 302 redirect to the login page hosted by App ID service (or, depending on configuration, directly to identity provider login page).
 
-Read the [official documentation](TODO: ADD LINK) for information about getting started with Bluemix App ID Service.
+Read the [official documentation](https://console.ng.bluemix.net/docs/services/appid/protecting-resources-swift.html#protecting-resources-swift) for information about getting started with Bluemix App ID Service.
 
 ### Requirements
 * Swift 3.0.2
