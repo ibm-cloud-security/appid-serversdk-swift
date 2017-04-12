@@ -4,11 +4,11 @@ os:
 language: generic
 env:
   global:
-  - SWIFT_VERSION=3.0.2
+  - SWIFT_VERSION=3.1
 
 sudo: required
 dist: trusty
-osx_image: xcode8.2
+osx_image: xcode8.3
 
 branches:
   only:
@@ -30,7 +30,7 @@ install:
   - git --version
 
 script:
-  - swift build --clean # clean built artifacts if present
+  - swift package clean # clean built artifacts if present
   - swift package fetch # clones all dependencies
   - swift build # build project
   - swift test #run tests
