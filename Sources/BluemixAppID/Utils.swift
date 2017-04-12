@@ -86,4 +86,14 @@ public  class Utils {
         }
     }
     
+    public static func parseJsonStringtoDictionary(_ jsonString:String) throws -> [String:Any] {
+        do {
+            guard let data = jsonString.data(using: String.Encoding.utf8), let responseJson =  try JSONSerialization.jsonObject(with: data, options: []) as? [String:Any] else {
+                throw AppIDError.jsonUtilsError
+            }
+            return responseJson as [String:Any]
+        }
+    }
+    
+    
 }
