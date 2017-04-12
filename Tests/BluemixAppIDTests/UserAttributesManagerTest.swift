@@ -74,12 +74,14 @@ class UserAttributesManagerTest: XCTestCase {
                                                                                            "oauthServerUrl": "someurl",
                                                                                            "redirectUri": "http://someredirect",
                                                                                            "profilesUrl": "https://someUrl"])
+    var expectation:XCTestExpectation?
+    
     
     func setOnFailure(expectation: XCTestExpectation? = nil, error: Swift.Error? = nil) {
         if expectation == nil {
             XCTFail()
         } else {
-            XCTAssert(error.debugDescription.range(of: expectation!.description) != nil)
+            XCTAssert(error.debugDescription.range(of: expectation!.expectationDescription) != nil)
             expectation!.fulfill()
         }
         
@@ -89,7 +91,7 @@ class UserAttributesManagerTest: XCTestCase {
         if expectation == nil {
             XCTFail()
         } else {
-            XCTAssert(body.description.range(of: expectation!.description) != nil)
+            XCTAssert(body.description.range(of: expectation!.expectationDescription) != nil)
             expectation!.fulfill()
         }
         
