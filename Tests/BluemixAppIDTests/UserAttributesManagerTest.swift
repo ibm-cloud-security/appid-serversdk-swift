@@ -26,9 +26,7 @@ import Socket
 @testable import BluemixAppID
 
 class UserAttributesManagerTest: XCTestCase {
-    
     class MockUserAttributeManger : UserAttributeManager {
-        
         override func handleRequest(attributeName: String?, attributeValue: String?, method:String, accessToken: String,completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
             
             
@@ -37,7 +35,7 @@ class UserAttributesManagerTest: XCTestCase {
             }
             else if accessToken.range(of:"return_code") != nil {
                 let statusCode : Int! = Int(accessToken.components(separatedBy: "_")[2])
-                switch (statusCode) {
+                switch statusCode {
                 case 401,403:
                     completionHandler(UserAttributeError.userAttributeFailure("Unauthorized"), nil)
                     break
@@ -55,11 +53,11 @@ class UserAttributesManagerTest: XCTestCase {
         
     }
     
-    let AccessTokenStatusCode_401 = "accessToken,return_code_401"
-    let AccessTokenStatusCode_403 = "accessToken,return_code_403"
-    let AccessTokenStatusCode_404 = "accessToken,return_code_404"
-    let AccessToken_Success = "accessToken"
-    let AccessToken_Failure = "accessToken,return_error"
+    let AccessTokenStatusCode401 = "accessToken,return_code_401"
+    let AccessTokenStatusCode403 = "accessToken,return_code_403"
+    let AccessTokenStatusCode404 = "accessToken,return_code_404"
+    let AccessTokenSuccess = "accessToken"
+    let AccessTokenFailure = "accessToken,return_error"
     
     let logger = Logger(forName:"UserAttributesManagerTest")
     
@@ -117,7 +115,7 @@ class UserAttributesManagerTest: XCTestCase {
     func testSetAttribute() {
         
         // expired accessToken - should fail "Unexpected error"
-        userAttManager?.setAttribute(accessToken : AccessToken_Failure, attributeName : "name", attributeValue : "abc", completionHandler : { (err, res) in
+        userAttManager?.setAttribute(accessToken : AccessTokenFailure, attributeName : "name", attributeValue : "abc", completionHandler : { (err, res) in
             if err == nil {
                 self.setOnSuccess()
             } else {
@@ -125,7 +123,7 @@ class UserAttributesManagerTest: XCTestCase {
             }})
         
         // expired accessToken - should fail "Unauthorized 401"
-        userAttManager?.setAttribute(accessToken : AccessTokenStatusCode_401, attributeName : "name", attributeValue : "abc", completionHandler : { (err, res) in
+        userAttManager?.setAttribute(accessToken : AccessTokenStatusCode401, attributeName : "name", attributeValue : "abc", completionHandler : { (err, res) in
             if err == nil {
                 self.setOnSuccess()
             } else {
@@ -133,7 +131,7 @@ class UserAttributesManagerTest: XCTestCase {
             }})
         
         // expired accessToken - should fail "Unauthorized 403"
-        userAttManager?.setAttribute(accessToken : AccessTokenStatusCode_403, attributeName : "name", attributeValue : "abc", completionHandler : { (err, res) in
+        userAttManager?.setAttribute(accessToken : AccessTokenStatusCode403, attributeName : "name", attributeValue : "abc", completionHandler : { (err, res) in
             if err == nil {
                 self.setOnSuccess()
             } else {
@@ -141,7 +139,7 @@ class UserAttributesManagerTest: XCTestCase {
             }})
         
         // expired accessToken - should fail "Not found 404"
-        userAttManager?.setAttribute(accessToken : AccessTokenStatusCode_404, attributeName : "name", attributeValue : "abc", completionHandler : { (err, res) in
+        userAttManager?.setAttribute(accessToken : AccessTokenStatusCode404, attributeName : "name", attributeValue : "abc", completionHandler : { (err, res) in
             if err == nil {
                 self.setOnSuccess()
             } else {
@@ -149,7 +147,7 @@ class UserAttributesManagerTest: XCTestCase {
             }})
         
         // valid accessToken - should succeed and return the body
-        userAttManager?.setAttribute(accessToken : AccessToken_Success, attributeName : "name", attributeValue : "abc", completionHandler : { (err, res) in
+        userAttManager?.setAttribute(accessToken : AccessTokenSuccess, attributeName : "name", attributeValue : "abc", completionHandler : { (err, res) in
             if err == nil {
                 self.setOnSuccess(expectation: self.expectation(description: "body"),body: res!)
             } else {
@@ -166,7 +164,7 @@ class UserAttributesManagerTest: XCTestCase {
     func testGetAttribute() {
         
         // expired accessToken - should fail "Unexpected error"
-        userAttManager?.getAttribute(accessToken : AccessToken_Failure, attributeName : "name", completionHandler : { (err, res) in
+        userAttManager?.getAttribute(accessToken : AccessTokenFailure, attributeName : "name", completionHandler : { (err, res) in
             if err == nil {
                 self.setOnSuccess()
             } else {
@@ -174,7 +172,7 @@ class UserAttributesManagerTest: XCTestCase {
             }})
         
         // expired accessToken - should fail "Unauthorized 401"
-        userAttManager?.getAttribute(accessToken : AccessTokenStatusCode_401, attributeName : "name", completionHandler : { (err, res) in
+        userAttManager?.getAttribute(accessToken : AccessTokenStatusCode401, attributeName : "name", completionHandler : { (err, res) in
             if err == nil {
                 self.setOnSuccess()
             } else {
@@ -182,7 +180,7 @@ class UserAttributesManagerTest: XCTestCase {
             }})
         
         // expired accessToken - should fail "Unauthorized 403"
-        userAttManager?.getAttribute(accessToken : AccessTokenStatusCode_403, attributeName : "name", completionHandler : { (err, res) in
+        userAttManager?.getAttribute(accessToken : AccessTokenStatusCode403, attributeName : "name", completionHandler : { (err, res) in
             if err == nil {
                 self.setOnSuccess()
             } else {
@@ -190,7 +188,7 @@ class UserAttributesManagerTest: XCTestCase {
             }})
         
         // expired accessToken - should fail "Not found 404"
-        userAttManager?.getAttribute(accessToken : AccessTokenStatusCode_404, attributeName : "name", completionHandler : { (err, res) in
+        userAttManager?.getAttribute(accessToken : AccessTokenStatusCode404, attributeName : "name", completionHandler : { (err, res) in
             if err == nil {
                 self.setOnSuccess()
             } else {
@@ -198,7 +196,7 @@ class UserAttributesManagerTest: XCTestCase {
             }})
         
         // valid accessToken - should succeed and return the body
-        userAttManager?.getAttribute(accessToken : AccessToken_Success, attributeName : "name", completionHandler : { (err, res) in
+        userAttManager?.getAttribute(accessToken : AccessTokenSuccess, attributeName : "name", completionHandler : { (err, res) in
             if err == nil {
                 self.setOnSuccess(expectation: self.expectation(description: "body"),body: res!)
             } else {
@@ -218,44 +216,44 @@ class UserAttributesManagerTest: XCTestCase {
     func testDeleteAttribute() {
         
         // expired accessToken - should fail "Unexpected error"
-        userAttManager?.deleteAttribute(accessToken : AccessToken_Failure, attributeName : "name", completionHandler : { (err, res) in
+        userAttManager?.deleteAttribute(accessToken : AccessTokenFailure, attributeName : "name", completionHandler : { (err, res) in
             if err == nil {
                 self.setOnSuccess()
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Unexpected error"),error: err!)
-            }});
+            }})
         
         // expired accessToken - should fail "Unauthorized 401"
-        userAttManager?.deleteAttribute(accessToken : AccessTokenStatusCode_401, attributeName : "name", completionHandler : { (err, res) in
+        userAttManager?.deleteAttribute(accessToken : AccessTokenStatusCode401, attributeName : "name", completionHandler : { (err, res) in
             if err == nil {
                 self.setOnSuccess()
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Unauthorized"),error: err!)
-            }});
+            }})
         
         // expired accessToken - should fail "Unauthorized 403"
-        userAttManager?.deleteAttribute(accessToken : AccessTokenStatusCode_403, attributeName : "name", completionHandler : { (err, res) in
+        userAttManager?.deleteAttribute(accessToken : AccessTokenStatusCode403, attributeName : "name", completionHandler : { (err, res) in
             if err == nil {
                 self.setOnSuccess()
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Unauthorized"),error: err!)
-            }});
+            }})
         
         // expired accessToken - should fail "Not found 404"
-        userAttManager?.deleteAttribute(accessToken : AccessTokenStatusCode_404, attributeName : "name", completionHandler : { (err, res) in
+        userAttManager?.deleteAttribute(accessToken : AccessTokenStatusCode404, attributeName : "name", completionHandler : { (err, res) in
             if err == nil {
                 self.setOnSuccess()
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Not found"),error: err!)
-            }});
+            }})
         
         // valid accessToken - should succeed and return the body
-        userAttManager?.deleteAttribute(accessToken : AccessToken_Success, attributeName : "name", completionHandler : { (err, res) in
+        userAttManager?.deleteAttribute(accessToken : AccessTokenSuccess, attributeName : "name", completionHandler : { (err, res) in
             if err == nil {
                 self.setOnSuccess(expectation: self.expectation(description: "body"),body: res!)
             } else {
                 self.setOnFailure()
-            }});
+            }})
         
         waitForExpectations(timeout: 1) { error in
             if let error = error {
@@ -268,15 +266,15 @@ class UserAttributesManagerTest: XCTestCase {
     func testGetAllAttributes() {
         
         // expired accessToken - should fail "Unexpected error"
-        userAttManager?.getAllAttributes(accessToken : AccessToken_Failure, completionHandler : { (err, res) in
+        userAttManager?.getAllAttributes(accessToken : AccessTokenFailure, completionHandler : { (err, res) in
             if err == nil {
                 self.setOnSuccess()
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Unexpected error"),error: err!)
-            }});
+            }})
         
         // expired accessToken - should fail "Unauthorized 401"
-        userAttManager?.getAllAttributes(accessToken : AccessTokenStatusCode_401, completionHandler : { (err, res) in
+        userAttManager?.getAllAttributes(accessToken : AccessTokenStatusCode401, completionHandler : { (err, res) in
             if err == nil {
                 self.setOnSuccess()
             } else {
@@ -284,7 +282,7 @@ class UserAttributesManagerTest: XCTestCase {
             }})
         
         // expired accessToken - should fail "Unauthorized 403"
-        userAttManager?.getAllAttributes(accessToken : AccessTokenStatusCode_403, completionHandler : { (err, res) in
+        userAttManager?.getAllAttributes(accessToken : AccessTokenStatusCode403, completionHandler : { (err, res) in
             if err == nil {
                 self.setOnSuccess()
             } else {
@@ -292,7 +290,7 @@ class UserAttributesManagerTest: XCTestCase {
             }})
         
         // expired accessToken - should fail "Not found 404"
-        userAttManager?.getAllAttributes(accessToken : AccessTokenStatusCode_404, completionHandler : { (err, res) in
+        userAttManager?.getAllAttributes(accessToken : AccessTokenStatusCode404, completionHandler : { (err, res) in
             if err == nil {
                 self.setOnSuccess()
             } else {
@@ -300,7 +298,7 @@ class UserAttributesManagerTest: XCTestCase {
             }})
         
         // valid accessToken - should succeed and return the body
-        userAttManager?.getAllAttributes(accessToken : AccessToken_Success, completionHandler : { (err, res) in
+        userAttManager?.getAllAttributes(accessToken : AccessTokenSuccess, completionHandler : { (err, res) in
             if err == nil {
                 self.setOnSuccess(expectation: self.expectation(description: "body"),body: res!)
             } else {

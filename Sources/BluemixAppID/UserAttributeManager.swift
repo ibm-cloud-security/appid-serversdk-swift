@@ -1,4 +1,3 @@
-
 import Foundation
 import Kitura
 import Credentials
@@ -116,7 +115,7 @@ public class UserAttributeManager {
         })
         
         if attributeValue != nil {
-            request.write(from: attributeValue!)//add attributeValue to body if setAttribute() was called
+            request.write(from: attributeValue!)// add attributeValue to body if setAttribute() was called
         }
         
         request.set(.method(method))
