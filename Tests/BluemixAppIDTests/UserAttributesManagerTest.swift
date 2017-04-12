@@ -77,21 +77,21 @@ class UserAttributesManagerTest: XCTestCase {
     var expectation:XCTestExpectation?
     
     
-    func setOnFailure(expectation: XCTestExpectation? = nil, error: Swift.Error? = nil) {
+    func setOnFailure(expectation: XCTestExpectation? = nil, error: Swift.Error? = nil,_ expectedMsg: String = "") {
         if expectation == nil {
             XCTFail()
         } else {
-            XCTAssert(error.debugDescription.range(of: expectation!.expectationDescription) != nil)
+            XCTAssert(error.debugDescription.range(of: expectedMsg) != nil)
             expectation!.fulfill()
         }
         
     }
     
-    func setOnSuccess(expectation:XCTestExpectation? = nil, body:[String:Any] = [:]) {
+    func setOnSuccess(expectation:XCTestExpectation? = nil, body:[String:Any] = [:],_ expectedMsg: String = "") {
         if expectation == nil {
             XCTFail()
         } else {
-            XCTAssert(body.description.range(of: expectation!.expectationDescription) != nil)
+            XCTAssert(body.description.range(of: expectedMsg) != nil)
             expectation!.fulfill()
         }
         
@@ -121,7 +121,7 @@ class UserAttributesManagerTest: XCTestCase {
             if err == nil {
                 self.setOnSuccess()
             } else {
-                self.setOnFailure(expectation: self.expectation(description: "Unexpected error"),error: err!)
+                self.setOnFailure(expectation: self.expectation(description: "Unexpected error"),error: err!, "Unexpected error")
             }})
         
         // expired accessToken - should fail "Unauthorized 401"
@@ -129,7 +129,7 @@ class UserAttributesManagerTest: XCTestCase {
             if err == nil {
                 self.setOnSuccess()
             } else {
-                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"),error: err!)
+                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"),error: err!,"Unauthorized")
             }})
         
         // expired accessToken - should fail "Unauthorized 403"
@@ -137,7 +137,7 @@ class UserAttributesManagerTest: XCTestCase {
             if err == nil {
                 self.setOnSuccess()
             } else {
-                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"),error: err!)
+                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"),error: err!, "Unauthorized")
             }})
         
         // expired accessToken - should fail "Not found 404"
@@ -145,13 +145,13 @@ class UserAttributesManagerTest: XCTestCase {
             if err == nil {
                 self.setOnSuccess()
             } else {
-                self.setOnFailure(expectation: self.expectation(description: "Not found"),error: err!)
+                self.setOnFailure(expectation: self.expectation(description: "Not found"), error: err!, "Not found")
             }})
         
         // valid accessToken - should succeed and return the body
         userAttManager?.setAttribute(accessToken : AccessTokenSuccess, attributeName : "name", attributeValue : "abc", completionHandler : { (err, res) in
             if err == nil {
-                self.setOnSuccess(expectation: self.expectation(description: "body"),body: res!)
+                self.setOnSuccess(expectation: self.expectation(description: "body"),body: res!, "body")
             } else {
                 self.setOnFailure()
             }})
@@ -170,7 +170,7 @@ class UserAttributesManagerTest: XCTestCase {
             if err == nil {
                 self.setOnSuccess()
             } else {
-                self.setOnFailure(expectation: self.expectation(description: "Unexpected error"),error: err!)
+                self.setOnFailure(expectation: self.expectation(description: "Unexpected error"), error: err!, "Unexpected error")
             }})
         
         // expired accessToken - should fail "Unauthorized 401"
@@ -178,7 +178,7 @@ class UserAttributesManagerTest: XCTestCase {
             if err == nil {
                 self.setOnSuccess()
             } else {
-                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"),error: err!)
+                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: err!, "Unauthorized")
             }})
         
         // expired accessToken - should fail "Unauthorized 403"
@@ -186,7 +186,7 @@ class UserAttributesManagerTest: XCTestCase {
             if err == nil {
                 self.setOnSuccess()
             } else {
-                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"),error: err!)
+                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: err!, "Unauthorized")
             }})
         
         // expired accessToken - should fail "Not found 404"
@@ -194,13 +194,13 @@ class UserAttributesManagerTest: XCTestCase {
             if err == nil {
                 self.setOnSuccess()
             } else {
-                self.setOnFailure(expectation: self.expectation(description: "Not found"),error: err!)
+                self.setOnFailure(expectation: self.expectation(description: "Not found"), error: err!, "Not found")
             }})
         
         // valid accessToken - should succeed and return the body
         userAttManager?.getAttribute(accessToken : AccessTokenSuccess, attributeName : "name", completionHandler : { (err, res) in
             if err == nil {
-                self.setOnSuccess(expectation: self.expectation(description: "body"),body: res!)
+                self.setOnSuccess(expectation: self.expectation(description: "body"), body: res!, "body")
             } else {
                 self.setOnFailure()
             }})
@@ -222,7 +222,7 @@ class UserAttributesManagerTest: XCTestCase {
             if err == nil {
                 self.setOnSuccess()
             } else {
-                self.setOnFailure(expectation: self.expectation(description: "Unexpected error"),error: err!)
+                self.setOnFailure(expectation: self.expectation(description: "Unexpected error"), error: err!, "Unexpected error")
             }})
         
         // expired accessToken - should fail "Unauthorized 401"
@@ -230,7 +230,7 @@ class UserAttributesManagerTest: XCTestCase {
             if err == nil {
                 self.setOnSuccess()
             } else {
-                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"),error: err!)
+                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: err!, "Unauthorized")
             }})
         
         // expired accessToken - should fail "Unauthorized 403"
@@ -238,7 +238,7 @@ class UserAttributesManagerTest: XCTestCase {
             if err == nil {
                 self.setOnSuccess()
             } else {
-                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"),error: err!)
+                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: err!, "Unauthorized")
             }})
         
         // expired accessToken - should fail "Not found 404"
@@ -246,13 +246,13 @@ class UserAttributesManagerTest: XCTestCase {
             if err == nil {
                 self.setOnSuccess()
             } else {
-                self.setOnFailure(expectation: self.expectation(description: "Not found"),error: err!)
+                self.setOnFailure(expectation: self.expectation(description: "Not found"), error: err!, "Not found")
             }})
         
         // valid accessToken - should succeed and return the body
         userAttManager?.deleteAttribute(accessToken : AccessTokenSuccess, attributeName : "name", completionHandler : { (err, res) in
             if err == nil {
-                self.setOnSuccess(expectation: self.expectation(description: "body"),body: res!)
+                self.setOnSuccess(expectation: self.expectation(description: "body"), body: res!, "body")
             } else {
                 self.setOnFailure()
             }})
@@ -272,7 +272,7 @@ class UserAttributesManagerTest: XCTestCase {
             if err == nil {
                 self.setOnSuccess()
             } else {
-                self.setOnFailure(expectation: self.expectation(description: "Unexpected error"),error: err!)
+                self.setOnFailure(expectation: self.expectation(description: "Unexpected error"), error: err!, "Unexpected error")
             }})
         
         // expired accessToken - should fail "Unauthorized 401"
@@ -280,7 +280,7 @@ class UserAttributesManagerTest: XCTestCase {
             if err == nil {
                 self.setOnSuccess()
             } else {
-                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"),error: err!)
+                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: err!, "Unauthorized")
             }})
         
         // expired accessToken - should fail "Unauthorized 403"
@@ -288,7 +288,7 @@ class UserAttributesManagerTest: XCTestCase {
             if err == nil {
                 self.setOnSuccess()
             } else {
-                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"),error: err!)
+                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: err!, "Unauthorized")
             }})
         
         // expired accessToken - should fail "Not found 404"
@@ -296,13 +296,13 @@ class UserAttributesManagerTest: XCTestCase {
             if err == nil {
                 self.setOnSuccess()
             } else {
-                self.setOnFailure(expectation: self.expectation(description: "Not found"),error: err!)
+                self.setOnFailure(expectation: self.expectation(description: "Not found"), error: err!, "Not found")
             }})
         
         // valid accessToken - should succeed and return the body
         userAttManager?.getAllAttributes(accessToken : AccessTokenSuccess, completionHandler : { (err, res) in
             if err == nil {
-                self.setOnSuccess(expectation: self.expectation(description: "body"),body: res!)
+                self.setOnSuccess(expectation: self.expectation(description: "body"), body: res!, "body")
             } else {
                 self.setOnFailure()
             }})
