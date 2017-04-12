@@ -27,9 +27,8 @@ import Socket
 
 class UserAttributesManagerTest: XCTestCase {
     class MockUserAttributeManger : UserAttributeManager {
+        
         override func handleRequest(attributeName: String?, attributeValue: String?, method:String, accessToken: String,completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
-            
-            
             if accessToken.range(of:"return_error") != nil {
                 completionHandler(UserAttributeError.userAttributeFailure("Unexpected error"), nil)
             }

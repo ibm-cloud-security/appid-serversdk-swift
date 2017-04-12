@@ -10,13 +10,12 @@ import KituraSession
 
 
 public class UserAttributeManager {
-    
     private let VcapServices = "VCAP_SERVICES"
     private let VcapServicesCredntials = "credentials"
     private let VcapServicesServiceName = "AdvancedMobileAccess"
     
     private let UserProfileServerURL = "profilesUrl"
-    private let AttributesEndpoint = "/api/v1/attributes";
+    private let AttributesEndpoint = "/api/v1/attributes"
     
     private let logger = Logger(forName: "UserAttributeManager")
     
@@ -84,7 +83,7 @@ public class UserAttributeManager {
         
         self.logger.debug("UserAttributeManager :: handle Request - " + method + " " + (attributeName ?? "all"))
         
-        var url:String = serviceConfig[UserProfileServerURL] as! String + AttributesEndpoint + "/"
+        var url:String = (serviceConfig[UserProfileServerURL] as? String)! + AttributesEndpoint + "/"
         if attributeName != nil {
             url += attributeName!
         }
