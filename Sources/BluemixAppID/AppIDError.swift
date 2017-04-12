@@ -17,8 +17,8 @@ import Foundation
 public enum AppIDError: String, Error {
     case Unauthorized = "Unauthorized"
     case FailedParsingAuthContext = "Failed to parse authorization context"
+    case jsonUtilsError = "json is malformed"
 }
-
 internal enum AppIDErrorInternal: String, Error {
     case AuthorizationHeaderNotFound = "Authorization header not found"
     case InvalidAuthHeaderFormat = "Invalid authorization header format. Expected format 'Bearer accessToken idToken'"
