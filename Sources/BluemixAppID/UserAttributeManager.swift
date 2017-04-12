@@ -12,12 +12,12 @@ import KituraSession
 
 public class UserAttributeManager {
     
-    private let VCAP_SERVICES = "VCAP_SERVICES"
-    private let VCAP_SERVICES_CREDENTIALS = "credentials"
-    private let VCAP_SERVICES_SERVICE_NAME = "AdvancedMobileAccess"
+    private let VcapServices = "VCAP_SERVICES"
+    private let VcapServicesCredntials = "credentials"
+    private let VcapServicesServiceName = "AdvancedMobileAccess"
     
-    private let USER_PROFILE_SERVER_URL = "profilesUrl"
-    private let ATTRIBUTES_ENDPOINT = "/api/v1/attributes";
+    private let UserProfileServerURL = "profilesUrl"
+    private let AttributesEndpoint = "/api/v1/attributes";
     
     private let logger = Logger(forName: "UserAttributeManager")
     
@@ -27,21 +27,21 @@ public class UserAttributeManager {
     
     public init(options:[String:Any]?) {
         let options = options ?? [:]
-        let vcapString = ProcessInfo.processInfo.environment[VCAP_SERVICES] ?? ""
+        let vcapString = ProcessInfo.processInfo.environment[VcapServices] ?? ""
         let vcapServices = JSON.parse(string: vcapString)
         var vcapServiceCredentials: [String:Any]? = [:]
         if vcapServices.dictionary != nil {
             for (key,value) in vcapServices.dictionary! {
-                if key.hasPrefix(VCAP_SERVICES_SERVICE_NAME) {
-                    vcapServiceCredentials = (value.array?[0])?.dictionaryObject?[VCAP_SERVICES_CREDENTIALS] as? [String : Any]
+                if key.hasPrefix(VcapServicesServiceName) {
+                    vcapServiceCredentials = (value.array?[0])?.dictionaryObject?[VcapServicesCredntials] as? [String : Any]
                     break
                 }
             }
         }
         
-        serviceConfig[USER_PROFILE_SERVER_URL] = options[USER_PROFILE_SERVER_URL] ?? vcapServiceCredentials?[USER_PROFILE_SERVER_URL]
+        serviceConfig[UserProfileServerURL] = options[UserProfileServerURL] ?? vcapServiceCredentials?[UserProfileServerURL]
         
-        guard serviceConfig[USER_PROFILE_SERVER_URL] != nil else {
+        guard serviceConfig[UserProfileServerURL] != nil else {
             logger.error("Ensure your app is either bound to an App ID service instance or pass required profilesUrl parameter to the constructor")
             return
         }
@@ -85,23 +85,23 @@ public class UserAttributeManager {
         
         self.logger.debug("UserAttributeManager :: handle Request - " + method + " " + (attributeName ?? "all"))
         
-        var url:String = serviceConfig[USER_PROFILE_SERVER_URL] as! String + ATTRIBUTES_ENDPOINT + "/"
-        if(attributeName != nil) {
+        var url:String = serviceConfig[UserProfileServerURL] as! String + AttributesEndpoint + "/"
+        if attributeName != nil {
             url += attributeName!
         }
         
         let request = HTTP.request(url, callback: {response in
-            if (response?.status == 401 || response?.status == 403){
+            if response?.status == 401 || response?.status == 403 {
                 self.logger.error("Unauthorized")
                 completionHandler(UserAttributeError.userAttributeFailure("Unauthorized"), nil)
-            } else if (response?.status == 404){
+            } else if response?.status == 404 {
                 self.logger.error("Not found")
                 completionHandler(UserAttributeError.userAttributeFailure("Not found"), nil)
-            } else if ((response?.status)! >= 200 && (response?.status)! < 300){
+            } else if (response?.status)! >= 200 && (response?.status)! < 300 {
                 var responseJson : [String:Any] = [:]
                 do{
                     let body:String? = try response?.readString()
-                    if(body != nil){
+                    if body != nil {
                         responseJson =  try Utils.parseJsonStringtoDictionary(body!)
                     }
                     completionHandler(nil, responseJson)
@@ -109,23 +109,19 @@ public class UserAttributeManager {
                     completionHandler(UserAttributeError.userAttributeFailure("Failed to parse server response - failed to parse json"), nil)
                 }
             }
-            else{
-                self.logger.error("Unexpected error");
+            else {
+                self.logger.error("Unexpected error")
                 completionHandler(UserAttributeError.userAttributeFailure("Unexpected error") , nil)
             }
         })
         
-        if(attributeValue != nil){
-            request.write(from: attributeValue!) //add attributeValue to body if setAttribute() was called
+        if attributeValue != nil {
+            request.write(from: attributeValue!)//add attributeValue to body if setAttribute() was called
         }
         
         request.set(.method(method))
         request.set(.headers(["Authorization":"Bearer " + accessToken]))
         request.end()
     }
+    
 }
-
-
-
-
-

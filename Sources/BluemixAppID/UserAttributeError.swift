@@ -14,7 +14,7 @@ import Foundation
 
 public enum UserAttributeError: Error {
     case userAttributeFailure(String)
-
+    
     var description: String {
         switch self {
         case .userAttributeFailure(let msg) :
