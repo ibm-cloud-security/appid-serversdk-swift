@@ -17,7 +17,7 @@ public class UserAttributeManager {
     private let AttributesEndpoint = "/api/v1/attributes"
     private let logger = Logger(forName: "UserAttributeManager")
     var serviceConfig: [String:Any] = [:]
-    
+
     public init(options:[String:Any]?) {
         let options = options ?? [:]
         let vcapString = ProcessInfo.processInfo.environment[VcapServices] ?? ""
