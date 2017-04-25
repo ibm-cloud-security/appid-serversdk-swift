@@ -57,9 +57,7 @@ class UserAttributesManagerTest: XCTestCase {
     let AccessTokenStatusCode404 = "accessToken,return_code_404"
     let AccessTokenSuccess = "accessToken"
     let AccessTokenFailure = "accessToken,return_error"
-
     let logger = Logger(forName:"UserAttributesManagerTest")
-    
     let fullOptions =  ["clientId": "someclient",
                         "secret": "somesecret",
                         "tenantId": "sometenant",
@@ -219,7 +217,7 @@ class UserAttributesManagerTest: XCTestCase {
                 XCTFail("err: \(error)")
             }
         }
-        
+
     }
 
 
@@ -330,5 +328,5 @@ class UserAttributesManagerTest: XCTestCase {
             }
         }
     }
-    
+
 }

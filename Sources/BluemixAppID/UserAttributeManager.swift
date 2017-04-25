@@ -62,7 +62,7 @@ public class UserAttributeManager {
                                   completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
 
         handleRequest(attributeName: nil, attributeValue: nil, method: "get", accessToken: accessToken, completionHandler: completionHandler)
-        
+
     }
 
     public func deleteAttribute (accessToken: String,
