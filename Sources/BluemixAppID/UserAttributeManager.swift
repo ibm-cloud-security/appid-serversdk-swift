@@ -13,7 +13,6 @@ public class UserAttributeManager {
     private let VcapServices = "VCAP_SERVICES"
     private let VcapServicesCredntials = "credentials"
     private let VcapServicesServiceName = "AdvancedMobileAccess"
-    
     private let UserProfileServerURL = "profilesUrl"
     private let AttributesEndpoint = "/api/v1/attributes"
     

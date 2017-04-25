@@ -27,7 +27,6 @@ import Socket
 
 class UserAttributesManagerTest: XCTestCase {
     class MockUserAttributeManger : UserAttributeManager {
-        
         override func handleRequest(attributeName: String?, attributeValue: String?, method:String, accessToken: String,completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
             if accessToken.range(of:"return_error") != nil {
                 completionHandler(UserAttributeError.userAttributeFailure("Unexpected error"), nil)
@@ -121,7 +120,9 @@ class UserAttributesManagerTest: XCTestCase {
                 self.setOnSuccess()
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Unexpected error"),error: err!, "Unexpected error")
-            }})
+            }
+        }
+        )
         
         // expired accessToken - should fail "Unauthorized 401"
         userAttManager?.setAttribute(accessToken : AccessTokenStatusCode401, attributeName : "name", attributeValue : "abc", completionHandler : { (err, res) in
