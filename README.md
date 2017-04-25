@@ -32,7 +32,7 @@ Read the [official documentation](https://console.ng.bluemix.net/docs/services/a
 
 ### Requirements
 * Swift 3.1
-* Kitura 1.6
+* Kitura 1.7
 
 ### Installation
 ```swift
@@ -44,6 +44,7 @@ let package = Package(
     ]
 )
 ```
+* 1.0.x releases were tested on OSX and Linux with Swift 3.1 and 3.1.1
 * 0.0.x releases were tested on OSX and Linux with Swift 3.0.2
 
 ### Example Usage
