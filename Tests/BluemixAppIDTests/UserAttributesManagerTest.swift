@@ -27,6 +27,7 @@ import Socket
 
 class UserAttributesManagerTest: XCTestCase {
     class MockUserAttributeManger : UserAttributeManager {
+        
         override func handleRequest(attributeName: String?, attributeValue: String?, method:String, accessToken: String,completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
             if accessToken.range(of:"return_error") != nil {
                 completionHandler(UserAttributeError.userAttributeFailure("Unexpected error"), nil)
@@ -48,7 +49,6 @@ class UserAttributesManagerTest: XCTestCase {
                 completionHandler(nil, ["body":"body"])
             }
         }
-        
     }
     
     let AccessTokenStatusCode401 = "accessToken,return_code_401"
@@ -121,8 +121,7 @@ class UserAttributesManagerTest: XCTestCase {
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Unexpected error"),error: err!, "Unexpected error")
             }
-        }
-        )
+        })
         
         // expired accessToken - should fail "Unauthorized 401"
         userAttManager?.setAttribute(accessToken : AccessTokenStatusCode401, attributeName : "name", attributeValue : "abc", completionHandler : { (err, res) in
@@ -130,7 +129,8 @@ class UserAttributesManagerTest: XCTestCase {
                 self.setOnSuccess()
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Unauthorized"),error: err!,"Unauthorized")
-            }})
+            }
+        })
         
         // expired accessToken - should fail "Unauthorized 403"
         userAttManager?.setAttribute(accessToken : AccessTokenStatusCode403, attributeName : "name", attributeValue : "abc", completionHandler : { (err, res) in
@@ -138,7 +138,8 @@ class UserAttributesManagerTest: XCTestCase {
                 self.setOnSuccess()
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Unauthorized"),error: err!, "Unauthorized")
-            }})
+            }
+        })
         
         // expired accessToken - should fail "Not found 404"
         userAttManager?.setAttribute(accessToken : AccessTokenStatusCode404, attributeName : "name", attributeValue : "abc", completionHandler : { (err, res) in
@@ -146,7 +147,8 @@ class UserAttributesManagerTest: XCTestCase {
                 self.setOnSuccess()
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Not found"), error: err!, "Not found")
-            }})
+            }
+        })
         
         // valid accessToken - should succeed and return the body
         userAttManager?.setAttribute(accessToken : AccessTokenSuccess, attributeName : "name", attributeValue : "abc", completionHandler : { (err, res) in
@@ -154,7 +156,8 @@ class UserAttributesManagerTest: XCTestCase {
                 self.setOnSuccess(expectation: self.expectation(description: "body"),body: res!, "body")
             } else {
                 self.setOnFailure()
-            }})
+            }
+        })
         
         waitForExpectations(timeout: 1) { error in
             if let error = error {
@@ -171,7 +174,8 @@ class UserAttributesManagerTest: XCTestCase {
                 self.setOnSuccess()
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Unexpected error"), error: err!, "Unexpected error")
-            }})
+            }
+        })
         
         // expired accessToken - should fail "Unauthorized 401"
         userAttManager?.getAttribute(accessToken : AccessTokenStatusCode401, attributeName : "name", completionHandler : { (err, res) in
@@ -179,7 +183,8 @@ class UserAttributesManagerTest: XCTestCase {
                 self.setOnSuccess()
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: err!, "Unauthorized")
-            }})
+            }
+        })
         
         // expired accessToken - should fail "Unauthorized 403"
         userAttManager?.getAttribute(accessToken : AccessTokenStatusCode403, attributeName : "name", completionHandler : { (err, res) in
@@ -187,7 +192,8 @@ class UserAttributesManagerTest: XCTestCase {
                 self.setOnSuccess()
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: err!, "Unauthorized")
-            }})
+            }
+        })
         
         // expired accessToken - should fail "Not found 404"
         userAttManager?.getAttribute(accessToken : AccessTokenStatusCode404, attributeName : "name", completionHandler : { (err, res) in
@@ -195,7 +201,8 @@ class UserAttributesManagerTest: XCTestCase {
                 self.setOnSuccess()
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Not found"), error: err!, "Not found")
-            }})
+            }
+        })
         
         // valid accessToken - should succeed and return the body
         userAttManager?.getAttribute(accessToken : AccessTokenSuccess, attributeName : "name", completionHandler : { (err, res) in
@@ -203,7 +210,8 @@ class UserAttributesManagerTest: XCTestCase {
                 self.setOnSuccess(expectation: self.expectation(description: "body"), body: res!, "body")
             } else {
                 self.setOnFailure()
-            }})
+            }
+        })
         
         waitForExpectations(timeout: 1) { error in
             if let error = error {
@@ -223,7 +231,8 @@ class UserAttributesManagerTest: XCTestCase {
                 self.setOnSuccess()
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Unexpected error"), error: err!, "Unexpected error")
-            }})
+            }
+        })
         
         // expired accessToken - should fail "Unauthorized 401"
         userAttManager?.deleteAttribute(accessToken : AccessTokenStatusCode401, attributeName : "name", completionHandler : { (err, res) in
@@ -231,7 +240,8 @@ class UserAttributesManagerTest: XCTestCase {
                 self.setOnSuccess()
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: err!, "Unauthorized")
-            }})
+            }
+        })
         
         // expired accessToken - should fail "Unauthorized 403"
         userAttManager?.deleteAttribute(accessToken : AccessTokenStatusCode403, attributeName : "name", completionHandler : { (err, res) in
@@ -239,7 +249,8 @@ class UserAttributesManagerTest: XCTestCase {
                 self.setOnSuccess()
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: err!, "Unauthorized")
-            }})
+            }
+        })
         
         // expired accessToken - should fail "Not found 404"
         userAttManager?.deleteAttribute(accessToken : AccessTokenStatusCode404, attributeName : "name", completionHandler : { (err, res) in
@@ -247,7 +258,8 @@ class UserAttributesManagerTest: XCTestCase {
                 self.setOnSuccess()
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Not found"), error: err!, "Not found")
-            }})
+            }
+        })
         
         // valid accessToken - should succeed and return the body
         userAttManager?.deleteAttribute(accessToken : AccessTokenSuccess, attributeName : "name", completionHandler : { (err, res) in
@@ -255,7 +267,8 @@ class UserAttributesManagerTest: XCTestCase {
                 self.setOnSuccess(expectation: self.expectation(description: "body"), body: res!, "body")
             } else {
                 self.setOnFailure()
-            }})
+            }
+        })
         
         waitForExpectations(timeout: 1) { error in
             if let error = error {
@@ -273,7 +286,8 @@ class UserAttributesManagerTest: XCTestCase {
                 self.setOnSuccess()
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Unexpected error"), error: err!, "Unexpected error")
-            }})
+            }
+        })
         
         // expired accessToken - should fail "Unauthorized 401"
         userAttManager?.getAllAttributes(accessToken : AccessTokenStatusCode401, completionHandler : { (err, res) in
@@ -281,7 +295,8 @@ class UserAttributesManagerTest: XCTestCase {
                 self.setOnSuccess()
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: err!, "Unauthorized")
-            }})
+            }
+        })
         
         // expired accessToken - should fail "Unauthorized 403"
         userAttManager?.getAllAttributes(accessToken : AccessTokenStatusCode403, completionHandler : { (err, res) in
@@ -289,7 +304,8 @@ class UserAttributesManagerTest: XCTestCase {
                 self.setOnSuccess()
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: err!, "Unauthorized")
-            }})
+            }
+        })
         
         // expired accessToken - should fail "Not found 404"
         userAttManager?.getAllAttributes(accessToken : AccessTokenStatusCode404, completionHandler : { (err, res) in
@@ -297,7 +313,8 @@ class UserAttributesManagerTest: XCTestCase {
                 self.setOnSuccess()
             } else {
                 self.setOnFailure(expectation: self.expectation(description: "Not found"), error: err!, "Not found")
-            }})
+            }
+        })
         
         // valid accessToken - should succeed and return the body
         userAttManager?.getAllAttributes(accessToken : AccessTokenSuccess, completionHandler : { (err, res) in
@@ -305,7 +322,8 @@ class UserAttributesManagerTest: XCTestCase {
                 self.setOnSuccess(expectation: self.expectation(description: "body"), body: res!, "body")
             } else {
                 self.setOnFailure()
-            }})
+            }
+        })
         
         waitForExpectations(timeout: 1) { error in
             if let error = error {

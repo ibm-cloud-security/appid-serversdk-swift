@@ -15,12 +15,8 @@ public class UserAttributeManager {
     private let VcapServicesServiceName = "AdvancedMobileAccess"
     private let UserProfileServerURL = "profilesUrl"
     private let AttributesEndpoint = "/api/v1/attributes"
-    
     private let logger = Logger(forName: "UserAttributeManager")
-    
-    
     var serviceConfig: [String:Any] = [:]
-    
     
     public init(options:[String:Any]?) {
         let options = options ?? [:]
