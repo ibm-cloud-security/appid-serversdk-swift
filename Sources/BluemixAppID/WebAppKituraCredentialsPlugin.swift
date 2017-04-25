@@ -172,7 +172,7 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
             let tokenData = tokenData != nil ? String(data: tokenData!, encoding: .utf8) : ""
             let tokenError = tokenError != nil ? tokenError!.localizedDescription : ""
             let code = tokenResponse?.status != nil ? String(tokenResponse!.status): ""
-            self.logger.debug("WebAppKituraCredentialsPlugin :: Failed to obtain tokens" + "err:\(tokenError)\nstatus code \(code)\nbody \(tokenData)")
+            self.logger.debug("WebAppKituraCredentialsPlugin :: Failed to obtain tokens" + "err:\(tokenError)\nstatus code \(code)\nbody \(String(describing: tokenData))")
             onFailure(nil,nil)
         } else {
             var body = JSON(data: tokenData!)

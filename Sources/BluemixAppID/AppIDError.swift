@@ -10,15 +10,13 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
-
-
 import Foundation
 
 public enum AppIDError: String, Error {
     case Unauthorized = "Unauthorized"
     case FailedParsingAuthContext = "Failed to parse authorization context"
+    case jsonUtilsError = "json is malformed"
 }
-
 internal enum AppIDErrorInternal: String, Error {
     case AuthorizationHeaderNotFound = "Authorization header not found"
     case InvalidAuthHeaderFormat = "Invalid authorization header format. Expected format 'Bearer accessToken idToken'"
