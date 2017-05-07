@@ -19,6 +19,7 @@ internal class WebAppKituraCredentialsPluginConfig {
     private let VCAP_SERVICES = "VCAP_SERVICES"
     private let VCAP_SERVICES_CREDENTIALS = "credentials"
     private let VCAP_SERVICES_SERVICE_NAME = "AdvancedMobileAccess"
+    private let VCAP_SERVICES_SERVICE_NAME2 = "AppID"
     private let VCAP_APPLICATION = "VCAP_APPLICATION"
     private let TENANT_ID = "tenantId"
     private let CLIENT_ID = "clientId"
@@ -74,7 +75,7 @@ internal class WebAppKituraCredentialsPluginConfig {
         var vcapServiceCredentials: [String:Any]? = [:]
         if vcapServices.dictionary != nil {
             for (key,value) in vcapServices.dictionary! {
-                if key.hasPrefix(VCAP_SERVICES_SERVICE_NAME) {
+                if key.hasPrefix(VCAP_SERVICES_SERVICE_NAME)||key.hasPrefix(VCAP_SERVICES_SERVICE_NAME2) {
                     vcapServiceCredentials = (value.array?[0])?.dictionaryObject?[VCAP_SERVICES_CREDENTIALS] as? [String : Any]
                     break
                 }
