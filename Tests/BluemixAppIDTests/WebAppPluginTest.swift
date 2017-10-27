@@ -53,7 +53,6 @@ class WebAppPluginTest: XCTestCase {
                         "oauthServerUrl": "someurl",
                         "redirectUri": "http://someredirect"]
     
-    
     func testWebConfig() {
         unsetenv("VCAP_SERVICES")
         unsetenv("VCAP_APPLICATION")
@@ -170,9 +169,13 @@ class WebAppPluginTest: XCTestCase {
         
         let web = WebAppKituraCredentialsPlugin(options: fullOptions)
         let httpRequest =  HTTPServerRequest(socket: try! Socket.create(family: .inet), httpParser: nil)
-        let httpResponse = HTTPServerResponse(processor: IncomingHTTPSocketProcessor(socket: try! Socket.create(family: .inet), using: delegate()), request: httpRequest)
+        let httpResponse = HTTPServerResponse(processor: IncomingHTTPSocketProcessor(socket: try! Socket.create(family: .inet), using: delegate(), keepalive: .disabled), request: httpRequest)
         let request = RouterRequest(request: httpRequest)
-        var response = RouterResponse(response: httpResponse, router: Router(), request: request)
+
+        var routerStack = Stack<Router>()
+        routerStack.push(Router())
+
+        var response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request)
         
         web.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(expectation: expectation(description: "test1")), onPass: onPass, inProgress:setInProgress())
         //no session
@@ -183,10 +186,13 @@ class WebAppPluginTest: XCTestCase {
         class testRouterResponse : RouterResponse {
             public var redirectUri:String
             public var expectation:XCTestExpectation?
+            public var routerStack = Stack<Router>()
+
             public init(response: ServerResponse, router: Router, request: RouterRequest, redirectUri:String, expectation:XCTestExpectation? = nil) {
                 self.expectation = expectation
                 self.redirectUri = redirectUri
-                super.init(response: response,router: router, request: request)
+                routerStack.push(Router())
+                super.init(response: response, routerStack: routerStack, request: request)
             }
             public override func redirect(_ path: String, status: HTTPStatusCode = .movedTemporarily)  -> RouterResponse {
                 if expectation == nil {
@@ -198,9 +204,9 @@ class WebAppPluginTest: XCTestCase {
                     
                 }
                 let httpRequest =  HTTPServerRequest(socket: try! Socket.create(family: .inet), httpParser: nil)
-                let httpResponse = HTTPServerResponse(processor: IncomingHTTPSocketProcessor(socket: try! Socket.create(family: .inet), using: delegate()), request: httpRequest)
+                let httpResponse = HTTPServerResponse(processor: IncomingHTTPSocketProcessor(socket: try! Socket.create(family: .inet), using: delegate(), keepalive: .disabled), request: httpRequest)
                 let request = RouterRequest(request: httpRequest)
-                let response = RouterResponse(response: httpResponse, router: Router(), request: request)
+                let response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request)
                 return response
             }
         }
@@ -224,7 +230,7 @@ class WebAppPluginTest: XCTestCase {
         
         let request2 = testRouterRequest(request: httpRequest, url: "http://someurl?error=someerr")
         request2.session = SessionState(id: "someSession", store: InMemoryStore())
-        response = RouterResponse(response: httpResponse, router: Router(), request: request2)
+        response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request2)
         web.authenticate(request: request2, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(expectation: expectation(description: "test3")), onPass: onPass, inProgress:setInProgress())
 //        let profile:[String:JSON] = ["id" : , "displayName" : , "provider" : ]
 //        let json:JSON = JSON(jsonDictionary: profile)
@@ -385,10 +391,10 @@ class WebAppPluginTest: XCTestCase {
                 response.status(.unauthorized)
                 return next()
             }
-            
+
             print("accessToken:: \(appIdAuthContext!["accessToken"])")
             print("identityToken:: \(appIdAuthContext!["identityToken"])")
-            response.send(json: identityTokenPayload!)
+            response.send(json: identityTokenPayload!.dictionaryObject)
             next()
         })
         
