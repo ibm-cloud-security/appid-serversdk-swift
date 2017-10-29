@@ -31,19 +31,25 @@ When using WebAppKituraCredentialsPlugin the unauthenticated client will get HTT
 Read the [official documentation](https://console.ng.bluemix.net/docs/services/appid/protecting-resources-swift.html#protecting-resources-swift) for information about getting started with Bluemix App ID Service.
 
 ### Requirements
-* Swift 3.1.1
-* Kitura 1.7
+* Swift 4.0
+* Kitura 2.0
 
 ### Installation
 ```swift
 import PackageDescription
 
 let package = Package(
+    ...
     dependencies: [
-        .Package(url: "https://github.com/ibm-cloud-security/appid-serversdk-swift.git", majorVersion: 1)
+        .package(url: "https://github.com/ibm-cloud-security/appid-serversdk-swift.git", .upToNextMinor(from: "2.0.0"))
     ]
+    .target(
+        name: "<Your Target>",
+        dependencies: ["BluemixAppID"]
+    )
 )
 ```
+* 2.0.x releases were tested on OSX and Linux with Swift 4.0
 * 1.0.x releases were tested on OSX and Linux with Swift 3.1 and 3.1.1
 * 0.0.x releases were tested on OSX and Linux with Swift 3.0.2
 
