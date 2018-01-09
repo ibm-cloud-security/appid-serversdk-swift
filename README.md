@@ -1,4 +1,4 @@
-# Bluemix App ID
+# IBM Cloud App ID
 Swift SDK for the IBM Cloud App ID service
 
 [![Bluemix powered][img-bluemix-powered]][url-bluemix]
