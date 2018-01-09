@@ -32,7 +32,7 @@ Read the [official documentation](https://console.ng.bluemix.net/docs/services/a
 
 ### Requirements
 * Swift 4.0
-* Kitura 2.0
+* Kitura 2.1
 
 ### Installation
 ```swift
