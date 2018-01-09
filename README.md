@@ -1,5 +1,5 @@
 # Bluemix App ID
-Swift SDK for the Bluemix App ID service
+Swift SDK for the IBM Cloud App ID service
 
 [![Bluemix powered][img-bluemix-powered]][url-bluemix]
 [![Travis][img-travis-master]][url-travis-master]
@@ -28,7 +28,7 @@ This SDK provides Kitura Credentials plugins for protecting Web applications.
 
 When using WebAppKituraCredentialsPlugin the unauthenticated client will get HTTP 302 redirect to the login page hosted by App ID service (or, depending on configuration, directly to identity provider login page).
 
-Read the [official documentation](https://console.ng.bluemix.net/docs/services/appid/protecting-resources-swift.html#protecting-resources-swift) for information about getting started with Bluemix App ID Service.
+Read the [official documentation](https://console.ng.bluemix.net/docs/services/appid/protecting-resources-swift.html#protecting-resources-swift) for information about getting started with IBM Cloud App ID Service.
 
 ### Requirements
 * Swift 4.0
@@ -85,7 +85,7 @@ router.all("/", middleware: StaticFileServer(path: "./Tests/BluemixAppIDTests/pu
 
 // Below configuration can be obtained from Service Credentials
 // tab in the App ID Dashboard. You're not required to manually provide below
-// configuration if your Kitura application runs on Bluemix and is bound to the
+// configuration if your Kitura application runs on IBM Cloud and is bound to the
 // App ID service instance. In this case App ID configuration will be obtained
 // automatically using VCAP_SERVICES environment variable.
 //
@@ -93,7 +93,7 @@ router.all("/", middleware: StaticFileServer(path: "./Tests/BluemixAppIDTests/pu
 // 1. Manually in new WebAppKituraCredentialsPlugin options
 // 2. As environment variable named `redirectUri`
 // 3. If none of the above was supplied the App ID SDK will try to retrieve
-//    application_uri of the application running on Bluemix and append a
+//    application_uri of the application running on IBM Cloud and append a
 //    default suffix "/ibm/bluemix/appid/callback"
 let options = [
 	"clientId": "{client-id}",
