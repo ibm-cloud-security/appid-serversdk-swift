@@ -19,7 +19,7 @@ import SimpleLogger
 extension String{
     
     func base64decodedData() -> Data? {
-        let missing = self.characters.count % 4
+        let missing = self.count % 4
         
         var ending = ""
         if missing > 0 {

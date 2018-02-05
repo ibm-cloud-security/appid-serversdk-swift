@@ -24,8 +24,10 @@ let package = Package(
         )
     ],
     dependencies: [
+      .package(url: "https://github.com/IBM-Swift/SwiftyJSON.git", from: "17.0.0"),
+      .package(url: "https://github.com/IBM-Swift/Kitura-Session.git", from: "2.0.0"),
       .package(url: "https://github.com/IBM-Swift/Kitura-Credentials.git", from: "2.0.0"),
-      .package(url: "https://github.com/IBM-Swift-Sunset/Kitura-Request.git", .upToNextMinor(from: "0.9.0")),
+      .package(url: "https://github.com/IBM-Swift/SwiftyRequest.git", .upToNextMajor(from: "1.0.1")),
       .package(url: "https://github.com/ibm-bluemix-mobile-services/bluemix-simple-logger-swift.git", .upToNextMinor(from: "0.5.0")),
     ],
     targets: [
@@ -33,7 +35,7 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages which this package depends on.
         .target(
             name: "BluemixAppID",
-            dependencies: ["Credentials", "KituraRequest", "SimpleLogger"]
+            dependencies: ["Credentials", "SwiftyRequest", "SimpleLogger", "SwiftyJSON", "KituraSession"]
         ),
         .testTarget(
             name: "BluemixAppIDTests",
