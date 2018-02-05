@@ -15,7 +15,7 @@ import Foundation
 import Kitura
 import Credentials
 import KituraNet
-import KituraRequest
+import SwiftyRequest
 import SwiftyJSON
 import SimpleLogger
 import KituraSession
@@ -167,16 +167,16 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         }
     }
     
-    internal func handleTokenResponse(tokenRequest:ClientRequest?, tokenResponse:ClientResponse?, tokenData: Data?, tokenError: Swift.Error?, originalRequest:RouterRequest, onFailure: @escaping (HTTPStatusCode?, [String:String]?) -> Void, onSuccess: @escaping (UserProfile) -> Void) {
-        if  tokenData == nil || tokenError != nil || tokenResponse?.status != 200 {
+    internal func handleTokenResponse(httpCode: Int?, tokenData: Data?, tokenError: Swift.Error?, originalRequest:RouterRequest, onFailure: @escaping (HTTPStatusCode?, [String:String]?) -> Void, onSuccess: @escaping (UserProfile) -> Void) {
+        if  tokenData == nil || tokenError != nil || httpCode != 200 {
             let tokenData = tokenData != nil ? String(data: tokenData!, encoding: .utf8) : ""
             let tokenError = tokenError != nil ? tokenError!.localizedDescription : ""
-            let code = tokenResponse?.status != nil ? String(tokenResponse!.status): ""
+            let code = httpCode != nil ? String(httpCode!): ""
             self.logger.debug("WebAppKituraCredentialsPlugin :: Failed to obtain tokens" + "err:\(tokenError)\nstatus code \(code)\nbody \(String(describing: tokenData))")
             onFailure(nil,nil)
         } else {
             var body = JSON(data: tokenData!)
-            var appIdAuthorizationContext:JSON = [:]
+            var appIdAuthorizationContext:SwiftyJSON.JSON = [:]
             
             
             var kituraUserId = ""
@@ -222,18 +222,42 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         let tokenEndpoint = serviceConfig.oAuthServerUrl + TokenPath
         let redirectUri = serviceConfig.redirectUri
         let authorization = clientId + ":" + secret
-        KituraRequest.request(.post, tokenEndpoint,
-                              parameters: [
-                                "client_id": clientId,
-                                "grant_type": "authorization_code",
-                                "redirect_uri": redirectUri,
-                                "code": grantCode
-            ],
-                              headers: ["Authorization" : "basic " + Data(authorization.utf8).base64EncodedString()]).response {
-                                tokenRequest, tokenResponse, tokenData, tokenError in
-                                self.handleTokenResponse(tokenRequest: tokenRequest, tokenResponse: tokenResponse, tokenData: tokenData, tokenError: tokenError, originalRequest: request, onFailure: onFailure, onSuccess: onSuccess)
-                                
+//        KituraRequest.request(.post, tokenEndpoint,
+//                              parameters: [
+//                                "client_id": clientId,
+//                                "grant_type": "authorization_code",
+//                                "redirect_uri": redirectUri,
+//                                "code": grantCode
+//            ],
+//                              headers: ["Authorization" : "basic " + Data(authorization.utf8).base64EncodedString()]).response {
+//                                tokenRequest, tokenResponse, tokenData, tokenError in
+//                                self.handleTokenResponse(tokenRequest: tokenRequest, tokenResponse: tokenResponse, tokenData: tokenData, tokenError: tokenError, originalRequest: request, onFailure: onFailure, onSuccess: onSuccess)
+//
+//        }
+        
+        let restReq = RestRequest(method: .post, url: tokenEndpoint, containsSelfSignedCert: false)
+        restReq.headerParameters = ["Authorization" : "basic " + Data(authorization.utf8).base64EncodedString()]
+        let params = [ "client_id": clientId, "grant_type": "authorization_code", "redirect_uri": redirectUri, "code": grantCode ]
+        if let json = try? JSONSerialization.data(withJSONObject: params, options: []) {
+            restReq.messageBody = json
+        } else {
+            logger.debug("Failed to parse data into JSON.")
         }
+        
+        restReq.response { (tokenData, tokenResponse, tokenError) in
+            if let e = tokenError {
+                self.logger.debug("An error occured in the token response. Error: \(e)")
+            }
+            else if let tokenResponse = tokenResponse, let tokenData = tokenData {
+                self.handleTokenResponse(httpCode: tokenResponse.statusCode, tokenData: tokenData, tokenError: tokenError, originalRequest: request, onFailure: onFailure, onSuccess: onSuccess)
+            }
+            else {
+                self.logger.debug("An internal error occured. Request failed.")
+            }
+        }
+
+        
+        
     }
     
     private func generateAuthorizationUrl(options: [String:Any]) -> String {
@@ -249,6 +273,7 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         }
         query = query.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) ?? query
         let authUrl = "\(authorizationEndpoint)?\(query)"
+        print("AUTHURL: \(authUrl)")
         return authUrl
     }
     

@@ -2,7 +2,6 @@ import Foundation
 import Kitura
 import Credentials
 import KituraNet
-import KituraRequest
 import SwiftyJSON
 import SimpleLogger
 import KituraSession
