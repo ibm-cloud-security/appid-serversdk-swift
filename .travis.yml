@@ -4,11 +4,11 @@ os:
 language: generic
 env:
   global:
-  - SWIFT_VERSION=4.0
+  - SWIFT_VERSION=4.0.3
 
 sudo: required
 dist: trusty
-osx_image: xcode9
+osx_image: xcode9.2
 
 branches:
   only:
