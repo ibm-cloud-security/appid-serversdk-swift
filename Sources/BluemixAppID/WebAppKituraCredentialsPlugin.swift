@@ -271,7 +271,7 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         if (options["allowAnonymousLogin"] as? Bool) == true {
             query += "&idp=appid_anon"
         }
-        query = query.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) ?? query
+        query = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
         let authUrl = "\(authorizationEndpoint)?\(query)"
         print("AUTHURL: \(authUrl)")
         return authUrl
