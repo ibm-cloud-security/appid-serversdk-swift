@@ -222,18 +222,6 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         let tokenEndpoint = serviceConfig.oAuthServerUrl + TokenPath
         let redirectUri = serviceConfig.redirectUri
         let authorization = clientId + ":" + secret
-//        KituraRequest.request(.post, tokenEndpoint,
-//                              parameters: [
-//                                "client_id": clientId,
-//                                "grant_type": "authorization_code",
-//                                "redirect_uri": redirectUri,
-//                                "code": grantCode
-//            ],
-//                              headers: ["Authorization" : "basic " + Data(authorization.utf8).base64EncodedString()]).response {
-//                                tokenRequest, tokenResponse, tokenData, tokenError in
-//                                self.handleTokenResponse(tokenRequest: tokenRequest, tokenResponse: tokenResponse, tokenData: tokenData, tokenError: tokenError, originalRequest: request, onFailure: onFailure, onSuccess: onSuccess)
-//
-//        }
         
         let restReq = RestRequest(method: .post, url: tokenEndpoint, containsSelfSignedCert: false)
         restReq.headerParameters = ["Authorization" : "basic " + Data(authorization.utf8).base64EncodedString()]
