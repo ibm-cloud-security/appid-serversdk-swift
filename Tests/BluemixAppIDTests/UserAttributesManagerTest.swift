@@ -26,6 +26,17 @@ import Socket
 @testable import BluemixAppID
 
 class UserAttributesManagerTest: XCTestCase {
+    
+    static var allTests : [(String, (UserAttributesManagerTest) -> () throws -> Void)] {
+        return [
+            ("testInit", testInit),
+            ("testSetAttribute", testSetAttribute),
+            ("testGetAttribute", testGetAttribute),
+            ("testDeleteAttribute", testDeleteAttribute),
+            ("testGetAllAttributes", testGetAllAttributes),
+        ]
+    }
+    
     class MockUserAttributeManger : UserAttributeManager {
 
         override func handleRequest(attributeName: String?, attributeValue: String?, method:String, accessToken: String,completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {

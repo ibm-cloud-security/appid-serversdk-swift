@@ -30,6 +30,15 @@ import Foundation
 @testable import BluemixAppID
 
 class WebAppPluginTest: XCTestCase {
+
+    static var allTests : [(String, (WebAppPluginTest) -> () throws -> Void)] {
+        return [
+            ("testWebConfig", testWebConfig),
+            ("testLogout", testLogout),
+            ("testWebAuthenticate", testWebAuthenticate),
+            ("testHandleTokenResponse", testHandleTokenResponse),
+        ]
+    }
     
     let options = [
         "clientId": "86148468-1d73-48ac-9b5c-aaa86a34597a",
