@@ -74,8 +74,8 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
     
     private func restoreUserProfile(from session: SessionState) -> UserProfile? {
         let sessionUserProfile = session["userProfile"]
-        if sessionUserProfile.type != .null  {
-            if let dictionary = sessionUserProfile.dictionaryObject,
+        if sessionUserProfile != nil  {
+            if let dictionary = sessionUserProfile as? [String : Any],
                 let displayName = dictionary["displayName"] as? String,
                 let provider = dictionary["provider"] as? String,
                 let id = dictionary["id"] as? String {
@@ -131,12 +131,12 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         } else {
             //			request.session?[OriginalUrl] = JSON(request.originalURL)
         }
-        let sessionProfile = request.session?["userProfile"]
+        let sessionProfile = request.session?["userProfile"] as? [String]
         let requestProfile = request.userProfile
         if forceLogin != true && allowAnonymousLogin != true {
-            if requestProfile != nil || (sessionProfile != nil && (sessionProfile!.count) > 0) {
+            if requestProfile != nil || sessionProfile?.isEmpty == false {
                 logger.debug("ALREADY AUTHENTICATED!!!")
-                if let profile = restoreUserProfile(from: request.session!) {
+                if let session = request.session, let profile = restoreUserProfile(from: session) {
                     return onSuccess(profile)
                 }
             }
@@ -145,10 +145,10 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         var authUrl = generateAuthorizationUrl(options: options)
         
         // If there's an existing anonymous access token on session - add it to the request url
-        let appIdAuthContext = request.session?[WebAppKituraCredentialsPlugin.AuthContext].dictionary
-        if let context = appIdAuthContext, context["accessTokenPayload"]?["amr"][0] == "appid_anon" {
+        let appIdAuthContext = request.session?[WebAppKituraCredentialsPlugin.AuthContext] as? [String : Any]
+        if let context = appIdAuthContext, let payload = context["accessTokenPayload"] as? SwiftyJSON.JSON, payload["amr"][0] == "appid_anon" {
             logger.debug("WebAppKituraCredentialsPlugin :: handleAuthorization :: added anonymous access_token to url")
-            authUrl += "&appid_access_token=" + (context["accessToken"]?.string ?? "")
+            authUrl += "&appid_access_token=" + ((context["accessToken"] as? String) ?? "")
         }
         
         // If previous anonymous access token not found and new anonymous users are not allowed - fail
@@ -261,7 +261,6 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         }
         query = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
         let authUrl = "\(authorizationEndpoint)?\(query)"
-        print("AUTHURL: \(authUrl)")
         return authUrl
     }
     
