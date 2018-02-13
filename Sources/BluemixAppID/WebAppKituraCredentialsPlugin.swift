@@ -73,8 +73,7 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
     }
     
     private func restoreUserProfile(from session: SessionState) -> UserProfile? {
-        let sessionUserProfile = session["userProfile"]
-        if sessionUserProfile != nil  {
+        if let sessionUserProfile = session["userProfile"] {
             if let dictionary = sessionUserProfile as? [String : Any],
                 let displayName = dictionary["displayName"] as? String,
                 let provider = dictionary["provider"] as? String,
@@ -92,7 +91,7 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
                     userEmails = Array()
                     for (index, email) in emails.enumerated() {
                         let userEmail = UserProfile.UserProfileEmail(value: email, type: types[index])
-                        userEmails!.append(userEmail)
+                        userEmails?.append(userEmail)
                     }
                 }
                 
@@ -101,7 +100,7 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
                     userPhotos = Array()
                     for photo in photos {
                         let userPhoto = UserProfile.UserProfilePhoto(photo)
-                        userPhotos!.append(userPhoto)
+                        userPhotos?.append(userPhoto)
                     }
                 }
                 
@@ -125,9 +124,9 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         let allowCreateNewAnonymousUser:Bool = options[WebAppKituraCredentialsPlugin.AllowCreateNewAnonymousUser] as? Bool ?? true
         // If user is already authenticated and new login is not enforced - end processing
         // Otherwise - persist original request url and redirect to authorization
-        if (request.userProfile != nil && !forceLogin && !allowAnonymousLogin){
+        if let requestUserProfile = request.userProfile, !forceLogin && !allowAnonymousLogin {
             logger.debug("ALREADY AUTHENTICATED!!!")
-            return onSuccess(request.userProfile!)
+            return onSuccess(requestUserProfile)
         } else {
             //			request.session?[OriginalUrl] = JSON(request.originalURL)
         }
@@ -168,48 +167,56 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
     }
     
     internal func handleTokenResponse(httpCode: Int?, tokenData: Data?, tokenError: Swift.Error?, originalRequest:RouterRequest, onFailure: @escaping (HTTPStatusCode?, [String:String]?) -> Void, onSuccess: @escaping (UserProfile) -> Void) {
-        if  tokenData == nil || tokenError != nil || httpCode != 200 {
-            let tokenData = tokenData != nil ? String(data: tokenData!, encoding: .utf8) : ""
-            let tokenError = tokenError != nil ? tokenError!.localizedDescription : ""
-            let code = httpCode != nil ? String(httpCode!): ""
-            self.logger.debug("WebAppKituraCredentialsPlugin :: Failed to obtain tokens" + "err:\(tokenError)\nstatus code \(code)\nbody \(String(describing: tokenData))")
-            onFailure(nil,nil)
-        } else {
-            var body = JSON(data: tokenData!)
-            var appIdAuthorizationContext:SwiftyJSON.JSON = [:]
-            
-            
-            var kituraUserId = ""
-            var kituraDisplayName = ""
-            var kituraProvider = ""
-            
-            if let accessTokenString = body["access_token"].string, let accessTokenPayload = try? Utils.parseToken(from: accessTokenString)["payload"] {
-                // Parse access_token
-                appIdAuthorizationContext["accessToken"].string = accessTokenString
-                appIdAuthorizationContext["accessTokenPayload"] = accessTokenPayload
-            } else {
-                return onFailure(nil,nil)
-            }
-            
-            if let identityTokenString = body["id_token"].string, let identityToken = try? Utils.parseToken(from: identityTokenString), let context = Utils.getAuthorizedIdentities(from: identityToken) {
-                // Parse identity_token
-                appIdAuthorizationContext["identityToken"].string = identityTokenString
-                appIdAuthorizationContext["identityTokenPayload"] = identityToken["payload"]
-                kituraUserId = context.userIdentity.id
-                kituraDisplayName = context.userIdentity.displayName
-                if context.userIdentity.authBy.count > 0 && context.userIdentity.authBy[0]["provider"].string != nil {
-                    kituraProvider =  context.userIdentity.authBy[0]["provider"].stringValue
-                } else {
-                    kituraProvider =  ""
-                }
-            }
-            
-            originalRequest.session?[WebAppKituraCredentialsPlugin.AuthContext] = appIdAuthorizationContext
-            
-            let userProfile = UserProfile(id: kituraUserId, displayName: kituraDisplayName, provider: kituraProvider)
-            onSuccess(userProfile)
-            self.logger.debug("retrieveTokens :: tokens retrieved")
+        
+        let code = httpCode.map { String(describing: $0) } ?? "<no http code>"
+        if let tokenError = tokenError {
+            let errorMessage = String(describing: tokenError)
+            self.logger.debug("WebAppKituraCredentialsPlugin :: Failed to obtain tokens. error message : \(errorMessage)\nstatus code : \(code)\ntoken body : \(String(describing: tokenData))")
+            return onFailure(nil,nil)
         }
+        guard let tokenData = tokenData else {
+            self.logger.debug("WebAppKituraCredentialsPlugin :: Failed to obtain tokens. No token error message. No token data. status code : \(code)")
+            return onFailure(nil,nil)
+        }
+        guard httpCode == 200 else {
+            self.logger.debug("WebAppKituraCredentialsPlugin :: Failed to obtain tokens. status code wasn't 200. No token error message. status code : \(code)\n token body : \(String(describing: tokenData))")
+            return onFailure(nil,nil)
+        }
+        
+        var body = JSON(data: tokenData)
+        var appIdAuthorizationContext:SwiftyJSON.JSON = [:]
+        
+        
+        var kituraUserId = ""
+        var kituraDisplayName = ""
+        var kituraProvider = ""
+        
+        if let accessTokenString = body["access_token"].string, let accessTokenPayload = try? Utils.parseToken(from: accessTokenString)["payload"] {
+            // Parse access_token
+            appIdAuthorizationContext["accessToken"].string = accessTokenString
+            appIdAuthorizationContext["accessTokenPayload"] = accessTokenPayload
+        } else {
+            return onFailure(nil,nil)
+        }
+        
+        if let identityTokenString = body["id_token"].string, let identityToken = try? Utils.parseToken(from: identityTokenString), let context = Utils.getAuthorizedIdentities(from: identityToken) {
+            // Parse identity_token
+            appIdAuthorizationContext["identityToken"].string = identityTokenString
+            appIdAuthorizationContext["identityTokenPayload"] = identityToken["payload"]
+            kituraUserId = context.userIdentity.id
+            kituraDisplayName = context.userIdentity.displayName
+            if context.userIdentity.authBy.count > 0 && context.userIdentity.authBy[0]["provider"].string != nil {
+                kituraProvider =  context.userIdentity.authBy[0]["provider"].stringValue
+            } else {
+                kituraProvider =  ""
+            }
+        }
+        
+        originalRequest.session?[WebAppKituraCredentialsPlugin.AuthContext] = appIdAuthorizationContext
+        
+        let userProfile = UserProfile(id: kituraUserId, displayName: kituraDisplayName, provider: kituraProvider)
+        onSuccess(userProfile)
+        self.logger.debug("retrieveTokens :: tokens retrieved")
     }
     
     
@@ -251,8 +258,11 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
     private func generateAuthorizationUrl(options: [String:Any]) -> String {
         let serviceConfig = self.serviceConfig
         let clientId = serviceConfig.clientId
-        let scopeAddition = (options["scope"] as? String) != nil ?  (" " + (options["scope"] as! String)) : ""
-        let scope = DefaultScope + scopeAddition
+        var scopeAddition : String?
+        if let addition = options["scope"] as? String {
+            scopeAddition = " " + addition
+        }
+        let scope = DefaultScope + (scopeAddition ?? "")
         let authorizationEndpoint = serviceConfig.oAuthServerUrl + AuthorizationPath
         let redirectUri = serviceConfig.redirectUri
         var query = "client_id=\(clientId)&response_type=code&redirect_uri=\(redirectUri)&scope=\(scope)"
@@ -261,6 +271,7 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         }
         query = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
         let authUrl = "\(authorizationEndpoint)?\(query)"
+        self.logger.debug("AUTHURL: \(authUrl)")
         return authUrl
     }
     

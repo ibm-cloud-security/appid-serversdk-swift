@@ -60,10 +60,8 @@ public class AuthorizationContext {
     
     public static func from(jsonString:String) throws -> AuthorizationContext? {
         
-        let jsonData = jsonString.data(using: String.Encoding.utf8, allowLossyConversion: false)
-        
-        if jsonData != nil  {
-            let json = JSON(data: jsonData!)
+        if let jsonData = jsonString.data(using: String.Encoding.utf8, allowLossyConversion: false) {
+            let json = JSON(data: jsonData)
             return AuthorizationContext(idTokenPayload: json)
         } else {
             throw AppIDError.FailedParsingAuthContext

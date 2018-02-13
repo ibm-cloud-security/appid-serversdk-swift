@@ -281,10 +281,6 @@ class WebAppPluginTest: XCTestCase {
         authContext?["accessToken"] = "someaccesstoken"
         request.session?[WebAppKituraCredentialsPlugin.AuthContext] = authContext
         response =  testRouterResponse(response: httpResponse, router: Router(), request: request, redirectUri: "someurl/authorization?client_id=someclient&response_type=code&redirect_uri=http://someredirect&scope=appid_default&appid_access_token=someaccesstoken", expectation: expectation(description: "test9"))
-
-        
-//        print("request.session : \(request.session?[WebAppKituraCredentialsPlugin.AuthContext])")
-        
         web.authenticate(request: request, response: response, options: ["forceLogin": true], onSuccess: setOnSuccess(), onFailure: setOnFailure(), onPass: onPass, inProgress:setInProgress(expectation: expectation(description: "test9.5")))
         waitForExpectations(timeout: 1) { error in
             if let error = error {
@@ -399,6 +395,8 @@ class WebAppPluginTest: XCTestCase {
                 response.status(.unauthorized)
                 return next()
             }
+            print("accessToken:: \(String(describing: appIdAuthContext?["accessToken"]))")
+            print("identityToken:: \(String(describing: appIdAuthContext?["identityToken"]))")
             response.send(json: identityTokenPayload as? [String : Any])
             next()
         })
