@@ -22,8 +22,8 @@ public class UserAttributeManager {
         let vcapString = ProcessInfo.processInfo.environment[VcapServices] ?? ""
         let vcapServices = JSON.parse(string: vcapString)
         var vcapServiceCredentials: [String:Any]? = [:]
-        if vcapServices.dictionary != nil {
-            for (key,value) in vcapServices.dictionary! {
+        if let dict = vcapServices.dictionary {
+            for (key,value) in dict {
                 if key.hasPrefix(VcapServicesServiceName) {
                     vcapServiceCredentials = (value.array?[0])?.dictionaryObject?[VcapServicesCredntials] as? [String : Any]
                     break
@@ -76,9 +76,13 @@ public class UserAttributeManager {
     internal func handleRequest(attributeName: String?, attributeValue: String?, method:String, accessToken: String,completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
 
         self.logger.debug("UserAttributeManager :: handle Request - " + method + " " + (attributeName ?? "all"))
-        var url:String = (serviceConfig[UserProfileServerURL] as? String)! + AttributesEndpoint + "/"
-        if attributeName != nil {
-            url += attributeName!
+        guard let profileURL = serviceConfig[UserProfileServerURL] as? String else {
+            completionHandler(UserAttributeError.userAttributeFailure("Failed to get UserProfileServerURL from serviceConfig as String"), nil)
+            return
+        }
+        var url:String = profileURL + AttributesEndpoint + "/"
+        if let attName = attributeName {
+            url += attName
         }
 
         let request = HTTP.request(url, callback: {response in
@@ -88,12 +92,11 @@ public class UserAttributeManager {
             } else if response?.status == 404 {
                 self.logger.error("Not found")
                 completionHandler(UserAttributeError.userAttributeFailure("Not found"), nil)
-            } else if (response?.status)! >= 200 && (response?.status)! < 300 {
+            } else if let responseStatus = response?.status, responseStatus >= 200 && responseStatus < 300 {
                 var responseJson : [String:Any] = [:]
                 do{
-                    let body:String? = try response?.readString()
-                    if body != nil {
-                        responseJson =  try Utils.parseJsonStringtoDictionary(body!)
+                    if let body = try response?.readString() {
+                        responseJson =  try Utils.parseJsonStringtoDictionary(body)
                     }
                     completionHandler(nil, responseJson)
                 } catch _ {
@@ -106,8 +109,8 @@ public class UserAttributeManager {
             }
         })
 
-        if attributeValue != nil {
-            request.write(from: attributeValue!)// add attributeValue to body if setAttribute() was called
+        if let attValue = attributeValue {
+            request.write(from: attValue)// add attributeValue to body if setAttribute() was called
         }
 
         request.set(.method(method))

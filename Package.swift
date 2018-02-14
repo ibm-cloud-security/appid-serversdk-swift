@@ -25,7 +25,7 @@ let package = Package(
     ],
     dependencies: [
       .package(url: "https://github.com/IBM-Swift/SwiftyJSON.git", from: "17.0.0"),
-      .package(url: "https://github.com/IBM-Swift/Kitura-Session.git", from: "2.0.0"),
+      .package(url: "https://github.com/IBM-Swift/Kitura-Session.git", from: "3.0.0"),
       .package(url: "https://github.com/IBM-Swift/Kitura-Credentials.git", from: "2.0.0"),
       .package(url: "https://github.com/IBM-Swift/SwiftyRequest.git", .upToNextMajor(from: "1.0.1")),
       .package(url: "https://github.com/ibm-bluemix-mobile-services/bluemix-simple-logger-swift.git", .upToNextMinor(from: "0.5.0")),
