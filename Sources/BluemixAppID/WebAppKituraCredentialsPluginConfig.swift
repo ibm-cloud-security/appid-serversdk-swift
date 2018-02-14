@@ -73,8 +73,8 @@ internal class WebAppKituraCredentialsPluginConfig {
         let vcapString = ProcessInfo.processInfo.environment[VCAP_SERVICES] ?? ""
         let vcapServices = JSON.parse(string: vcapString)
         var vcapServiceCredentials: [String:Any]? = [:]
-        if vcapServices.dictionary != nil {
-            for (key,value) in vcapServices.dictionary! {
+        if let dict = vcapServices.dictionary {
+            for (key,value) in dict {
                 if key.hasPrefix(VCAP_SERVICES_SERVICE_NAME)||key.hasPrefix(VCAP_SERVICES_SERVICE_NAME2) {
                     vcapServiceCredentials = (value.array?[0])?.dictionaryObject?[VCAP_SERVICES_CREDENTIALS] as? [String : Any]
                     break
@@ -90,9 +90,8 @@ internal class WebAppKituraCredentialsPluginConfig {
         serviceConfig[REDIRECT_URI] = options[REDIRECT_URI] ?? ProcessInfo.processInfo.environment[REDIRECT_URI]
         
         if serviceConfig[REDIRECT_URI] == nil {
-            let vcapApplication = ProcessInfo.processInfo.environment[VCAP_APPLICATION]
-            if vcapApplication != nil {
-                let vcapApplicationJson = JSON.parse(string: vcapApplication!)
+            if let vcapApplication = ProcessInfo.processInfo.environment[VCAP_APPLICATION] {
+                let vcapApplicationJson = JSON.parse(string: vcapApplication)
 				let applicationUris = vcapApplicationJson["application_uris"]
 				let uri = applicationUris.count > 0 ? applicationUris[0] : ""
                 serviceConfig[REDIRECT_URI] = "https://\(uri.stringValue)/ibm/bluemix/appid/callback"

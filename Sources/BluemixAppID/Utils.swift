@@ -52,17 +52,16 @@ public  class Utils {
             throw AppIDErrorInternal.InvalidAccessTokenFormat
         }
         
-        let jwtHeaderData = tokenComponents[0].base64decodedData()
-        let jwtPayloadData = tokenComponents[1].base64decodedData()
-        let jwtSignature = tokenComponents[2]
-        
-        guard jwtHeaderData != nil && jwtPayloadData != nil else {
+        guard let jwtHeaderData = tokenComponents[0].base64decodedData(),
+              let jwtPayloadData = tokenComponents[1].base64decodedData()
+        else {
             logger.error("Invalid access token format")
             throw AppIDErrorInternal.InvalidAccessTokenFormat
         }
+        let jwtSignature = tokenComponents[2]
         
-        let jwtHeader = JSON(data: jwtHeaderData!)
-        let jwtPayload = JSON(data: jwtPayloadData!)
+        let jwtHeader = JSON(data: jwtHeaderData)
+        let jwtPayload = JSON(data: jwtPayloadData)
         
         var json = JSON([:])
         json["header"] = jwtHeader

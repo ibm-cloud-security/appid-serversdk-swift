@@ -31,7 +31,14 @@ import SwiftyJSON
 
 class UtilsTest: XCTestCase {
 
-
+    static var allTests : [(String, (UtilsTest) -> () throws -> Void)] {
+        return [
+            ("testIsTokenValid", testIsTokenValid),
+            ("testUserIdentity", testUserIdentity),
+            ("testAuthorizationContext", testAuthorizationContext),
+        ]
+    }
+    
     func testIsTokenValid() {
         XCTAssertFalse(Utils.isTokenValid(token: TestConstants.MALFORMED_ACCESS_TOKEN))
         XCTAssertFalse(Utils.isTokenValid(token: TestConstants.EXPIRED_ACCESS_TOKEN))

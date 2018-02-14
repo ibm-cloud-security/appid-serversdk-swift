@@ -30,6 +30,15 @@ import Foundation
 @testable import BluemixAppID
 
 class WebAppPluginTest: XCTestCase {
+
+    static var allTests : [(String, (WebAppPluginTest) -> () throws -> Void)] {
+        return [
+            ("testWebConfig", testWebConfig),
+            ("testLogout", testLogout),
+            ("testWebAuthenticate", testWebAuthenticate),
+            ("testHandleTokenResponse", testHandleTokenResponse),
+        ]
+    }
     
     let options = [
         "clientId": "86148468-1d73-48ac-9b5c-aaa86a34597a",
@@ -154,13 +163,13 @@ class WebAppPluginTest: XCTestCase {
         let httpRequest =  HTTPServerRequest(socket: try! Socket.create(family: .inet), httpParser: nil)
         let request = RouterRequest(request: httpRequest)
         request.session = SessionState(id: "someSession", store: InMemoryStore())
-        XCTAssertNil(request.session?[WebAppKituraCredentialsPlugin.AuthContext].dictionary)
+        XCTAssertNil(request.session?[WebAppKituraCredentialsPlugin.AuthContext] as? [String:Any])
         
         request.session?[WebAppKituraCredentialsPlugin.AuthContext] = [:]
-        request.session?[WebAppKituraCredentialsPlugin.AuthContext]["accessTokenPayload"] = try! Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"]
-        XCTAssertNotNil(request.session?[WebAppKituraCredentialsPlugin.AuthContext].dictionary)
+        request.session?[WebAppKituraCredentialsPlugin.AuthContext] = ["accessTokenPayload" : try! Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"]]
+        XCTAssertNotNil(request.session?[WebAppKituraCredentialsPlugin.AuthContext] as? [String:Any])
         web.logout(request: request)
-        XCTAssertNil(request.session?[WebAppKituraCredentialsPlugin.AuthContext].dictionary)
+        XCTAssertNil(request.session?[WebAppKituraCredentialsPlugin.AuthContext] as? [String:Any])
     }
     
     func testWebAuthenticate() {
@@ -199,7 +208,6 @@ class WebAppPluginTest: XCTestCase {
                     XCTFail()
                 } else {
                     XCTAssertEqual(path, redirectUri)
-                    
                     expectation?.fulfill()
                     
                 }
@@ -239,15 +247,14 @@ class WebAppPluginTest: XCTestCase {
         dictionary["displayName"] = "disp name"
         dictionary["provider"] = "prov"
         dictionary["id"] = "someid"
-        let json =  JSON(dictionary)
-        request.session?["userProfile"] = json
+        request.session?["userProfile"] = dictionary
 
         response =  testRouterResponse(response: httpResponse, router: Router(), request: request, redirectUri: "someurl/authorization?client_id=someclient&response_type=code&redirect_uri=http://someredirect&scope=appid_default&idp=appid_anon", expectation: expectation(description: "test4"))
         web.authenticate(request: request, response: response, options: ["allowAnonymousLogin" : true], onSuccess: setOnSuccess(), onFailure: setOnFailure(), onPass: onPass, inProgress:setInProgress(expectation: expectation(description: "test4.5")))
         
         request.session?["userProfile"] = nil
         //session has user profile on it
-        request.session?["userProfile"] = json
+        request.session?["userProfile"] = dictionary
             web.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "someid", name: "disp name", provider: "prov", expectation: expectation(description: "test5")), onFailure: setOnFailure(), onPass: onPass, inProgress:setInProgress())
         
         request.session?["userProfile"] = nil
@@ -260,21 +267,20 @@ class WebAppPluginTest: XCTestCase {
         request.userProfile = UserProfile(id:"1", displayName: "2", provider: "3")
         web.authenticate(request: request, response: response, options: ["forceLogin" : true, "allowAnonymousLogin" : true, "allowCreateNewAnonymousUser": false], onSuccess: setOnSuccess(), onFailure: setOnFailure(expectation: expectation(description: "test7")), onPass: onPass, inProgress:setInProgress())
         //a previous access token exists - not anonymous context
-        request.session?["userProfile"] = json
+        request.session?["userProfile"] = dictionary
         request.session?[WebAppKituraCredentialsPlugin.AuthContext] = [:]
-        
-        request.session?[WebAppKituraCredentialsPlugin.AuthContext]["accessTokenPayload"] = try! Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"]
+        request.session?[WebAppKituraCredentialsPlugin.AuthContext] = ["accessTokenPayload" : try! Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"]]
         response =  testRouterResponse(response: httpResponse, router: Router(), request: request, redirectUri: "someurl/authorization?client_id=someclient&response_type=code&redirect_uri=http://someredirect&scope=appid_default", expectation: expectation(description: "test8"))
         web.authenticate(request: request, response: response, options: ["forceLogin": true], onSuccess: setOnSuccess(), onFailure: setOnFailure(), onPass: onPass, inProgress:setInProgress(expectation: expectation(description: "test8.5")))
         
         request.session?["userProfile"] = nil
         //a previous access token exists - with anonymous context
         request.session?[WebAppKituraCredentialsPlugin.AuthContext] = [:]
-        
-        request.session?[WebAppKituraCredentialsPlugin.AuthContext]["accessTokenPayload"] = try! Utils.parseToken(from: TestConstants.ANON_TOKEN)["payload"]
-        request.session?[WebAppKituraCredentialsPlugin.AuthContext]["accessToken"] = "someaccesstoken"
+        var authContext = request.session?[WebAppKituraCredentialsPlugin.AuthContext] as? [String : Any]
+        authContext?["accessTokenPayload"] = try! Utils.parseToken(from: TestConstants.ANON_TOKEN)["payload"]
+        authContext?["accessToken"] = "someaccesstoken"
+        request.session?[WebAppKituraCredentialsPlugin.AuthContext] = authContext
         response =  testRouterResponse(response: httpResponse, router: Router(), request: request, redirectUri: "someurl/authorization?client_id=someclient&response_type=code&redirect_uri=http://someredirect&scope=appid_default&appid_access_token=someaccesstoken", expectation: expectation(description: "test9"))
-        
         web.authenticate(request: request, response: response, options: ["forceLogin": true], onSuccess: setOnSuccess(), onFailure: setOnFailure(), onPass: onPass, inProgress:setInProgress(expectation: expectation(description: "test9.5")))
         waitForExpectations(timeout: 1) { error in
             if let error = error {
@@ -323,11 +329,11 @@ class WebAppPluginTest: XCTestCase {
         web.handleTokenResponse(httpCode: response, tokenData: "{\n\"id_token\" : \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpPU0UifQ.eyJpc3MiOiJhcHBpZCIsImF1ZCI6ImF1ZDEiLCJleHAiOjI0ODc4NjIyNTMsInRlbmFudCI6InRlc3RUZW5hbnQiLCJpYXQiOjE0ODc4NTg2NTMsImVtYWlsIjoiZW1haWxAZW1haWwuY29tIiwibmFtZSI6InRlc3QgbmFtZSIsInBpY3R1cmUiOiJ0ZXN0SW1hZ2VVcmwiLCJzdWIiOiJzdWJqZWN0IiwiaWRlbnRpdGllcyI6W3sicHJvdmlkZXIiOiJzb21lcHJvdiIsImlkIjoic29tZWlkIn1dLCJhbXIiOlsiZmFjZWJvb2siXSwib2F1dGhfY2xpZW50Ijp7Im5hbWUiOiJzb21lY2xpZW50IiwidHlwZSI6Im1vYmlsZWFwcCIsInNvZnR3YXJlX2lkIjoic29tZUlkIiwic29mdHdhcmVfdmVyc2lvbiI6IjEuMCIsImRldmljZV9pZCI6IjE5MzQ2NDNBLTA3M0UtNEZCOS05MDc2LTQ1RjcxNzkwRDU2MSIsImRldmljZV9tb2RlbCI6ImlQaG9uZSIsImRldmljZV9vcyI6ImlPUyJ9fQ==.Ftx-yfFOHcw1m29QqsTHp08bDi44k9BlWPKEM7O8bdFCpxN96n6qeVL-T_7WbS_RkV-nzPPGo5txUGVmXE_FhVeX4gh2JtSiTotMbCJlIJTf5BLGZQwKcPIGIMDrSD-MYlWbMWikP2xYtSpcc71wZ8M-Xrzft3apNrcpi68VcynQ7dCT6CpuhWw6KTW9LwfQ6I1tZc-Ol1cxEFAOVoTZ2z5or6dSWCUPdYzh4liZV3hzmpW2LMkLYnxSLVi_Tnjg_YsDuBoXHdUlLKRt4RmSFoZOmv0LKCm-J9PcuCfuUbkDyCp9Ncc1epWQqUj12Jqhnd6gnf2E4fKYmUFDgxfyIg\"\n}\n\n".data(using: .utf8), tokenError: nil, originalRequest: routerRequest, onFailure:setOnFailure(expectation: expectation(description: "test3")), onSuccess: setOnSuccess())
         
         
-        
-        XCTAssertEqual(routerRequest.session?["APPID_AUTH_CONTEXT"]["accessToken"].string, TestConstants.ACCESS_TOKEN)
-        XCTAssertEqual(routerRequest.session?["APPID_AUTH_CONTEXT"]["accessTokenPayload"], try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"])
-        XCTAssertEqual(routerRequest.session?["APPID_AUTH_CONTEXT"]["identityToken"].string , TestConstants.ID_TOKEN)
-        XCTAssertEqual(routerRequest.session?["APPID_AUTH_CONTEXT"]["identityTokenPayload"], try? Utils.parseToken(from: TestConstants.ID_TOKEN)["payload"])
+        guard let appIdAuthContext = routerRequest.session?["APPID_AUTH_CONTEXT"] as? JSON, let dict = appIdAuthContext.dictionary else {return}
+        XCTAssertEqual(dict["accessToken"]?.string, TestConstants.ACCESS_TOKEN)
+        XCTAssertEqual(dict["accessTokenPayload"], try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"])
+        XCTAssertEqual(dict["identityToken"]?.string , TestConstants.ID_TOKEN)
+        XCTAssertEqual(dict["identityTokenPayload"], try? Utils.parseToken(from: TestConstants.ID_TOKEN)["payload"])
         waitForExpectations(timeout: 1) { error in
             if let error = error {
                 XCTFail("err: \(error)")
@@ -382,17 +388,16 @@ class WebAppPluginTest: XCTestCase {
         })
         
         router.get("/protected", handler: { (request, response, next) in
-            let appIdAuthContext:JSON? = request.session?[WebAppKituraCredentialsPlugin.AuthContext]
-            let identityTokenPayload:JSON? = appIdAuthContext?["identityTokenPayload"]
+            let appIdAuthContext = request.session?[WebAppKituraCredentialsPlugin.AuthContext] as? [String : Any]
+            let identityTokenPayload = appIdAuthContext?["identityTokenPayload"]
             
-            guard appIdAuthContext?.dictionary != nil, identityTokenPayload?.dictionary != nil else {
+            guard appIdAuthContext != nil, identityTokenPayload != nil else {
                 response.status(.unauthorized)
                 return next()
             }
-
-            print("accessToken:: \(appIdAuthContext!["accessToken"])")
-            print("identityToken:: \(appIdAuthContext!["identityToken"])")
-            response.send(json: identityTokenPayload!.dictionaryObject)
+            print("accessToken:: \(String(describing: appIdAuthContext?["accessToken"]))")
+            print("identityToken:: \(String(describing: appIdAuthContext?["identityToken"]))")
+            response.send(json: identityTokenPayload as? [String : Any])
             next()
         })
         
