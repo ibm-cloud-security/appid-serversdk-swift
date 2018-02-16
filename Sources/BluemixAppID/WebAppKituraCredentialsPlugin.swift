@@ -137,7 +137,8 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         
         // If there's an existing anonymous access token on session - add it to the request url
         if let appIdAuthContext = request.session?[WebAppKituraCredentialsPlugin.AuthContext] as? [String : Any] {
-            if ((appIdAuthContext["accessTokenPayload"] as? [String : Any])?["amr"] as? [String])?[0] ==  "appid_anon" {
+            let payload = appIdAuthContext["accessTokenPayload"] as? [String : Any]
+            if (payload?["amr"] as? [String])?[0] ==  "appid_anon" {
                 logger.debug("WebAppKituraCredentialsPlugin :: handleAuthorization :: added anonymous access_token to url")
                 authUrl += "&appid_access_token=" + ((appIdAuthContext["accessToken"] as? String) ?? "")
             }

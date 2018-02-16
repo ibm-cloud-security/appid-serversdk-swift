@@ -205,7 +205,6 @@ class WebAppPluginTest: XCTestCase {
             }
             public override func redirect(_ path: String, status: HTTPStatusCode = .movedTemporarily)  -> RouterResponse {
                 if let expectation = expectation {
-                    print("expectation: \(expectation)")
                     XCTAssertEqual(path, redirectUri)
                     expectation.fulfill()
                 } else {
@@ -282,13 +281,32 @@ class WebAppPluginTest: XCTestCase {
         request.session?[WebAppKituraCredentialsPlugin.AuthContext] = authContext
         response =  testRouterResponse(response: httpResponse, router: Router(), request: request, redirectUri: "someurl/authorization?client_id=someclient&response_type=code&redirect_uri=http://someredirect&scope=appid_default&appid_access_token=someaccesstoken", expectation: expectation(description: "test9"))
         web.authenticate(request: request, response: response, options: ["forceLogin": true], onSuccess: setOnSuccess(), onFailure: setOnFailure(), onPass: onPass, inProgress:setInProgress(expectation: expectation(description: "test9.5")))
+        
+        // session is encoded and decoded and data persists
+        request.session?[WebAppKituraCredentialsPlugin.AuthContext] = [:]
+        var sessionContext = request.session?[WebAppKituraCredentialsPlugin.AuthContext] as? [String : Any]
+        sessionContext?["accessTokenPayload"] = try! Utils.parseToken(from: TestConstants.ANON_TOKEN)["payload"].dictionaryObject
+        sessionContext?["accessToken"] = "someaccesstoken"
+        request.session?[WebAppKituraCredentialsPlugin.AuthContext] = authContext
+        request.session?.save { error in
+            if let error = error {
+                XCTFail("error saving to session: \(error)")
+            } else {
+                request.session?.reload { error in
+                    if let error = error {
+                        XCTFail("error loading from session: \(error)")
+                    } else {
+                        response =  testRouterResponse(response: httpResponse, router: Router(), request: request, redirectUri: "someurl/authorization?client_id=someclient&response_type=code&redirect_uri=http://someredirect&scope=appid_default&appid_access_token=someaccesstoken", expectation: self.expectation(description: "test10"))
+                        web.authenticate(request: request, response: response, options: ["forceLogin": true], onSuccess: self.setOnSuccess(), onFailure: self.setOnFailure(), onPass: self.onPass, inProgress:self.setInProgress(expectation: self.expectation(description: "test10.5")))
+                    }
+                }
+            }
+        }
         waitForExpectations(timeout: 1) { error in
             if let error = error {
                 XCTFail("err: \(error)")
             }
         }
-        
-        
         //code on query
         
         
