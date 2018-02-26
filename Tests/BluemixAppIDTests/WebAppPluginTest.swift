@@ -106,12 +106,12 @@ class WebAppPluginTest: XCTestCase {
     func setOnFailure(expectation: XCTestExpectation? = nil) -> ((_ code: HTTPStatusCode?, _ headers: [String:String]?) -> Void) {
         
         return { (code: HTTPStatusCode?, headers: [String:String]?) -> Void in
-            if expectation == nil {
-                XCTFail()
-            } else {
+            if let expectation = expectation {
                 XCTAssertNil(code)
                 XCTAssertNil(headers)
-                expectation!.fulfill()
+                expectation.fulfill()
+            } else {
+                XCTFail()
             }
         }
     }
@@ -119,13 +119,13 @@ class WebAppPluginTest: XCTestCase {
     func setOnSuccess(id:String = "", name:String = "", provider:String = "",expectation:XCTestExpectation? = nil) -> ((_:UserProfile ) -> Void) {
         
         return { (profile:UserProfile) -> Void in
-            if expectation == nil {
-                XCTFail()
-            } else {
+            if let expectation = expectation {
                 XCTAssertEqual(profile.id, id)
                 XCTAssertEqual(profile.displayName, name)
                 XCTAssertEqual(profile.provider, provider)
-                expectation!.fulfill()
+                expectation.fulfill()
+            } else {
+                XCTFail()
             }
         }
         
@@ -139,10 +139,10 @@ class WebAppPluginTest: XCTestCase {
     func setInProgress(expectation:XCTestExpectation? = nil) -> (() -> Void) {
         
         return { () -> Void in
-            if expectation == nil {
-                XCTFail()
+            if let expectation = expectation {
+                expectation.fulfill()
             } else {
-                expectation!.fulfill()
+                XCTFail()
             }
         }
         
@@ -204,12 +204,11 @@ class WebAppPluginTest: XCTestCase {
                 super.init(response: response, routerStack: routerStack, request: request)
             }
             public override func redirect(_ path: String, status: HTTPStatusCode = .movedTemporarily)  -> RouterResponse {
-                if expectation == nil {
-                    XCTFail()
-                } else {
+                if let expectation = expectation {
                     XCTAssertEqual(path, redirectUri)
-                    expectation?.fulfill()
-                    
+                    expectation.fulfill()
+                } else {
+                    XCTFail()
                 }
                 let httpRequest =  HTTPServerRequest(socket: try! Socket.create(family: .inet), httpParser: nil)
                 let httpResponse = HTTPServerResponse(processor: IncomingHTTPSocketProcessor(socket: try! Socket.create(family: .inet), using: delegate(), keepalive: .disabled), request: httpRequest)
@@ -277,18 +276,37 @@ class WebAppPluginTest: XCTestCase {
         //a previous access token exists - with anonymous context
         request.session?[WebAppKituraCredentialsPlugin.AuthContext] = [:]
         var authContext = request.session?[WebAppKituraCredentialsPlugin.AuthContext] as? [String : Any]
-        authContext?["accessTokenPayload"] = try! Utils.parseToken(from: TestConstants.ANON_TOKEN)["payload"]
+        authContext?["accessTokenPayload"] = try! Utils.parseToken(from: TestConstants.ANON_TOKEN)["payload"].dictionaryObject
         authContext?["accessToken"] = "someaccesstoken"
         request.session?[WebAppKituraCredentialsPlugin.AuthContext] = authContext
         response =  testRouterResponse(response: httpResponse, router: Router(), request: request, redirectUri: "someurl/authorization?client_id=someclient&response_type=code&redirect_uri=http://someredirect&scope=appid_default&appid_access_token=someaccesstoken", expectation: expectation(description: "test9"))
         web.authenticate(request: request, response: response, options: ["forceLogin": true], onSuccess: setOnSuccess(), onFailure: setOnFailure(), onPass: onPass, inProgress:setInProgress(expectation: expectation(description: "test9.5")))
+        
+        // session is encoded and decoded and data persists
+        request.session?[WebAppKituraCredentialsPlugin.AuthContext] = [:]
+        var sessionContext = request.session?[WebAppKituraCredentialsPlugin.AuthContext] as? [String : Any]
+        sessionContext?["accessTokenPayload"] = try! Utils.parseToken(from: TestConstants.ANON_TOKEN)["payload"].dictionaryObject
+        sessionContext?["accessToken"] = "someaccesstoken"
+        request.session?[WebAppKituraCredentialsPlugin.AuthContext] = authContext
+        request.session?.save { error in
+            if let error = error {
+                XCTFail("error saving to session: \(error)")
+            } else {
+                request.session?.reload { error in
+                    if let error = error {
+                        XCTFail("error loading from session: \(error)")
+                    } else {
+                        response =  testRouterResponse(response: httpResponse, router: Router(), request: request, redirectUri: "someurl/authorization?client_id=someclient&response_type=code&redirect_uri=http://someredirect&scope=appid_default&appid_access_token=someaccesstoken", expectation: self.expectation(description: "test10"))
+                        web.authenticate(request: request, response: response, options: ["forceLogin": true], onSuccess: self.setOnSuccess(), onFailure: self.setOnFailure(), onPass: self.onPass, inProgress:self.setInProgress(expectation: self.expectation(description: "test10.5")))
+                    }
+                }
+            }
+        }
         waitForExpectations(timeout: 1) { error in
             if let error = error {
                 XCTFail("err: \(error)")
             }
         }
-        
-        
         //code on query
         
         
@@ -328,8 +346,8 @@ class WebAppPluginTest: XCTestCase {
         // no access token in data
         web.handleTokenResponse(httpCode: response, tokenData: "{\n\"id_token\" : \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpPU0UifQ.eyJpc3MiOiJhcHBpZCIsImF1ZCI6ImF1ZDEiLCJleHAiOjI0ODc4NjIyNTMsInRlbmFudCI6InRlc3RUZW5hbnQiLCJpYXQiOjE0ODc4NTg2NTMsImVtYWlsIjoiZW1haWxAZW1haWwuY29tIiwibmFtZSI6InRlc3QgbmFtZSIsInBpY3R1cmUiOiJ0ZXN0SW1hZ2VVcmwiLCJzdWIiOiJzdWJqZWN0IiwiaWRlbnRpdGllcyI6W3sicHJvdmlkZXIiOiJzb21lcHJvdiIsImlkIjoic29tZWlkIn1dLCJhbXIiOlsiZmFjZWJvb2siXSwib2F1dGhfY2xpZW50Ijp7Im5hbWUiOiJzb21lY2xpZW50IiwidHlwZSI6Im1vYmlsZWFwcCIsInNvZnR3YXJlX2lkIjoic29tZUlkIiwic29mdHdhcmVfdmVyc2lvbiI6IjEuMCIsImRldmljZV9pZCI6IjE5MzQ2NDNBLTA3M0UtNEZCOS05MDc2LTQ1RjcxNzkwRDU2MSIsImRldmljZV9tb2RlbCI6ImlQaG9uZSIsImRldmljZV9vcyI6ImlPUyJ9fQ==.Ftx-yfFOHcw1m29QqsTHp08bDi44k9BlWPKEM7O8bdFCpxN96n6qeVL-T_7WbS_RkV-nzPPGo5txUGVmXE_FhVeX4gh2JtSiTotMbCJlIJTf5BLGZQwKcPIGIMDrSD-MYlWbMWikP2xYtSpcc71wZ8M-Xrzft3apNrcpi68VcynQ7dCT6CpuhWw6KTW9LwfQ6I1tZc-Ol1cxEFAOVoTZ2z5or6dSWCUPdYzh4liZV3hzmpW2LMkLYnxSLVi_Tnjg_YsDuBoXHdUlLKRt4RmSFoZOmv0LKCm-J9PcuCfuUbkDyCp9Ncc1epWQqUj12Jqhnd6gnf2E4fKYmUFDgxfyIg\"\n}\n\n".data(using: .utf8), tokenError: nil, originalRequest: routerRequest, onFailure:setOnFailure(expectation: expectation(description: "test3")), onSuccess: setOnSuccess())
         
-        
-        guard let appIdAuthContext = routerRequest.session?["APPID_AUTH_CONTEXT"] as? JSON, let dict = appIdAuthContext.dictionary else {return}
+        let jsonData = JSON(routerRequest.session?["APPID_AUTH_CONTEXT"] as Any)
+        guard let dict = jsonData.dictionary else {return}
         XCTAssertEqual(dict["accessToken"]?.string, TestConstants.ACCESS_TOKEN)
         XCTAssertEqual(dict["accessTokenPayload"], try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"])
         XCTAssertEqual(dict["identityToken"]?.string , TestConstants.ID_TOKEN)
