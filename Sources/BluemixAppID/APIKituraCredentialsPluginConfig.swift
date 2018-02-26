@@ -22,6 +22,7 @@ internal class APIKituraCredentialsPluginConfig {
     private let VCAP_SERVICES_SERVICE_NAME = "AdvancedMobileAccess"
     private let VCAP_APPLICATION = "VCAP_APPLICATION"
     private let OAUTH_SERVER_URL = "oauthServerUrl"
+    private let PUBKEY_SERVER_URL = "pubKeyServerUrl"
     private let logger = Logger(forName: "APIKituraCredentialsPluginConfig")
     var serviceConfig: [String:Any] = [:]
     
@@ -62,5 +63,17 @@ internal class APIKituraCredentialsPluginConfig {
         }
     }
     
+    var publicKeyServerURL:String? {
+        get {
+            var keyURL: String? = nil
+            
+            // public key url = OAUTH_SERVER_URL/publickey
+            // e.g. https://appid-oauth.ng.bluemix.net/oauth/v3/a8589e38-081e-4128-a777-b1cd76ee1875/publickey
+            if let serverUrl = serviceConfig[OAUTH_SERVER_URL] as? String  {
+                keyURL = serverUrl + "/publickey"
+            }
+            return keyURL
+        }
+    }
 }
 

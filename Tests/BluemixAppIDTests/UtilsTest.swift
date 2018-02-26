@@ -29,6 +29,7 @@ import SwiftyJSON
 
 @testable import BluemixAppID
 
+@available(OSX 10.12, *)
 class UtilsTest: XCTestCase {
 
     static var allTests : [(String, (UtilsTest) -> () throws -> Void)] {

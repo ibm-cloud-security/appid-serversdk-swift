@@ -21,6 +21,7 @@ import SwiftyJSON
 import Foundation
 @testable import BluemixAppID
 
+@available(OSX 10.12, *)
 class ApiPluginTest: XCTestCase {
     
     
@@ -93,7 +94,7 @@ class ApiPluginTest: XCTestCase {
     
     func testApiAuthenticate() {
         //no authorization header
-        let api = APIKituraCredentialsPlugin(options:[:])
+        let api = APIKituraCredentialsPlugin(options:["oauthServerUrl": "testServerUrl"])
         let parser = HTTPParser(isRequest: true)
         let httpRequest =  HTTPServerRequest(socket: try! Socket.create(family: .inet), httpParser: parser)
         let httpResponse = HTTPServerResponse(processor: IncomingHTTPSocketProcessor(socket: try! Socket.create(family: .inet), using: delegate(), keepalive: .disabled), request: httpRequest)

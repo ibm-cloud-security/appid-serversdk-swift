@@ -29,6 +29,7 @@ import Foundation
 
 @testable import BluemixAppID
 
+@available(OSX 10.12, *)
 class WebAppPluginTest: XCTestCase {
 
     static var allTests : [(String, (WebAppPluginTest) -> () throws -> Void)] {

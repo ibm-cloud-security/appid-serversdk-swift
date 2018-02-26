@@ -17,7 +17,10 @@ import Kitura
 import KituraNet
 import Credentials
 import SimpleLogger
+import SwiftyRequest
+import JWKTransform
 
+@available(OSX 10.12, *)
 public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
     
     public static let name = "appid-api-kitura-credentials-plugin"
@@ -27,6 +30,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
     private let DefaultScope = "appid_default"
     public  let AuthContext = "APPID_AUTH_CONTEXT"
     private let logger = Logger(forName: "APIKituraCredentialsPlugin")
+    private var appIDpubKey: String?
     
     private var serviceConfig:APIKituraCredentialsPluginConfig?
     
@@ -34,7 +38,11 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
         logger.debug("Intializing APIKituraCredentialsPlugin")
         logger.warn("This is a beta version of APIKituraCredentialsPlugin, it should not be used for production environments!");
         self.serviceConfig = APIKituraCredentialsPluginConfig(options: options)
-    }
+        
+        // get the public key.
+        // TODO: retries and handling failures
+        retrievePubKey()
+	}
     
     public var name: String {
         return APIKituraCredentialsPlugin.name
@@ -54,7 +62,6 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
         
         onFailure(.unauthorized, ["Www-Authenticate": msg])
     }
-    
     
     public func authenticate (request: RouterRequest,
                               response: RouterResponse,
@@ -91,9 +98,19 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
             sendFailure(scope:requiredScope, error:"invalid_token", onFailure: onFailure, response: response)
             return
         }
+        // make sure public key exists
+        guard self.appIDpubKey != nil else {
+            logger.debug("ApiKituraCredentialsPlugin : public key not found")
+            sendFailure(scope:requiredScope, error:"invalid_token", onFailure: onFailure, response: response)
+            return
+        }
         
         let accessTokenString:String = authHeaderComponents[1]
-        let accessToken = try? Utils.parseToken(from: accessTokenString)
+        guard let accessToken = try? Utils.parseToken(from: accessTokenString, using: self.appIDpubKey) else {
+            logger.debug("ApiKituraCredentialsPlugin : access token not created")
+            sendFailure(scope:requiredScope, error:"invalid_token", onFailure: onFailure, response: response)
+            return
+        }
         let idTokenString:String? = authHeaderComponents.count == 3 ? authHeaderComponents[2] : nil
         
         guard Utils.isTokenValid(token: accessTokenString) else {
@@ -102,7 +119,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
         }
         
         let requiredScopeElements = requiredScope.components(separatedBy: " ")
-        let suppliedScopeElements = accessToken?["payload"]["scope"].string?.components(separatedBy: " ")
+        let suppliedScopeElements = accessToken["payload"]["scope"].string?.components(separatedBy: " ")
         if suppliedScopeElements != nil {
             for i in 0..<requiredScopeElements.count {
                 let requiredScopeElement = requiredScopeElements[i]
@@ -115,7 +132,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
                     }
                 }
                 if (!found){
-                    let receivedScope = accessToken?["scope"].string ?? ""
+                    let receivedScope = accessToken["scope"].string ?? ""
                     logger.warn("ApiKituraCredentialsPlugin : access_token does not contain required scope. Expected " + requiredScope + " received " + receivedScope)
                     sendFailure(scope:requiredScope, error:"insufficient_scope", onFailure: onFailure, response: response)
                     return
@@ -125,7 +142,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
         
         var authorizationContext:[String:Any] = [
             "accessToken": accessTokenString,
-            "accessTokenPayload": accessToken?["payload"] as Any
+            "accessTokenPayload": accessToken["payload"] as Any
         ]
         
         var userId = ""
@@ -137,7 +154,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
             if Utils.isTokenValid(token: identityTokenString) == true {
                 logger.debug("Id token is malformed")
                 
-                if let idTokenString = idTokenString, let idToken = try? Utils.parseToken(from: idTokenString), let authContext = Utils.getAuthorizedIdentities(from: idToken){
+                if let idTokenString = idTokenString, let idToken = try? Utils.parseToken(from: idTokenString, using: self.appIDpubKey), let authContext = Utils.getAuthorizedIdentities(from: idToken){
                     logger.debug("Id token is present and successfully parsed")
                     // idToken is present and successfully parsed
                     request.userInfo[AuthContext] = authContext
@@ -158,5 +175,66 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
         request.userInfo[AuthContext] = authorizationContext
         onSuccess(UserProfile(id: userId, displayName: displayName, provider: provider))
     }
+    
+    private func retrievePubKey( completion: (() -> Void)? = nil ) {
+        
+        // for debugging, add some bad values
+        print(self.serviceConfig?.serverUrl ?? "NIL")
+        if (self.serviceConfig?.publicKeyServerURL)! == "testServerUrl/publickey" {
+            let jwk_stage1 = """
+{"kty":"RSA","n":"s8SVzmkIslnxYmr0fa_i88fTS_a6wH3tNzRjE1M2SUHjz0E7IJ2-2Jjqwsefu0QcYDnH_oiwnLGn_m-etw1toAIC30UeeKiskM1pqRi6Z8LTRZIS3WYHRFGqa3IfVEBf_sjlxjNqfG8y9c4fJ_pRYGxpzCbjeXsDefs0zfSXmlQcWL1MwIIDHN0ZnAcmpjSsOzo0wPQGb_n8MIfT-rUr90bxch9-51wOEVXROE5nQpjkW9n6aCECeySDIK0nvILsgXMWUNW3oAIF35tK9yaUkGxXVNju-RGJLipnIIDU5apJY8lmKTVmzBMglY2fgXpNKbgQmMBlUJ4L1X05qUzw5w","e":"AQAB","kid":"appId-1504675475000"}
+"""
+            
+            self.handlePubKeyResponse(200, jwk_stage1.data(using: .utf8), nil, completion)
+            self.logger.debug("An internal error occured. Request failed.")
+            return
+        }
+            
+        let restReq = RestRequest(method: .get, url: (self.serviceConfig?.publicKeyServerURL)!, containsSelfSignedCert: false)
+        
+        restReq.response { (data, response, error) in
+            if let e = error {
+                self.logger.debug("An error occured in the public key retreival response. Error: \(e)")
+            }
+            else if let response = response, let data = data {
+                self.handlePubKeyResponse(response.statusCode, data, error, completion)
+            }
+            else {
+                self.logger.debug("An internal error occured. Request failed.")
+            }
+        }
+    }
+    
+    internal func handlePubKeyResponse(_ httpCode: Int?, _ data: Data?, _ error: Swift.Error?, _ onCompletion: (() -> Void)? = nil ) {
+        if  data == nil || error != nil || httpCode != 200  {
+            let data = data != nil ? String(data: data!, encoding: .utf8) : ""
+            let error = error != nil ? error!.localizedDescription : ""
+            let code = httpCode != nil ? String(httpCode!): ""
+            self.logger.debug("APIKituraCredentialsPlugin :: Failed to obtain public key " + "err:\(error)\nstatus code \(code)\nbody \(String(describing: data))")
+            logger.warn("ApiKituraCredentialsPlugin : Unable to retrieve public key")
+            if let onCompletion = onCompletion {
+                onCompletion()
+            }
+            return
+        }
+        
+        if let data = data {
+            do {
+                guard let token = String(data: data, encoding: .utf8) else {
+                    logger.warn("ApiKituraCredentialsPlugin : Unable to retrieve public key")
+                    return
+                }
+                // convert JWK key to PEM format
+                let key = try RSAKey(jwk: token)
+                self.appIDpubKey = try key.getPublicKey(certEncoding.pemPkcs8)
+                
+            } catch {
+                self.logger.debug("APIKituraCredentialsPlugin :: Failed to extract public key " + "public key: \(String(describing: data))")
+                logger.warn("ApiKituraCredentialsPlugin : Unable to extract public key")
+            }
+        }
+        self.logger.debug("retrievePubKey :: public key retrieved and extracted")
+    }
+
 }
 
