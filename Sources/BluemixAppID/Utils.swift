@@ -45,9 +45,8 @@ public  class Utils {
     }
     
     @available(OSX 10.12, *)
-    public static func parseToken(from tokenString:String, using pk: String? = nil) throws -> JSON {
-        logger.debug("parseToken")
-        
+    public static func parseToken(from tokenString:String, using publicKey: String? = nil) throws -> JSON {
+
         let tokenComponents = tokenString.components(separatedBy: ".")
         
         guard tokenComponents.count == 3 else {
@@ -63,10 +62,9 @@ public  class Utils {
         }
         let jwtSignature = tokenComponents[2]
         
-        // if public key passed, then verify signature
-        if let publicKey = pk {
+        // if public key is passed, then verify signature
+        if let publicKey = publicKey {
             if try !isSignatureValid(tokenComponents, with: publicKey) {
-                logger.debug("invalid signature")
                 throw AppIDErrorInternal.InvalidAccessTokenSignature
             }
         }
@@ -103,10 +101,8 @@ public  class Utils {
         let signature = CryptorRSA.createSigned(with: sigData)
 
         isValid = try message.verify(with: tokenPublicKey!, signature: signature, algorithm: .sha256)
-        if isValid {
-            logger.debug("signature is VALID")
-        } else {
-	        logger.error("signature is INVALID")
+        if !isValid {
+	        logger.error("invalid signature on token")
         }
 
         return isValid
