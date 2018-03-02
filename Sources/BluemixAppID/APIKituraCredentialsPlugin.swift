@@ -183,11 +183,12 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
     
     private func retrievePubKey( completion: (() -> Void)? = nil ) {
         
-        // Super duper ugly code - shoudl be changed
+        // Super duper ugly code - should be changed
         if (self.serviceConfig?.publicKeyServerURL)! == "testServerUrl/publickey" {
             let debug_jwk = """
 {"kty":"RSA","n":"s8SVzmkIslnxYmr0fa_i88fTS_a6wH3tNzRjE1M2SUHjz0E7IJ2-2Jjqwsefu0QcYDnH_oiwnLGn_m-etw1toAIC30UeeKiskM1pqRi6Z8LTRZIS3WYHRFGqa3IfVEBf_sjlxjNqfG8y9c4fJ_pRYGxpzCbjeXsDefs0zfSXmlQcWL1MwIIDHN0ZnAcmpjSsOzo0wPQGb_n8MIfT-rUr90bxch9-51wOEVXROE5nQpjkW9n6aCECeySDIK0nvILsgXMWUNW3oAIF35tK9yaUkGxXVNju-RGJLipnIIDU5apJY8lmKTVmzBMglY2fgXpNKbgQmMBlUJ4L1X05qUzw5w","e":"AQAB","kid":"appId-1504675475000"}
 """
+            self.logger.debug("Using Test key! Signature verification will FAIL! You should only see this during unit tests. If you see this otherwise, you have not set oauthServerUrl option in the APIKituraCredentialPluginConfig.")
             self.handlePubKeyResponse(200, debug_jwk.data(using: .utf8), nil, completion)
             self.logger.debug("An internal error occured. Request failed.")
             return

@@ -25,7 +25,13 @@ import Foundation
 class ApiPluginTest: XCTestCase {
     
     
-    
+    static var allTests : [(String, (ApiPluginTest) -> () throws -> Void)] {
+        return [
+            ("testApiConfig", testApiConfig),
+            ("testApiAuthenticate", testApiAuthenticate),
+        ]
+    }
+
     let options = [
         "oauthServerUrl": "https://appid-oauth.stage1.mybluemix.net/oauth/v3/768b5d51-37b0-44f7-a351-54fe59a67d18"
     ]
