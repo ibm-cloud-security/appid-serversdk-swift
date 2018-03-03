@@ -47,15 +47,6 @@
         }
       },
       {
-        "package": "JWKTransform",
-        "repositoryURL": "https://github.com/gtaban/JWKTransform.git",
-        "state": {
-          "branch": null,
-          "revision": "ddc55f2ec74633ad4c673c35fffeaeafda77042a",
-          "version": "0.0.1"
-        }
-      },
-      {
         "package": "Kitura",
         "repositoryURL": "https://github.com/IBM-Swift/Kitura.git",
         "state": {
@@ -87,8 +78,8 @@
         "repositoryURL": "https://github.com/IBM-Swift/Kitura-TemplateEngine.git",
         "state": {
           "branch": null,
-          "revision": "8e75a213bf4dd7b5effd03848335e344535969aa",
-          "version": "1.7.2"
+          "revision": "d432d61cd9dfb66bc9741fec44434bbbcad676cd",
+          "version": "1.7.3"
         }
       },
       {
@@ -114,8 +105,8 @@
         "repositoryURL": "https://github.com/IBM-Swift/LoggerAPI.git",
         "state": {
           "branch": null,
-          "revision": "6b62fe66da9b8794d6581e5c341710eea3173cd4",
-          "version": "1.7.1"
+          "revision": "ee0084cbb8bace59b3409cec05bedc5d2e97f8b7",
+          "version": "1.7.2"
         }
       },
       {
@@ -155,12 +146,21 @@
         }
       },
       {
+        "package": "Swift-JWT-to-PEM",
+        "repositoryURL": "https://github.com/ibm-cloud-security/Swift-JWT-to-PEM.git",
+        "state": {
+          "branch": null,
+          "revision": "dfa1a3570aac4d6952c301b2027a9e4ecd2f28d1",
+          "version": "0.1.0"
+        }
+      },
+      {
         "package": "SwiftyJSON",
         "repositoryURL": "https://github.com/IBM-Swift/SwiftyJSON.git",
         "state": {
           "branch": null,
-          "revision": "1190845cf7d25a5c8ea7653fe03dcdd39a082056",
-          "version": "17.0.0"
+          "revision": "7eb6c83f91c519c19e6a507d604c9176d5ae5b15",
+          "version": "17.0.1"
         }
       },
       {
