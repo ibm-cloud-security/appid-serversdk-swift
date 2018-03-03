@@ -20,6 +20,7 @@ import SwiftyJSON
 import SimpleLogger
 import KituraSession
 
+@available(OSX 10.12, *)
 public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
     
     public static let Name = "appid-webapp-kitura-credentials-plugin"
@@ -73,40 +74,32 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
     }
     
     private func restoreUserProfile(from session: SessionState) -> UserProfile? {
-        if let sessionUserProfile = session["userProfile"] {
-            if let dictionary = sessionUserProfile as? [String : Any],
-                let displayName = dictionary["displayName"] as? String,
-                let provider = dictionary["provider"] as? String,
-                let id = dictionary["id"] as? String {
+        if let sessionUserProfile = session["userProfile"],
+           let dictionary = sessionUserProfile as? [String : Any],
+           let displayName = dictionary["displayName"] as? String,
+           let provider = dictionary["provider"] as? String,
+           let id = dictionary["id"] as? String {
                 
-                var userName: UserProfile.UserProfileName?
-                if let familyName = dictionary["familyName"] as? String,
-                    let givenName = dictionary["givenName"] as? String,
-                    let middleName = dictionary["middleName"] as? String {
-                    userName = UserProfile.UserProfileName(familyName: familyName, givenName: givenName, middleName: middleName)
-                }
-                
-                var userEmails: Array<UserProfile.UserProfileEmail>?
-                if let emails = dictionary["emails"] as? [String], let types = dictionary["emailTypes"] as? [String] {
-                    userEmails = Array()
-                    for (index, email) in emails.enumerated() {
-                        let userEmail = UserProfile.UserProfileEmail(value: email, type: types[index])
-                        userEmails?.append(userEmail)
-                    }
-                }
-                
-                var userPhotos: Array<UserProfile.UserProfilePhoto>?
-                if let photos = dictionary["photos"] as? [String] {
-                    userPhotos = Array()
-                    for photo in photos {
-                        let userPhoto = UserProfile.UserProfilePhoto(photo)
-                        userPhotos?.append(userPhoto)
-                    }
-                }
-                
-                return UserProfile(id: id, displayName: displayName, provider: provider, name: userName, emails: userEmails, photos: userPhotos, extendedProperties: dictionary["extendedProperties"] as? [String:Any])
+            var userName: UserProfile.UserProfileName?
+            if let familyName = dictionary["familyName"] as? String,
+                let givenName = dictionary["givenName"] as? String,
+                let middleName = dictionary["middleName"] as? String {
+                userName = UserProfile.UserProfileName(familyName: familyName, givenName: givenName, middleName: middleName)
             }
+            
+            var userEmails: Array<UserProfile.UserProfileEmail>?
+            if let emails = dictionary["emails"] as? [String], let types = dictionary["emailTypes"] as? [String] {
+                userEmails = emails.enumerated().map { UserProfile.UserProfileEmail(value: $1, type: types[$0]) }
+            }
+            
+            var userPhotos: Array<UserProfile.UserProfilePhoto>?
+            if let photos = dictionary["photos"] as? [String] {
+                userPhotos = photos.map { UserProfile.UserProfilePhoto($0) }
+            }
+            
+            return UserProfile(id: id, displayName: displayName, provider: provider, name: userName, emails: userEmails, photos: userPhotos, extendedProperties: dictionary["extendedProperties"] as? [String:Any])
         }
+        
         return nil
     }
     
@@ -144,14 +137,14 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         var authUrl = generateAuthorizationUrl(options: options)
         
         // If there's an existing anonymous access token on session - add it to the request url
-        let appIdAuthContext = request.session?[WebAppKituraCredentialsPlugin.AuthContext] as? [String : Any]
-        if let context = appIdAuthContext, let payload = context["accessTokenPayload"] as? SwiftyJSON.JSON, payload["amr"][0] == "appid_anon" {
-            logger.debug("WebAppKituraCredentialsPlugin :: handleAuthorization :: added anonymous access_token to url")
-            authUrl += "&appid_access_token=" + ((context["accessToken"] as? String) ?? "")
-        }
-        
-        // If previous anonymous access token not found and new anonymous users are not allowed - fail
-        if appIdAuthContext  == nil && allowAnonymousLogin == true && allowCreateNewAnonymousUser != true {
+        if let appIdAuthContext = request.session?[WebAppKituraCredentialsPlugin.AuthContext] as? [String : Any] {
+            let payload = appIdAuthContext["accessTokenPayload"] as? [String : Any]
+            if (payload?["amr"] as? [String])?[0] ==  "appid_anon" {
+                logger.debug("WebAppKituraCredentialsPlugin :: handleAuthorization :: added anonymous access_token to url")
+                authUrl += "&appid_access_token=" + ((appIdAuthContext["accessToken"] as? String) ?? "")
+            }
+        } else if allowAnonymousLogin && !allowCreateNewAnonymousUser {
+            // If previous anonymous access token not found and new anonymous users are not allowed - fail
             logger.warn("Previous anonymous user not found. Not allowed to create new anonymous users.")
             return onFailure(nil,nil)
         }
@@ -184,7 +177,7 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         }
         
         var body = JSON(data: tokenData)
-        var appIdAuthorizationContext:SwiftyJSON.JSON = [:]
+        var appIdAuthorizationContext: [String:Any] = [:]
         
         
         var kituraUserId = ""
@@ -193,16 +186,16 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
         
         if let accessTokenString = body["access_token"].string, let accessTokenPayload = try? Utils.parseToken(from: accessTokenString)["payload"] {
             // Parse access_token
-            appIdAuthorizationContext["accessToken"].string = accessTokenString
-            appIdAuthorizationContext["accessTokenPayload"] = accessTokenPayload
+            appIdAuthorizationContext["accessToken"] = accessTokenString
+            appIdAuthorizationContext["accessTokenPayload"] = accessTokenPayload.dictionaryObject
         } else {
             return onFailure(nil,nil)
         }
         
         if let identityTokenString = body["id_token"].string, let identityToken = try? Utils.parseToken(from: identityTokenString), let context = Utils.getAuthorizedIdentities(from: identityToken) {
             // Parse identity_token
-            appIdAuthorizationContext["identityToken"].string = identityTokenString
-            appIdAuthorizationContext["identityTokenPayload"] = identityToken["payload"]
+            appIdAuthorizationContext["identityToken"] = identityTokenString
+            appIdAuthorizationContext["identityTokenPayload"] = identityToken["payload"].dictionaryObject
             kituraUserId = context.userIdentity.id
             kituraDisplayName = context.userIdentity.displayName
             if context.userIdentity.authBy.count > 0 && context.userIdentity.authBy[0]["provider"].string != nil {

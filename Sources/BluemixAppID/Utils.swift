@@ -15,6 +15,7 @@
 import Foundation
 import SwiftyJSON
 import SimpleLogger
+import CryptorRSA
 
 extension String{
     
@@ -33,6 +34,7 @@ extension String{
     }
 }
 
+@available(OSX 10.12, *)
 public  class Utils {
     
     private static let logger = Logger(forName: "BluemixAppIDUtils");
@@ -42,9 +44,9 @@ public  class Utils {
         return  AuthorizationContext(idTokenPayload: idToken["payload"])
     }
     
-    public static func parseToken(from tokenString:String) throws -> JSON {
-        logger.debug("parseToken")
-        
+    @available(OSX 10.12, *)
+    public static func parseToken(from tokenString:String, using publicKey: String? = nil) throws -> JSON {
+
         let tokenComponents = tokenString.components(separatedBy: ".")
         
         guard tokenComponents.count == 3 else {
@@ -60,6 +62,13 @@ public  class Utils {
         }
         let jwtSignature = tokenComponents[2]
         
+        // if public key is passed, then verify signature
+        if let publicKey = publicKey {
+            if try !isSignatureValid(tokenComponents, with: publicKey) {
+                throw AppIDErrorInternal.InvalidAccessTokenSignature
+            }
+        }
+        
         let jwtHeader = JSON(data: jwtHeaderData)
         let jwtPayload = JSON(data: jwtPayloadData)
         
@@ -68,6 +77,35 @@ public  class Utils {
         json["payload"] = jwtPayload
         json["signature"] = JSON(jwtSignature)
         return json
+    }
+    
+    @available(OSX 10.12, *)
+    private static func isSignatureValid(_ tokenParts: [String], with pk: String) throws -> Bool {
+        
+        var isValid: Bool = false
+        
+        let tokenPublicKey = try? CryptorRSA.createPublicKey(withPEM: pk)
+        guard tokenPublicKey != nil else {
+            throw AppIDErrorInternal.PublicKeyNotFound
+        }
+
+        // Signed message is the first two components of the token
+        let messageData = (String(tokenParts[0] + "." + tokenParts[1]).data(using: String.Encoding(rawValue: String.Encoding.utf8.rawValue))!)
+        let message = CryptorRSA.createPlaintext(with: messageData)
+        
+        // signature is 3rd component
+        // add padding, URL decode, base64 decode
+        guard let sigData = String(tokenParts[2]).base64decodedData() else {
+            throw AppIDErrorInternal.InvalidAccessTokenSignature
+        }
+        let signature = CryptorRSA.createSigned(with: sigData)
+
+        isValid = try message.verify(with: tokenPublicKey!, signature: signature, algorithm: .sha256)
+        if !isValid {
+	        logger.error("invalid signature on token")
+        }
+
+        return isValid
     }
     
     public static func isTokenValid(token:String) -> Bool {

@@ -8,6 +8,7 @@ import KituraSession
 
 
 
+@available(OSX 10.12, *)
 public class UserAttributeManager {
     private let VcapServices = "VCAP_SERVICES"
     private let VcapServicesCredntials = "credentials"
@@ -81,8 +82,8 @@ public class UserAttributeManager {
             return
         }
         var url:String = profileURL + AttributesEndpoint + "/"
-        if let attName = attributeName {
-            url += attName
+        if let attributeName = attributeName {
+            url += attributeName
         }
 
         let request = HTTP.request(url, callback: {response in
@@ -109,8 +110,8 @@ public class UserAttributeManager {
             }
         })
 
-        if let attValue = attributeValue {
-            request.write(from: attValue)// add attributeValue to body if setAttribute() was called
+        if let attributeValue = attributeValue {
+            request.write(from: attributeValue)// add attributeValue to body if setAttribute() was called
         }
 
         request.set(.method(method))

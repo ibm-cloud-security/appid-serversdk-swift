@@ -25,6 +25,7 @@ import Socket
 
 @testable import BluemixAppID
 
+@available(OSX 10.12, *)
 class UserAttributesManagerTest: XCTestCase {
 
     static var allTests : [(String, (UserAttributesManagerTest) -> () throws -> Void)] {

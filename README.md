@@ -33,6 +33,24 @@ Read the [official documentation](https://console.bluemix.net/docs/services/appi
 ### Requirements
 * Swift 4.0
 * Kitura 2.1
+* OpenSSL
+
+### Build Instructions
+
+
+Since this library uses OpenSSL under the covers (specifically used by `Swift-JWT-to-PEM` dependency library), it requires explicitly passing build and linker paths for the OpenSSL library. Additionally, `swift package generate-xcodeproj` doesn't add the proper flags when they are passed in using the flags, therefore they must be added to the generated xcode project.
+```
+swift build -Xlinker -L/usr/local/opt/openssl/lib -Xcc -I/usr/local/opt/openssl/include
+```
+
+To generate Xcode project:
+```
+swift package generate-xcodeproj --xcconfig-overrides openssl.xcconfig
+```
+The extra xcconfig are needed to be able to build in Xcode or use `xcodebuild`.
+
+**These extra flags are necessary for any target that uses `BluemixAppID` library as a dependency.**
+
 
 ### Installation
 ```swift
@@ -41,7 +59,7 @@ import PackageDescription
 let package = Package(
     ...
     dependencies: [
-        .package(url: "https://github.com/ibm-cloud-security/appid-serversdk-swift.git", .upToNextMinor(from: "3.0.0"))
+        .package(url: "https://github.com/ibm-cloud-security/appid-serversdk-swift.git", .upToNextMinor(from: "4.0.0"))
     ]
     .target(
         name: "<Your Target>",
@@ -49,6 +67,7 @@ let package = Package(
     )
 )
 ```
+* 4.0.x releases were tested on OSX and Linux with Swift 4.0.3
 * 2.0.x releases were tested on OSX and Linux with Swift 4.0
 * 1.0.x releases were tested on OSX and Linux with Swift 3.1 and 3.1.1
 * 0.0.x releases were tested on OSX and Linux with Swift 3.0.2
