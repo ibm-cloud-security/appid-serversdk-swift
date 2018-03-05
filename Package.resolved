@@ -146,11 +146,11 @@
         }
       },
       {
-        "package": "Swift-JWT-to-PEM",
+        "package": "SwiftJWKtoPEM",
         "repositoryURL": "https://github.com/ibm-cloud-security/Swift-JWT-to-PEM.git",
         "state": {
           "branch": null,
-          "revision": "dfa1a3570aac4d6952c301b2027a9e4ecd2f28d1",
+          "revision": "65b9b3dd3538c432cad2187b0209ee0945304694",
           "version": "0.1.0"
         }
       },

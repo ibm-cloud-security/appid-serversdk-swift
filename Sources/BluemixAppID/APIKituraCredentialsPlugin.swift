@@ -18,7 +18,7 @@ import KituraNet
 import Credentials
 import SimpleLogger
 import SwiftyRequest
-import Swift-JWT-to-PEM
+import SwiftJWKtoPEM
 
 @available(OSX 10.12, *)
 public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
