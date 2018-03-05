@@ -90,7 +90,8 @@ public  class Utils {
         }
 
         // Signed message is the first two components of the token
-        let messageData = (String(tokenParts[0] + "." + tokenParts[1]).data(using: String.Encoding(rawValue: String.Encoding.utf8.rawValue))!)
+        let messageString = String(tokenParts[0] + "." + tokenParts[1])
+        let messageData = messageString.data(using: String.Encoding(rawValue: String.Encoding.utf8.rawValue))!
         let message = CryptorRSA.createPlaintext(with: messageData)
         
         // signature is 3rd component

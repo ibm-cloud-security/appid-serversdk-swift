@@ -25,7 +25,6 @@ internal class APIKituraCredentialsPluginConfig {
     private let PUBKEY_SERVER_URL = "pubKeyServerUrl"
     private let logger = Logger(forName: "APIKituraCredentialsPluginConfig")
     var serviceConfig: [String:Any] = [:]
-    
     public init(options:[String:Any]?) {
         logger.debug("Intializing APIKituraCredentialsPluginConfig")
         let options = options ?? [:]
@@ -69,7 +68,7 @@ internal class APIKituraCredentialsPluginConfig {
             
             // public key url = OAUTH_SERVER_URL/publickey
             // e.g. https://appid-oauth.ng.bluemix.net/oauth/v3/a8589e38-081e-4128-a777-b1cd76ee1875/publickey
-            if let serverUrl = serviceConfig[OAUTH_SERVER_URL] as? String  {
+            if let serverUrl = serviceConfig[OAUTH_SERVER_URL] as? String {
                 if serverUrl.last == "/" {
 	                keyURL = serverUrl + "./publickey"
                 } else {
@@ -80,4 +79,3 @@ internal class APIKituraCredentialsPluginConfig {
         }
     }
 }
-
