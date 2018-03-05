@@ -39,7 +39,6 @@ internal class APIKituraCredentialsPluginConfig {
                 }
             }
         }
-        
         serviceConfig[OAUTH_SERVER_URL] = options[OAUTH_SERVER_URL] ?? vcapServiceCredentials?[OAUTH_SERVER_URL] ?? nil
         
         if serviceConfig[OAUTH_SERVER_URL] == nil {
