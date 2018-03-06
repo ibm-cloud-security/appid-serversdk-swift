@@ -17,36 +17,35 @@ import SwiftyJSON
 import SimpleLogger
 
 internal class APIKituraCredentialsPluginConfig {
-    private let VCAP_SERVICES = "VCAP_SERVICES"
-    private let VCAP_SERVICES_CREDENTIALS = "credentials"
-    private let VCAP_SERVICES_SERVICE_NAME = "AdvancedMobileAccess"
-    private let VCAP_APPLICATION = "VCAP_APPLICATION"
-    private let OAUTH_SERVER_URL = "oauthServerUrl"
-    private let PUBKEY_SERVER_URL = "pubKeyServerUrl"
+    private let vcapServices = "VCAP_SERVICES"
+    private let vcapServicesCredentials = "credentials"
+    private let vcapServicesName = "AdvancedMobileAccess"
+    private let vcapApplication = "VCAP_APPLICATION"
+    private let oauthServerURL = "oauthServerUrl"
+    private let pubkeyServerURL = "pubKeyServerUrl"
     private let logger = Logger(forName: "APIKituraCredentialsPluginConfig")
     var serviceConfig: [String:Any] = [:]
     public init(options:[String:Any]?) {
         logger.debug("Intializing APIKituraCredentialsPluginConfig")
         let options = options ?? [:]
-        let vcapString = ProcessInfo.processInfo.environment[VCAP_SERVICES] ?? ""
+        let vcapString = ProcessInfo.processInfo.environment[self.vcapServices] ?? ""
         let vcapServices = JSON.parse(string: vcapString)
         var vcapServiceCredentials: [String:Any]? = [:]
         if vcapServices.dictionary != nil {
             for (key,value) in vcapServices.dictionary! {
-                if key.hasPrefix(VCAP_SERVICES_SERVICE_NAME) {
-                    vcapServiceCredentials = (value.array?[0])?.dictionaryObject?[VCAP_SERVICES_CREDENTIALS] as? [String : Any]
+                if key.hasPrefix(vcapServicesName) {
+                    vcapServiceCredentials = (value.array?[0])?.dictionaryObject?[vcapServicesCredentials] as? [String : Any]
                     break
                 }
             }
         }
-        serviceConfig[OAUTH_SERVER_URL] = options[OAUTH_SERVER_URL] ?? vcapServiceCredentials?[OAUTH_SERVER_URL] ?? nil
-        
-        if serviceConfig[OAUTH_SERVER_URL] == nil {
+        serviceConfig[oauthServerURL] = options[oauthServerURL] ?? vcapServiceCredentials?[oauthServerURL] ?? nil
+        if serviceConfig[oauthServerURL] == nil {
             logger.error("Failed to initialize APIKituraCredentialsPlugin. All requests to protected endpoints will be rejected")
             logger.error("Ensure your app is either bound to an AppID service instance or pass required parameters in the strategy constructor ")
         }
         
-        logger.info(OAUTH_SERVER_URL + "=" + ((serviceConfig[OAUTH_SERVER_URL] as? String) ?? ""))
+        logger.info(oauthServerURL + "=" + ((serviceConfig[oauthServerURL] as? String) ?? ""))
     }
     
     var config:[String:Any] {
@@ -57,7 +56,7 @@ internal class APIKituraCredentialsPluginConfig {
     
     var serverUrl:String? {
         get {
-            return serviceConfig[OAUTH_SERVER_URL] as? String
+            return serviceConfig[oauthServerURL] as? String
         }
     }
     
@@ -67,7 +66,7 @@ internal class APIKituraCredentialsPluginConfig {
             
             // public key url = OAUTH_SERVER_URL/publickey
             // e.g. https://appid-oauth.ng.bluemix.net/oauth/v3/a8589e38-081e-4128-a777-b1cd76ee1875/publickey
-            if let serverUrl = serviceConfig[OAUTH_SERVER_URL] as? String {
+            if let serverUrl = serviceConfig[oauthServerURL] as? String {
                 if serverUrl.last == "/" {
 	                keyURL = serverUrl + "./publickey"
                 } else {
