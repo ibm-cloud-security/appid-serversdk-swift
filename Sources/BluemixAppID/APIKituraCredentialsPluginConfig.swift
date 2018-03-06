@@ -44,7 +44,6 @@ internal class APIKituraCredentialsPluginConfig {
             logger.error("Failed to initialize APIKituraCredentialsPlugin. All requests to protected endpoints will be rejected")
             logger.error("Ensure your app is either bound to an AppID service instance or pass required parameters in the strategy constructor ")
         }
-        
         logger.info(oauthServerURL + "=" + ((serviceConfig[oauthServerURL] as? String) ?? ""))
     }
     
