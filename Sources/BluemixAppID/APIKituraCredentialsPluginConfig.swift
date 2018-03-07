@@ -46,7 +46,6 @@ internal class APIKituraCredentialsPluginConfig {
         }
         logger.info(oauthServerURL + "=" + ((serviceConfig[oauthServerURL] as? String) ?? ""))
     }
-    
     var config:[String:Any] {
         get {
             return serviceConfig
