@@ -22,4 +22,6 @@ internal enum AppIDErrorInternal: String, Error {
     case InvalidAuthHeaderFormat = "Invalid authorization header format. Expected format 'Bearer accessToken idToken'"
     case InvalidAccessToken = "Invalid access token"
     case InvalidAccessTokenFormat = "Invalid access token format"
+    case InvalidAccessTokenSignature = "Invalid access token signature"
+    case PublicKeyNotFound = "Public key not found"
 }

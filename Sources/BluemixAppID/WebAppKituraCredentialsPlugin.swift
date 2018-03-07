@@ -20,6 +20,7 @@ import SwiftyJSON
 import SimpleLogger
 import KituraSession
 
+@available(OSX 10.12, *)
 public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
     
     public static let Name = "appid-webapp-kitura-credentials-plugin"

@@ -10,6 +10,11 @@ sudo: required
 dist: trusty
 osx_image: xcode9.2
 
+sudo: required
+
+services:
+  - docker
+
 branches:
   only:
   - master
@@ -22,23 +27,21 @@ notifications:
     on_failure: always
 
 install:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      eval "$(cat ./install-swiftenv.sh)";
-      sudo apt-get install -y libcurl4-openssl-dev libblocksruntime-dev libkqueue-dev libpthread-workqueue-dev libbsd-dev;
-      sudo rm /usr/bin/ld && sudo ln -s /usr/bin/ld.gold /usr/bin/ld;
-    fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker pull ibmcom/swift-ubuntu-xenial; fi
   - git --version
 
 script:
-  - swift package clean # clean built artifacts if present
-  - swift package fetch # clones all dependencies
-  - swift build # build project
-  - swift test #run tests
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run -i -t -v ${TRAVIS_BUILD_DIR}:/root/repo ibmcom/swift-ubuntu-xenial /bin/bash -c "cd /root/repo; swift build"; fi # build project
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run -i -t -v ${TRAVIS_BUILD_DIR}:/root/repo ibmcom/swift-ubuntu-xenial /bin/bash -c "cd /root/repo; swift test"; fi # test project
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift package clean; fi  # clean built artifacts if present
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift package fetch; fi  # clones all dependencies
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift build -Xlinker -L/usr/local/opt/openssl/lib -Xcc -I/usr/local/opt/openssl/include; fi # build project
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift test -Xlinker -L/usr/local/opt/openssl/lib -Xcc -I/usr/local/opt/openssl/include; fi #run tests
 
 after_success:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       gem install slather;
-      swift package generate-xcodeproj;
+      swift package generate-xcodeproj --xcconfig-overrides openssl.xcconfig;
       slather setup BluemixAppID.xcodeproj;
       xcodebuild -project BluemixAppID.xcodeproj -scheme BluemixAppID build;
       xcodebuild -project BluemixAppID.xcodeproj -scheme BluemixAppID -enableCodeCoverage YES test;
