@@ -47,7 +47,7 @@ class ApiPluginTest: XCTestCase {
         XCTAssertEqual(config.serverUrl, "someurl")
         
         //with VCAP_SERVICES
-        setenv("VCAP_SERVICES", "{\n  \"AdvancedMobileAccess\": [\n    {\n      \"credentials\": {\n      \"oauthServerUrl\": \"https://testvcap/oauth/v3/test\"},    }\n  ]\n}", 1)
+        setenv("VCAP_SERVICES", "{\n  \"AppID\": [\n    {\n      \"credentials\": {\n      \"oauthServerUrl\": \"https://testvcap/oauth/v3/test\"},    }\n  ]\n}", 1)
         config = APIKituraCredentialsPluginConfig(options: nil)
         
         XCTAssertEqual(config.serverUrl, "https://testvcap/oauth/v3/test")

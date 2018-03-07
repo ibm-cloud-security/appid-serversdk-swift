@@ -19,7 +19,7 @@ import SimpleLogger
 internal class APIKituraCredentialsPluginConfig {
     private let vcapServices = "VCAP_SERVICES"
     private let vcapServicesCredentials = "credentials"
-    private let vcapServicesName = "AdvancedMobileAccess"
+    private let vcapServicesName = "AppID"
     private let vcapApplication = "VCAP_APPLICATION"
     private let oauthServerURL = "oauthServerUrl"
     private let pubkeyServerURL = "pubKeyServerUrl"
