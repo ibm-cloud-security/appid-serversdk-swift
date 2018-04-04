@@ -17,6 +17,7 @@ public enum AppIDError: String, Error {
     case FailedParsingAuthContext = "Failed to parse authorization context"
     case jsonUtilsError = "json is malformed"
 }
+
 internal enum AppIDErrorInternal: String, Error {
     case AuthorizationHeaderNotFound = "Authorization header not found"
     case InvalidAuthHeaderFormat = "Invalid authorization header format. Expected format 'Bearer accessToken idToken'"
@@ -24,4 +25,12 @@ internal enum AppIDErrorInternal: String, Error {
     case InvalidAccessTokenFormat = "Invalid access token format"
     case InvalidAccessTokenSignature = "Invalid access token signature"
     case PublicKeyNotFound = "Public key not found"
+}
+
+internal enum OauthError: String {
+    case invalidRequest = "invalid_request"
+    case invalidToken = "invalid_token"
+    case insufficientScope = "insufficient_scope"
+    case missingAuth = "missing_authorization"
+    case internalServerError = "internal_server_error"
 }
