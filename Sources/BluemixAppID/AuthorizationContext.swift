@@ -15,51 +15,39 @@ import Foundation
 import SwiftyJSON
 
 public class AuthorizationContext {
-    
-    public var userIdentity:UserIdentity {
-        get {
-            return UserIdentity(json: json)
-        }
+
+    public var userIdentity: UserIdentity {
+        return UserIdentity(json: json)
     }
-    
+
     public var expirationDate: Double {
-        get {
-            return json["exp"].doubleValue
-        }
+        return json["exp"].doubleValue
     }
-    
+
     public var issuer: String {
-        get {
-            return json["iss"].stringValue
-        }
+        return json["iss"].stringValue
     }
-    
+
     public var audience: String {
-        get {
-            return json["aud"].stringValue
-        }
+        return json["aud"].stringValue
     }
-    
+
     public var subject: String {
-        get {
-            return json["sub"].stringValue
-        }
+        return json["sub"].stringValue
     }
-    
+
     public var issuedAt: Double {
-        get {
-            return json["iat"].doubleValue
-        }
+        return json["iat"].doubleValue
     }
-    
-    internal let json:JSON
-    
+
+    internal let json: JSON
+
     public init(idTokenPayload: JSON) {
         self.json = idTokenPayload
     }
-    
-    public static func from(jsonString:String) throws -> AuthorizationContext? {
-        
+
+    public static func from(jsonString: String) throws -> AuthorizationContext? {
+
         if let jsonData = jsonString.data(using: String.Encoding.utf8, allowLossyConversion: false) {
             let json = JSON(data: jsonData)
             return AuthorizationContext(idTokenPayload: json)

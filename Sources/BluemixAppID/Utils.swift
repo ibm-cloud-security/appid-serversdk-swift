@@ -78,14 +78,12 @@ public class Utils {
     }
 
     private static func verifySignature(publicKeys: [String: String], tokenComponents: [String], kid: String?) throws {
-        for (pKid, key) in publicKeys {
-            if pKid == kid {
-                if try isSignatureValid(tokenComponents, with: key) {
-                    return
-                } else {
-                    logger.error("Invalid access token signature")
-                    throw AppIDErrorInternal.invalidAccessTokenSignature
-                }
+        for (pKid, key) in publicKeys where pKid == kid {
+            if try isSignatureValid(tokenComponents, with: key) {
+                return
+            } else {
+                logger.error("Invalid access token signature")
+                throw AppIDErrorInternal.invalidAccessTokenSignature
             }
         }
         logger.error("Could Not Validate Access Token Signature")

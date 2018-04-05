@@ -11,7 +11,6 @@
  limitations under the License.
  */
 
-
 import Foundation
 import SwiftyJSON
 import SimpleLogger
@@ -31,32 +30,26 @@ internal class APIKituraCredentialsPluginConfig {
     }
 
     internal var config: [String: Any] {
-        get {
-            return serviceConfig
-        }
+        return serviceConfig
     }
 
     internal var serverUrl: String? {
-        get {
-            return serviceConfig[oauthServerURL] as? String
-        }
+        return serviceConfig[oauthServerURL] as? String
     }
 
     internal var publicKeyServerURL: String? {
-        get {
-            var keyURL: String? = nil
+        var keyURL: String? = nil
 
-            // public key url = OAUTH_SERVER_URL/publickey
-            // e.g. https://appid-oauth.ng.bluemix.net/oauth/v3/a8589e38-081e-4128-a777-b1cd76ee1875/publickey
-            if let serverUrl = serviceConfig[oauthServerURL] as? String {
-                if serverUrl.last == "/" {
-                    keyURL = serverUrl + "./publickeys"
-                } else {
-                    keyURL = serverUrl + "/publickeys"
-                }
+        // public key url = OAUTH_SERVER_URL/publickey
+        // e.g. https://appid-oauth.ng.bluemix.net/oauth/v3/a8589e38-081e-4128-a777-b1cd76ee1875/publickey
+        if let serverUrl = serviceConfig[oauthServerURL] as? String {
+            if serverUrl.last == "/" {
+                keyURL = serverUrl + "./publickeys"
+            } else {
+                keyURL = serverUrl + "/publickeys"
             }
-            return keyURL
         }
+        return keyURL
     }
 
     internal var serviceConfig: [String:Any] = [:]
