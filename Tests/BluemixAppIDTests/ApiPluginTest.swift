@@ -124,6 +124,7 @@ class ApiPluginTest: XCTestCase {
     }
 }
 
+@available(OSX 10.12, *)
 extension ApiPluginTest {
 
     // Remove off_ for running
