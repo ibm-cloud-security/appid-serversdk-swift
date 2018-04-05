@@ -23,8 +23,7 @@ Swift SDK for the IBM Cloud App ID service
 
 ### Summary
 
-This SDK provides Kitura Credentials plugins for protecting Web applications.
-
+This SDK provides Kitura Credentials plugins for protecting Web applications and API endpoints.
 
 When using WebAppKituraCredentialsPlugin the unauthenticated client will get HTTP 302 redirect to the login page hosted by App ID service (or, depending on configuration, directly to identity provider login page).
 
@@ -162,6 +161,50 @@ router.get("/protected", handler: kituraCredentials.authenticate(credentialsType
 
 // Start the server!
 Kitura.addHTTPServer(onPort: 1234, with: router)
+Kitura.run()
+```
+
+#### Protecting API endpoints using APIKituraCredentialsPlugin
+
+The APIKituraCredentialsPlugin follows the OAuth Bearer Token spec and should be used to protect backend API endpoints.
+
+When your Kitura backend receives a request, the credentials middleware will check for the existence of a Bearer token in its authorization header and then validate it against a App ID public key set. Upon success, the middleware will add the authorization context and user profile to the request and pass it to the next middleware or your handler. If an identity token is not provided, then the fields of the user profile will be empty.
+
+```swift
+import Kitura
+import Credentials
+import BluemixAppID
+
+// Below configuration can be obtained from Service Credentials
+// tab in the App ID Dashboard. You're not required to manually provide below
+// configuration if your Kitura application runs on IBM Cloud and is bound to the
+// App ID service instance. In this case App ID configuration will be obtained
+// automatically using VCAP_SERVICES environment variable.
+let options = [
+	"oauthServerUrl": "{oauth-server-url}"
+]
+
+let apiCredentials = APIKituraCredentialsPlugin(options: options)
+let credentials = Credentials()
+credentials.register(plugin: apiCredentials)
+
+
+// Protected area
+router.all(middleware: credentials)
+router.get("/myName") { (request, response, next) in
+
+
+    do {
+        if let userProfile = request.userProfile  {
+            try response.status(.OK).send(user.displayName).end()
+        }
+    } catch {
+        response.status(.internalServerError)
+    }
+}
+
+// Start the server!
+Kitura.addHTTPServer(onPort: 8080, with: router)
 Kitura.run()
 ```
 

@@ -26,6 +26,10 @@ internal class APIKituraCredentialsPluginConfig {
     private let pubkeyServerURL = "pubKeyServerUrl"
     private let logger = Logger(forName: "APIKituraCredentialsPluginConfig")
 
+    internal var isTesting: Bool {
+        return serverUrl == "testServerUrl"
+    }
+
     internal var config: [String: Any] {
         get {
             return serviceConfig
@@ -57,7 +61,7 @@ internal class APIKituraCredentialsPluginConfig {
 
     internal var serviceConfig: [String:Any] = [:]
 
-    public init(options:[String:Any]?) {
+    public init(options: [String: Any]?) {
         logger.debug("Intializing APIKituraCredentialsPluginConfig")
 
         let options = options ?? [:]
@@ -65,8 +69,8 @@ internal class APIKituraCredentialsPluginConfig {
         let vcapServices = JSON.parse(string: vcapString)
         var vcapServiceCredentials: [String: Any]? = [:]
 
-        if vcapServices.dictionary != nil {
-            for (key,value) in vcapServices.dictionary! {
+        if let dict = vcapServices.dictionary {
+            for (key, value) in dict {
                 if key.hasPrefix(vcapServicesName) {
                     vcapServiceCredentials = (value.array?[0])?.dictionaryObject?[vcapServicesCredentials] as? [String : Any]
                     break

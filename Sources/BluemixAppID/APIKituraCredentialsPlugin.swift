@@ -123,7 +123,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
 
         let accessTokenString: String = authHeaderComponents[1]
 
-        guard let accessToken = try? Utils.parseToken(from: accessTokenString, using: appIDpubKeys) else {
+        guard let accessToken = try? Utils.parseToken(from: accessTokenString, using: appIDpubKeys, testMode: serviceConfig.isTesting) else {
             logger.debug("access token not created")
             sendUnauthorized(scope: requiredScope, error: .invalidToken, completion: onFailure, response: response)
             return
@@ -167,7 +167,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
         if let idTokenString = authHeaderComponents.count == 3 ? authHeaderComponents[2] : nil {
 
             if Utils.isTokenValid(token: idTokenString),
-                let idToken = try? Utils.parseToken(from: idTokenString, using: appIDpubKeys),
+                let idToken = try? Utils.parseToken(from: idTokenString, using: appIDpubKeys, testMode: serviceConfig.isTesting),
                 let authContext = Utils.getAuthorizedIdentities(from: idToken) {
 
                 logger.debug("Id token is present and has been successfully parsed")
@@ -222,8 +222,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
             return
         }
 
-        // Super duper ugly code - should be changed
-        if url == "testServerUrl/publickeys" {
+        if serviceConfig.isTesting {
             let debug_jwk = """
 {"keys": [{"kty":"RSA","n":"s8SVzmkIslnxYmr0fa_i88fTS_a6wH3tNzRjE1M2SUHjz0E7IJ2-2Jjqwsefu0QcYDnH_oiwnLGn_m-etw1toAIC30UeeKiskM1pqRi6Z8LTRZIS3WYHRFGqa3IfVEBf_sjlxjNqfG8y9c4fJ_pRYGxpzCbjeXsDefs0zfSXmlQcWL1MwIIDHN0ZnAcmpjSsOzo0wPQGb_n8MIfT-rUr90bxch9-51wOEVXROE5nQpjkW9n6aCECeySDIK0nvILsgXMWUNW3oAIF35tK9yaUkGxXVNju-RGJLipnIIDU5apJY8lmKTVmzBMglY2fgXpNKbgQmMBlUJ4L1X05qUzw5w","e":"AQAB","kid":"appId-1504675475000"}]}
 """

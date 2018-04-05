@@ -11,7 +11,6 @@
  limitations under the License.
  */
 
-
 import Foundation
 import SwiftyJSON
 import SimpleLogger
@@ -37,15 +36,15 @@ extension String {
 @available(OSX 10.12, *)
 public class Utils {
 
-    private static let logger = Logger(forName: "BluemixAppIDUtils");
+    private static let logger = Logger(forName: "BluemixAppIDUtils")
 
-    public static func getAuthorizedIdentities(from idToken:JSON) -> AuthorizationContext? {
+    public static func getAuthorizedIdentities(from idToken: JSON) -> AuthorizationContext? {
         logger.debug("APIStrategy getAuthorizedIdentities")
         return  AuthorizationContext(idTokenPayload: idToken["payload"])
     }
 
     @available(OSX 10.12, *)
-    public static func parseToken(from tokenString: String, using publicKeys: [String: String]? = nil) throws -> JSON {
+    public static func parseToken(from tokenString: String, using publicKeys: [String: String]? = nil, testMode: Bool? = false) throws -> JSON {
 
         let tokenComponents = tokenString.components(separatedBy: ".")
 
@@ -67,11 +66,8 @@ public class Utils {
 
         // if public keys are passed, then verify signature
         if let publicKeys = publicKeys {
-            for (kid, key) in publicKeys {
-                if kid == jwtHeader["kid"].string, try !isSignatureValid(tokenComponents, with: key) {
-                    throw AppIDErrorInternal.InvalidAccessTokenSignature
-                }
-            }
+            (testMode ?? false) ? try verifySignatureInTestMode(publicKeys: publicKeys, tokenComponents: tokenComponents) :
+                                  try verifySignature(publicKeys: publicKeys, tokenComponents: tokenComponents, kid: jwtHeader["kid"].string)
         }
 
         var json = JSON([:])
@@ -79,6 +75,31 @@ public class Utils {
         json["payload"] = jwtPayload
         json["signature"] = JSON(jwtSignature)
         return json
+    }
+
+    private static func verifySignature(publicKeys: [String: String], tokenComponents: [String], kid: String?) throws {
+        for (pKid, key) in publicKeys {
+            if pKid == kid {
+                if try isSignatureValid(tokenComponents, with: key){
+                    return
+                } else {
+                    logger.error("Invalid access token signature")
+                    throw AppIDErrorInternal.InvalidAccessTokenSignature
+                }
+            }
+        }
+        logger.error("Could Not Validate Access Token Signature")
+        throw AppIDErrorInternal.CouldNotValidateAccessTokenSignature
+    }
+
+    private static func verifySignatureInTestMode(publicKeys: [String: String], tokenComponents: [String]) throws {
+        for (_, key) in publicKeys {
+            if try isSignatureValid(tokenComponents, with: key) {
+                return
+            }
+        }
+        logger.error("Invalid access token signature")
+        throw AppIDErrorInternal.InvalidAccessTokenSignature
     }
 
     @available(OSX 10.12, *)
@@ -111,7 +132,7 @@ public class Utils {
         return isValid
     }
 
-    public static func isTokenValid(token:String) -> Bool {
+    public static func isTokenValid(token: String) -> Bool {
         logger.debug("isTokenValid")
         if let jwt = try? parseToken(from: token) {
             let jwtPayload = jwt["payload"].dictionary
@@ -126,9 +147,10 @@ public class Utils {
         }
     }
 
-    public static func parseJsonStringtoDictionary(_ jsonString:String) throws -> [String:Any] {
+    public static func parseJsonStringtoDictionary(_ jsonString: String) throws -> [String:Any] {
         do {
-            guard let data = jsonString.data(using: String.Encoding.utf8), let responseJson =  try JSONSerialization.jsonObject(with: data, options: []) as? [String:Any] else {
+            guard let data = jsonString.data(using: String.Encoding.utf8),
+                let responseJson =  try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
                 throw AppIDError.jsonUtilsError
             }
             return responseJson as [String:Any]

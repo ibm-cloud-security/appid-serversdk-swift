@@ -24,7 +24,6 @@ import Foundation
 @available(OSX 10.12, *)
 class ApiPluginTest: XCTestCase {
 
-
     static var allTests : [(String, (ApiPluginTest) -> () throws -> Void)] {
         return [
             ("testApiConfig", testApiConfig),

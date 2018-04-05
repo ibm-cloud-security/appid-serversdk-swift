@@ -24,6 +24,7 @@ internal enum AppIDErrorInternal: String, Error {
     case InvalidAccessToken = "Invalid access token"
     case InvalidAccessTokenFormat = "Invalid access token format"
     case InvalidAccessTokenSignature = "Invalid access token signature"
+    case CouldNotValidateAccessTokenSignature = "Could not validate access token signature"
     case PublicKeyNotFound = "Public key not found"
 }
 
