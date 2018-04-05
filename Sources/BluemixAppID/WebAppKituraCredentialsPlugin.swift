@@ -86,6 +86,7 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
 
 }
 
+@available(OSX 10.12, *)
 extension WebAppKituraCredentialsPlugin {
 
     fileprivate func restoreUserProfile(from session: SessionState) -> UserProfile? {
