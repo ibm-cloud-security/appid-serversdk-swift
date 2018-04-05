@@ -50,14 +50,14 @@ public class Utils {
 
         guard tokenComponents.count == 3 else {
             logger.error("Invalid access token format")
-            throw AppIDErrorInternal.InvalidAccessTokenFormat
+            throw AppIDErrorInternal.invalidAccessTokenFormat
         }
 
         guard let jwtHeaderData = tokenComponents[0].base64decodedData(),
               let jwtPayloadData = tokenComponents[1].base64decodedData()
         else {
             logger.error("Invalid access token format")
-            throw AppIDErrorInternal.InvalidAccessTokenFormat
+            throw AppIDErrorInternal.invalidAccessTokenFormat
         }
 
         let jwtHeader = JSON(data: jwtHeaderData)
@@ -84,12 +84,12 @@ public class Utils {
                     return
                 } else {
                     logger.error("Invalid access token signature")
-                    throw AppIDErrorInternal.InvalidAccessTokenSignature
+                    throw AppIDErrorInternal.invalidAccessTokenSignature
                 }
             }
         }
         logger.error("Could Not Validate Access Token Signature")
-        throw AppIDErrorInternal.CouldNotValidateAccessTokenSignature
+        throw AppIDErrorInternal.couldNotValidateAccessTokenSignature
     }
 
     private static func verifySignatureInTestMode(publicKeys: [String: String], tokenComponents: [String]) throws {
@@ -99,7 +99,7 @@ public class Utils {
             }
         }
         logger.error("Invalid access token signature")
-        throw AppIDErrorInternal.InvalidAccessTokenSignature
+        throw AppIDErrorInternal.invalidAccessTokenSignature
     }
 
     @available(OSX 10.12, *)
@@ -109,7 +109,7 @@ public class Utils {
 
         let tokenPublicKey = try? CryptorRSA.createPublicKey(withPEM: pk)
         guard tokenPublicKey != nil else {
-            throw AppIDErrorInternal.PublicKeyNotFound
+            throw AppIDErrorInternal.publicKeyNotFound
         }
 
         // Signed message is the first two components of the token
@@ -120,7 +120,7 @@ public class Utils {
         // signature is 3rd component
         // add padding, URL decode, base64 decode
         guard let sigData = String(tokenParts[2]).base64decodedData() else {
-            throw AppIDErrorInternal.InvalidAccessTokenSignature
+            throw AppIDErrorInternal.invalidAccessTokenSignature
         }
         let signature = CryptorRSA.createSigned(with: sigData)
 

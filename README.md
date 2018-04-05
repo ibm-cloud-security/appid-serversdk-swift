@@ -30,8 +30,8 @@ When using WebAppKituraCredentialsPlugin the unauthenticated client will get HTT
 Read the [official documentation](https://console.bluemix.net/docs/services/appid/protecting-resources.html#requesting-swift) for information about getting started with IBM Cloud App ID Service.
 
 ### Requirements
-* Swift 4.0
-* Kitura 2.1
+* Swift 4.1
+* Kitura 2.2
 * OpenSSL
 
 ### Build Instructions
@@ -58,7 +58,7 @@ import PackageDescription
 let package = Package(
     ...
     dependencies: [
-        .package(url: "https://github.com/ibm-cloud-security/appid-serversdk-swift.git", .upToNextMinor(from: "4.0.0"))
+        .package(url: "https://github.com/ibm-cloud-security/appid-serversdk-swift.git", .upToNextMinor(from: "4.1.0"))
     ]
     .target(
         name: "<Your Target>",
@@ -66,6 +66,7 @@ let package = Package(
     )
 )
 ```
+* 4.1.x releases were tested on OSX and Linux with Swift 4.1.0
 * 4.0.x releases were tested on OSX and Linux with Swift 4.0.3
 * 2.0.x releases were tested on OSX and Linux with Swift 4.0
 * 1.0.x releases were tested on OSX and Linux with Swift 3.1 and 3.1.1

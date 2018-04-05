@@ -255,12 +255,12 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
                 logger.debug("Failed to obtain public key " +
                     "status code \(String(describing: httpCode))\n" +
                     "body \(String(data: data, encoding: .utf8) ?? "")")
-                throw AppIDErrorInternal.PublicKeyNotFound
+                throw AppIDErrorInternal.publicKeyNotFound
             }
 
             guard let json = try? JSONDecoder().decode([String: [PublicKey]].self, from: data), let tokens = json["keys"] else {
                 logger.debug("Unable to decode data from public key response")
-                throw AppIDErrorInternal.PublicKeyNotFound
+                throw AppIDErrorInternal.publicKeyNotFound
             }
 
             // convert JWK key to PEM format
@@ -280,7 +280,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
             appIDpubKeys = publicKeys
             completion?(publicKeys)
         } catch {
-            failure?(AppIDErrorInternal.PublicKeyNotFound.rawValue)
+            failure?(AppIDErrorInternal.publicKeyNotFound.rawValue)
         }
     }
 
