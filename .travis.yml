@@ -4,7 +4,7 @@ os:
 language: generic
 env:
   global:
-  - SWIFT_VERSION=4.0.3
+  - SWIFT_VERSION=4.1
 
 sudo: required
 dist: trusty

@@ -16,41 +16,30 @@ import Foundation
 import SwiftyJSON
 
 public class UserIdentity {
-    
+
     public var id: String{
-        get {
-            return json["sub"].stringValue
-        }
+        return json["sub"].stringValue
     }
-    
+
     public var authBy: Array<JSON> {
-        get {
-            return json["identities"].arrayValue
-        }
+        return json["identities"].arrayValue
     }
-    
+
     public var displayName: String {
-        get {
-            return json["name"].stringValue
-        }
+        return json["name"].stringValue
     }
-    
+
     public var picture: String {
-        get {
-            return json["picture"].stringValue
-        }
+        return json["picture"].stringValue
     }
-    
+
     public var email: String {
-        get {
-            return json["email"].stringValue
-        }
+        return json["email"].stringValue
     }
-    
-    
-    internal var json:JSON
-    
-    internal init(json:JSON) {
+
+    internal var json: JSON
+
+    internal init(json: JSON) {
         self.json = json
     }
 }
