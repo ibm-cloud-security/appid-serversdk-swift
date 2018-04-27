@@ -24,13 +24,13 @@ let package = Package(
         )
     ],
     dependencies: [
-      .package(url: "https://github.com/IBM-Swift/SwiftyJSON.git", from: "17.0.0"),
-      .package(url: "https://github.com/IBM-Swift/Kitura-Session.git", from: "3.0.0"),
-      .package(url: "https://github.com/IBM-Swift/Kitura-Credentials.git", from: "2.1.0"),
-      .package(url: "https://github.com/IBM-Swift/SwiftyRequest.git", .upToNextMajor(from: "1.0.1")),
+      .package(url: "https://github.com/IBM-Swift/SwiftyJSON.git", .upToNextMinor(from: "17.0.0")),
+      .package(url: "https://github.com/IBM-Swift/Kitura-Session.git", .upToNextMinor(from: "3.1.0")),
+      .package(url: "https://github.com/IBM-Swift/Kitura-Credentials.git", .upToNextMinor(from: "2.1.0")),
+      .package(url: "https://github.com/IBM-Swift/SwiftyRequest.git", .upToNextMinor(from: "1.1.0")),
       .package(url: "https://github.com/ibm-bluemix-mobile-services/bluemix-simple-logger-swift.git", .upToNextMinor(from: "0.5.0")),
-      .package(url: "https://github.com/ibm-cloud-security/Swift-JWT-to-PEM.git", from: "0.0.0"),
-      .package(url: "https://github.com/IBM-Swift/BlueRSA.git", from: "0.1.18"),
+      .package(url: "https://github.com/ibm-cloud-security/Swift-JWT-to-PEM.git", .upToNextMinor(from: "0.1.0")),
+      .package(url: "https://github.com/IBM-Swift/BlueRSA.git", .upToNextMinor(from: "1.0.0")),
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
