@@ -48,10 +48,10 @@ public enum RequestError: Error {
     
     var description: String {
         switch self {
-        case .unauthorized: return "Invalid IdentityToken"
-        case .notFound: return "Invalid IdentityToken"
-        case .parsingError: return "Invalid IdentityToken"
-        case .unexceptedError: return "Invalid IdentityToken"
+        case .unauthorized: return "Unauthorized"
+        case .notFound: return "Not Found"
+        case .parsingError: return "Could not parse response body"
+        case .unexceptedError: return "Unexpected error"
         case .invalidOauthServerUrl: return "Invalid OAuth Server Url"
         case .invalidProfileServerUrl: return "Invalid Profile Server Url"
         }

@@ -35,6 +35,13 @@ class UserAttributesManagerTest: XCTestCase {
             ("testGetAttribute", testGetAttribute),
             ("testDeleteAttribute", testDeleteAttribute),
             ("testGetAllAttributes", testGetAllAttributes),
+            ("testUserInfoHappyFlow", testUserInfoHappyFlow),
+            ("testUserInfoHappyFlowSubjectMatching", testUserInfoHappyFlowSubjectMatching),
+            ("testUserInfo401", testUserInfo401),
+            ("testUserInfo403", testUserInfo403),
+            ("testUserInfo404", testUserInfo404),
+            ("testUserInfoInvalidIdentityToken", testUserInfoInvalidIdentityToken),
+            ("testUserInfoSubjectMismatch", testUserInfoSubjectMismatch),
         ]
     }
     class MockUserAttributeManger : UserAttributeManager {
