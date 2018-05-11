@@ -31,7 +31,7 @@ Read the [official documentation](https://console.bluemix.net/docs/services/appi
 
 ### Requirements
 * Swift 4.1
-* Kitura 2.2
+* Kitura 2.3
 * OpenSSL
 
 ### Build Instructions

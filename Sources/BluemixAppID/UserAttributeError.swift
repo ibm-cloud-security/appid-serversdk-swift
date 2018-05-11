@@ -22,3 +22,38 @@ public enum UserAttributeError: Error {
         }
     }
 }
+
+
+public enum UserInfoError: Error {
+    case invalidIdentityToken
+    case invalidUserInfoResponse
+    case conflictingSubjects
+    
+    var description: String {
+        switch self {
+        case .invalidIdentityToken: return "Invalid Identity Token"
+        case .invalidUserInfoResponse: return "Invalid User Info Response"
+        case .conflictingSubjects: return "Conflicting Subjects. UserInfoResponse.sub must match IdentityToken.sub"
+        }
+    }
+}
+
+public enum RequestError: Error {
+    case unauthorized
+    case notFound
+    case parsingError
+    case unexceptedError
+    case invalidOauthServerUrl
+    case invalidProfileServerUrl
+    
+    var description: String {
+        switch self {
+        case .unauthorized: return "Invalid IdentityToken"
+        case .notFound: return "Invalid IdentityToken"
+        case .parsingError: return "Invalid IdentityToken"
+        case .unexceptedError: return "Invalid IdentityToken"
+        case .invalidOauthServerUrl: return "Invalid OAuth Server Url"
+        case .invalidProfileServerUrl: return "Invalid Profile Server Url"
+        }
+    }
+}

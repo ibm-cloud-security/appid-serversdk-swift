@@ -39,7 +39,7 @@ class UserAttributesManagerTest: XCTestCase {
     }
     class MockUserAttributeManger : UserAttributeManager {
 
-        override func handleRequest(attributeName: String?, attributeValue: String?, method:String, accessToken: String,completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
+        override func handleRequest(accessToken: String, url: String, method: String, body: String?,completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
             if accessToken.range(of:"return_error") != nil {
                 completionHandler(UserAttributeError.userAttributeFailure("Unexpected error"), nil)
             }
@@ -58,7 +58,11 @@ class UserAttributesManagerTest: XCTestCase {
                 }
             }
             else {
-                completionHandler(nil, ["body":"body"])
+                if accessToken == UserAttributesManagerTest.AccessTokenSuccessMismatchedSubjects {
+                    completionHandler(nil, ["sub": "subject", "body":"body"])
+                } else {
+                    completionHandler(nil, ["sub": "subject123", "body":"body"])
+                }
             }
         }
 
@@ -68,6 +72,8 @@ class UserAttributesManagerTest: XCTestCase {
     let AccessTokenStatusCode403 = "accessToken,return_code_403"
     let AccessTokenStatusCode404 = "accessToken,return_code_404"
     let AccessTokenSuccess = "accessToken"
+    static let AccessTokenSuccessMismatchedSubjects = "accessToken_mismatched_subjects"
+    let IdentityTokenSubject123 = "ifQ.eyJzdWIiOiJzdWJqZWN0MTIzIn0.Q"
     let AccessTokenFailure = "accessToken,return_error"
     let logger = Logger(forName:"UserAttributesManagerTest")
     let fullOptions =  ["clientId": "someclient",
@@ -342,4 +348,83 @@ class UserAttributesManagerTest: XCTestCase {
         }
     }
 
+    func testUserInfoHappyFlow() {
+        userAttManager?.getUserInfo(accessToken: AccessTokenSuccess,
+                                    identityToken: nil,
+                                    completionHandler: successHandler("body"))
+        awaitExpectation()
+    }
+    
+    func testUserInfoHappyFlowSubjectMatching() {
+        userAttManager?.getUserInfo(accessToken: AccessTokenSuccess,
+                                    identityToken: IdentityTokenSubject123,
+                                    completionHandler: successHandler("subject123"))
+        awaitExpectation()
+    }
+    
+    func testUserInfo401() {
+        userAttManager?.getUserInfo(accessToken: AccessTokenStatusCode401,
+                                    identityToken: nil,
+                                    completionHandler: errorHandler("Unauthorized"))
+        awaitExpectation()
+    }
+    
+    func testUserInfo403() {
+        userAttManager?.getUserInfo(accessToken: AccessTokenStatusCode403,
+                                    identityToken: nil,
+                                    completionHandler: errorHandler("Unauthorized"))
+        awaitExpectation()
+    }
+    
+    func testUserInfo404() {
+        userAttManager?.getUserInfo(accessToken: AccessTokenStatusCode404,
+                                    identityToken: nil,
+                                    completionHandler: errorHandler("Not found"))
+        awaitExpectation()
+    }
+    
+    func testUserInfoInvalidIdentityToken() {
+        userAttManager?.getUserInfo(accessToken: AccessTokenSuccess,
+                                    identityToken: "",
+                                    completionHandler: errorHandler("UserInfoError.invalidIdentityToken"))
+        awaitExpectation()
+    }
+    
+    func testUserInfoSubjectMismatch() {
+        userAttManager?.getUserInfo(accessToken: UserAttributesManagerTest.AccessTokenSuccessMismatchedSubjects,
+                                    identityToken: IdentityTokenSubject123,
+                                    completionHandler: errorHandler("UserInfoError.conflictingSubjects"))
+        awaitExpectation()
+    }
+
+    
+    func successHandler(_ expectedBody: String) -> (Swift.Error?, [String: Any]?) -> Void {
+        let expectation = self.expectation(description: expectedBody)
+        return { (err: Swift.Error?, res: [String: Any]?) in
+            if let response = res {
+                self.setOnSuccess(expectation: expectation, body: response, expectedBody)
+            } else {
+                self.setOnFailure()
+            }
+        }
+    }
+    
+    func errorHandler(_ expectedMsg: String) -> (Swift.Error?, [String: Any]?) -> Void {
+        let expectation = self.expectation(description: expectedMsg)
+        return { (err: Swift.Error?, body: [String: Any]?) in
+            if let error = err {
+                self.setOnFailure(expectation: expectation, error: error, expectedMsg)
+            } else {
+                self.setOnSuccess()
+            }
+        }
+    }
+    
+    func awaitExpectation() {
+        waitForExpectations(timeout: 1) { error in
+            if let error = error {
+                XCTFail("err: \(error)")
+            }
+        }
+    }
 }
