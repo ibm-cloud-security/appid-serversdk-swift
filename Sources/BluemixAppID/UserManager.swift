@@ -93,14 +93,11 @@ public class UserManager {
                     return completionHandler(UserInfoError.invalidIdentityToken, nil)
                 }
                 
-                guard let sub = profile["sub"] as? String else {
-                    self.logger.debug("Error: User Info response is missing sub field")
-                    return completionHandler(UserInfoError.invalidUserInfoResponse, nil)
-                }
-                
-                guard sub == identityToken["payload"]["sub"].string else {
-                    self.logger.debug("Error: IdentityToken.sub does not match UserInfoResult.sub.")
-                    return completionHandler(UserInfoError.conflictingSubjects, nil)
+                if let sub = profile["sub"] as? String {
+                    guard sub == identityToken["payload"]["sub"].string else {
+                        self.logger.debug("Error: IdentityToken.sub does not match UserInfoResult.sub.")
+                        return completionHandler(UserInfoError.conflictingSubjects, nil)
+                    }
                 }
             }
             
