@@ -7,7 +7,7 @@ import SimpleLogger
 import KituraSession
 
 @available(OSX 10.12, *)
-public class UserAttributeManager {
+public class UserManager {
     private let VcapServices = "VCAP_SERVICES"
     private let VcapServicesCredntials = "credentials"
     private let VcapServicesServiceName = "AdvancedMobileAccess"

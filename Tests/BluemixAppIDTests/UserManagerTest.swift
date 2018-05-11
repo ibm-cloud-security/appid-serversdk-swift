@@ -26,9 +26,9 @@ import Socket
 @testable import BluemixAppID
 
 @available(OSX 10.12, *)
-class UserAttributesManagerTest: XCTestCase {
+class UserManagerTests: XCTestCase {
 
-    static var allTests : [(String, (UserAttributesManagerTest) -> () throws -> Void)] {
+    static var allTests : [(String, (UserManagerTests) -> () throws -> Void)] {
         return [
             ("testInit", testInit),
             ("testSetAttribute", testSetAttribute),
@@ -44,7 +44,7 @@ class UserAttributesManagerTest: XCTestCase {
             ("testUserInfoSubjectMismatch", testUserInfoSubjectMismatch),
         ]
     }
-    class MockUserAttributeManger : UserAttributeManager {
+    class MockUserAttributeManger : UserManager {
 
         override func handleRequest(accessToken: String, url: String, method: String, body: String?,completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
             if accessToken.range(of:"return_error") != nil {
@@ -65,7 +65,7 @@ class UserAttributesManagerTest: XCTestCase {
                 }
             }
             else {
-                if accessToken == UserAttributesManagerTest.AccessTokenSuccessMismatchedSubjects {
+                if accessToken == UserManagerTests.AccessTokenSuccessMismatchedSubjects {
                     completionHandler(nil, ["sub": "subject", "body":"body"])
                 } else {
                     completionHandler(nil, ["sub": "subject123", "body":"body"])
@@ -398,7 +398,7 @@ class UserAttributesManagerTest: XCTestCase {
     }
     
     func testUserInfoSubjectMismatch() {
-        userAttManager?.getUserInfo(accessToken: UserAttributesManagerTest.AccessTokenSuccessMismatchedSubjects,
+        userAttManager?.getUserInfo(accessToken: UserManagerTests.AccessTokenSuccessMismatchedSubjects,
                                     identityToken: IdentityTokenSubject123,
                                     completionHandler: errorHandler("UserInfoError.conflictingSubjects"))
         awaitExpectation()
