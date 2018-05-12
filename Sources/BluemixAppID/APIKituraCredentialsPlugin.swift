@@ -64,13 +64,13 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
             requiredScope += " " + opts
         }
 
-        guard let authHeaderComponents = request.headers[APIKituraCredentialsPlugin.AuthHeader]?.components(separatedBy: " ") else {
+        guard let authHeaderComponents = request.headers[Constants.authHeader]?.components(separatedBy: " ") else {
             logger.warn("Authorization header not found")
             sendUnauthorized(scope: requiredScope, error: .missingAuth, completion: onPass, response: response)
             return
         }
 
-        guard authHeaderComponents.first == APIKituraCredentialsPlugin.Bearer else {
+        guard authHeaderComponents.first == Constants.bearer else {
             logger.warn("Unrecognized Authorization Method")
             sendUnauthorized(scope: requiredScope, error: .invalidRequest, completion: onPass, response: response)
             return
@@ -303,7 +303,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
                                   response: RouterResponse) {
         logger.debug("sendUnauthorized")
 
-        var msg = APIKituraCredentialsPlugin.Bearer + " scope=\"" + scope + "\", error=\"" + error.rawValue + "\""
+        var msg = Constants.bearer + " scope=\"" + scope + "\", error=\"" + error.rawValue + "\""
         var status: HTTPStatusCode!
 
         switch error {
@@ -313,17 +313,9 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
         case .internalServerError: status = .unauthorized
         case .missingAuth        :
             status = .unauthorized
-            msg = APIKituraCredentialsPlugin.Bearer + " realm=\"AppID\""
+            msg = Constants.bearer + " realm=\"AppID\""
         }
 
         completion(status, ["Www-Authenticate": msg])
     }
-}
-
-// Constants
-@available(OSX 10.12, *)
-extension APIKituraCredentialsPlugin {
-
-    fileprivate static let Bearer = "Bearer"
-    fileprivate static let AuthHeader = "Authorization"
 }

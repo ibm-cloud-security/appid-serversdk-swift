@@ -63,4 +63,7 @@ struct Constants {
         static let attributes = "/api/v1/attributes"
         static let userInfo = "/userinfo"
     }
+
+    static let bearer = "Bearer"
+    static let authHeader = "Authorization"
 }
