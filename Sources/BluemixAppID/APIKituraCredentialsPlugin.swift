@@ -1,5 +1,5 @@
 /*
- Copyright 2017 IBM Corp.
+ Copyright 2018 IBM Corp.
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
@@ -23,7 +23,7 @@ import SwiftyJSON
 @available(OSX 10.12, *)
 public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
 
-    private let logger = Logger(forName: "APIKituraCredentialsPlugin")
+    private let logger = Logger(forName: Constants.APIPlugin.name)
 
     // kid : pemPkcs
     private var appIDpubKeys: [String: String]?
@@ -35,15 +35,16 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
     public var usersCache: NSCache<NSString, BaseCacheElement>?
 
     public var name: String {
-        return APIKituraCredentialsPlugin.name
+        return Constants.APIPlugin.name
     }
 
     public init(options: [String: Any]?) {
-        logger.debug("Intializing APIKituraCredentialsPlugin")
+        logger.debug("Intializing " + Constants.APIPlugin.name)
         logger.warn("This is a beta version of APIKituraCredentialsPlugin." +
                     "It should not be used for production environments!")
 
         serviceConfig = APIKituraCredentialsPluginConfig(options: options)
+
         retrievePubKey()
     }
 
@@ -57,7 +58,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
 
         logger.debug("authenticate")
 
-        var requiredScope = APIKituraCredentialsPlugin.DefaultScope
+        var requiredScope = Constants.AppID.defaultScope
 
         if let opts = options["scope"] as? String {
             requiredScope += " " + opts
@@ -149,7 +150,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
         /// Merge authorization context and identity context, if necessary
         identityContext.forEach { authorizationContext[$0] = $1 }
 
-        request.userInfo[APIKituraCredentialsPlugin.AuthContext] = authorizationContext
+        request.userInfo[Constants.AuthContext.name] = authorizationContext
         onSuccess(profile)
     }
 
@@ -323,10 +324,6 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
 @available(OSX 10.12, *)
 extension APIKituraCredentialsPlugin {
 
-    public static let name = "appid-api-kitura-credentials-plugin"
-
     fileprivate static let Bearer = "Bearer"
     fileprivate static let AuthHeader = "Authorization"
-    fileprivate static let DefaultScope = "appid_default"
-    fileprivate static let AuthContext = "APPID_AUTH_CONTEXT"
 }

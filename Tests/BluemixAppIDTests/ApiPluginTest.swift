@@ -1,5 +1,5 @@
 /*
- Copyright 2017 IBM Corp.
+ Copyright 2018 IBM Corp.
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
@@ -39,9 +39,10 @@ class ApiPluginTest: XCTestCase {
 
     func testApiConfig() {
         unsetenv("VCAP_SERVICES")
+        unsetenv("redirectUri")
         var config = APIKituraCredentialsPluginConfig(options:[:])
         XCTAssertEqual(config.serviceConfig.count, 0)
-        XCTAssertNil(config.serverUrl)
+        XCTAssertEqual(config.serverUrl, nil)
         config = APIKituraCredentialsPluginConfig(options: ["oauthServerUrl": "someurl"])
         XCTAssertEqual(config.serverUrl, "someurl")
 
