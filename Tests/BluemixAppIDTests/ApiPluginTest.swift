@@ -26,8 +26,20 @@ class ApiPluginTest: XCTestCase {
 
     static var allTests : [(String, (ApiPluginTest) -> () throws -> Void)] {
         return [
-            ("testApiConfig", testApiConfig),
-            ("testApiAuthenticate", testApiAuthenticate),
+            ("testApiConfigEmpty", testApiConfigEmpty),
+            ("testApiConfigOptions", testApiConfigOptions),
+            ("testApiConfigVCAP", testApiConfigVCAP),
+            ("testApiConfigVcapAndOptions", testApiConfigVcapAndOptions),
+            ("testAuthFlowNoAuthHeader", testAuthFlowNoAuthHeader),
+            ("testAuthFlowMissingBearerHeader", testAuthFlowMissingBearerHeader),
+            ("testAuthFlowMalformedHEader", testAuthFlowMalformedHEader),
+            ("testAuthFlowExpiredAccessToken", testAuthFlowExpiredAccessToken),
+            ("testAuthFlowHappyFlowNoIDToken", testAuthFlowHappyFlowNoIDToken),
+            ("testAuthFlowInsufficientScope", testAuthFlowInsufficientScope),
+            ("testAuthFlowExpiredIDToken", testAuthFlowExpiredIDToken),
+            ("testAuthFlowHappyFlowWithIDToken", testAuthFlowHappyFlowWithIDToken),
+            ("testAuthFlowPublicKeys400", testAuthFlowPublicKeys400),
+            ("testAuthFlowPublicKeysMalformedResponse", testAuthFlowPublicKeysMalformedResponse)
         ]
     }
 
@@ -37,90 +49,167 @@ class ApiPluginTest: XCTestCase {
 
     let logger = Logger(forName:"ApiPluginTest")
 
-    func testApiConfig() {
-        unsetenv("VCAP_SERVICES")
-        var config = APIKituraCredentialsPluginConfig(options:[:])
-        XCTAssertEqual(config.serviceConfig.count, 0)
-        XCTAssertNil(config.serverUrl)
-        config = APIKituraCredentialsPluginConfig(options: ["oauthServerUrl": "someurl"])
-        XCTAssertEqual(config.serverUrl, "someurl")
+    class MockAPIKituraCredentialsPlugin: APIKituraCredentialsPlugin {
 
-        //with VCAP_SERVICES
-        setenv("VCAP_SERVICES", "{\n  \"AppID\": [\n    {\n      \"credentials\": {\n      \"oauthServerUrl\": \"https://testvcap/oauth/v3/test\"},    }\n  ]\n}", 1)
-        config = APIKituraCredentialsPluginConfig(options: nil)
+        let publicKeyResponseCode: Int
+        let publicKeyResponse: String
 
-        XCTAssertEqual(config.serverUrl, "https://testvcap/oauth/v3/test")
-        config = APIKituraCredentialsPluginConfig(options: ["oauthServerUrl": "someurl"])
-        XCTAssertEqual(config.serverUrl, "someurl")
-        unsetenv("VCAP_SERVICES")
+        override func retrievePubKey(onFailure: ((String) -> Void)?, completion: (([String : String]) -> Void)?) {
+            handlePubKeyResponse(publicKeyResponseCode, publicKeyResponse.data(using: .utf8)!, onFailure, completion)
+        }
+
+        init(options: [String: Any]?, responseCode: Int = 200, responseBody: String = "{\"keys\": [\(TestConstants.PUBLIC_KEY)]}") {
+
+            publicKeyResponseCode = responseCode
+            publicKeyResponse = responseBody
+
+            super.init(options: options)
+        }
     }
 
-    func testApiAuthenticate() {
-        let api = APIKituraCredentialsPlugin(options:["oauthServerUrl": "testServerUrl"])
-        let parser = HTTPParser(isRequest: true)
-        let httpRequest =  HTTPServerRequest(socket: try! Socket.create(family: .inet), httpParser: parser)
-        let httpResponse = HTTPServerResponse(processor: IncomingHTTPSocketProcessor(socket: try! Socket.create(family: .inet), using: delegate(), keepalive: .disabled), request: httpRequest)
-        let routerStack = Stack<Router>()
+    var parser: HTTPParser!
+    var httpRequest: HTTPServerRequest!
+    var httpResponse: HTTPServerResponse!
+    var routerStack: Stack<Router>!
+    var request: RouterRequest!
+    var response: RouterResponse!
 
-        print("no authorization header")
-        var request = RouterRequest(request: httpRequest)
-        var response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request)
-        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(), onPass: onPass(expected: "Bearer realm=\"AppID\"", expectation: expectation(description: "test2")), inProgress:inProgress)
+    override func setUp() {
+        unsetenv("VCAP_SERVICES")
 
-        print("auth header does not start with bearer")
+        parser = HTTPParser(isRequest: true)
+        httpRequest =  HTTPServerRequest(socket: try! Socket.create(family: .inet), httpParser: parser)
+        httpResponse = HTTPServerResponse(processor: IncomingHTTPSocketProcessor(socket: try! Socket.create(family: .inet), using: delegate(), keepalive: .disabled), request: httpRequest)
+        routerStack = Stack<Router>()
+        request = RouterRequest(request: httpRequest)
+        response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request)
+    }
+
+    func testApiConfigEmpty() {
+        let config = APIKituraCredentialsPluginConfig(options:[:])
+        XCTAssertEqual(config.serviceConfig.count, 0)
+        XCTAssertNil(config.serverUrl)
+    }
+
+    func testApiConfigOptions() {
+        let config = APIKituraCredentialsPluginConfig(options: ["oauthServerUrl": "someurl"])
+        XCTAssertEqual(config.serverUrl, "someurl")
+    }
+
+    func testApiConfigVCAP() {
+        setenv("VCAP_SERVICES", "{\n  \"AppID\": [\n    {\n      \"credentials\": {\n      \"oauthServerUrl\": \"https://testvcap/oauth/v3/test\"},    }\n  ]\n}", 1)
+        let config = APIKituraCredentialsPluginConfig(options: nil)
+
+        XCTAssertEqual(config.serverUrl, "https://testvcap/oauth/v3/test")
+    }
+
+    func testApiConfigVcapAndOptions() {
+        setenv("VCAP_SERVICES", "{\n  \"AppID\": [\n    {\n      \"credentials\": {\n      \"oauthServerUrl\": \"https://testvcap/oauth/v3/test\"},    }\n  ]\n}", 1)
+        let config = APIKituraCredentialsPluginConfig(options: ["oauthServerUrl": "someurl"])
+        XCTAssertEqual(config.serverUrl, "someurl")
+    }
+
+    func testAuthFlowNoAuthHeader() {
+        let api = MockAPIKituraCredentialsPlugin(options:["oauthServerUrl": "testServerUrl"])
+
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(), onPass: onPass(expected: "Bearer realm=\"AppID\"", expectation: expectation(description: "testAuthFlowNoAuthHeader")), inProgress:inProgress)
+
+        awaitExpectations()
+    }
+
+    func testAuthFlowMissingBearerHeader() {
+        let api = MockAPIKituraCredentialsPlugin(options:["oauthServerUrl": "testServerUrl"])
         parser.headers["Authorization"] =  [TestConstants.ACCESS_TOKEN]
-        request = RouterRequest(request: httpRequest)
-        response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request)
-        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(), onPass: onPass(expectedCode: .badRequest, expected: "Bearer scope=\"appid_default\", error=\"invalid_request\"", expectation: expectation(description: "test2")), inProgress:inProgress)
 
-        print("auth header does not have correct structure")
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(), onPass: onPass(expectedCode: .badRequest, expected: "Bearer scope=\"appid_default\", error=\"invalid_request\"", expectation: expectation(description: "testAuthFlowMissingBearerHeader")), inProgress:inProgress)
+
+        awaitExpectations()
+    }
+
+    func testAuthFlowMalformedHEader() {
+        let api = MockAPIKituraCredentialsPlugin(options:["oauthServerUrl": "testServerUrl"])
         parser.headers["Authorization"] =  ["Bearer"]
-        request = RouterRequest(request: httpRequest)
-        response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request)
-        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(expectedCode: .badRequest, expected: "Bearer scope=\"appid_default\", error=\"invalid_request\"", expectation: expectation(description: "test3")), onPass: onPass(), inProgress:inProgress)
 
-        print("expired access token")
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(expectedCode: .badRequest, expected: "Bearer scope=\"appid_default\", error=\"invalid_request\"", expectation: expectation(description: "testAuthFlowMalformedHEader")), onPass: onPass(), inProgress:inProgress)
+
+        awaitExpectations()
+    }
+
+    func testAuthFlowExpiredAccessToken() {
+        let api = MockAPIKituraCredentialsPlugin(options:["oauthServerUrl": "testServerUrl"])
         parser.headers["Authorization"] =  ["Bearer " + TestConstants.EXPIRED_ACCESS_TOKEN]
-        request = RouterRequest(request: httpRequest)
-        response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request)
-        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(expected: "Bearer scope=\"appid_default\", error=\"invalid_token\"", expectation: expectation(description: "test4")), onPass: onPass(), inProgress:inProgress)
 
-        print("happy flow with no id token")
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(expected: "Bearer scope=\"appid_default\", error=\"invalid_token\"", expectation: expectation(description: "testAuthFlowExpiredAccessToken")), onPass: onPass(), inProgress:inProgress)
+
+        awaitExpectations()
+    }
+
+    func testAuthFlowHappyFlowNoIDToken() {
+        let api = MockAPIKituraCredentialsPlugin(options:["oauthServerUrl": "testServerUrl"])
         parser.headers["Authorization"] = ["Bearer " + TestConstants.ACCESS_TOKEN]
-        request = RouterRequest(request: httpRequest)
-        response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request)
-        api.authenticate(request: request, response: response, options: ["scope" : "appid_readuserattr"] , onSuccess: setOnSuccess(id: "", name: "", provider: "", expectation: expectation(description: "test5.01")), onFailure: setOnFailure(), onPass: onPass(), inProgress:inProgress)
+
+        api.authenticate(request: request, response: response, options: ["scope" : "appid_readuserattr"] , onSuccess: setOnSuccess(id: "", name: "", provider: "", expectation: expectation(description: "testAuthFlowHappyFlowNoIDToken")), onFailure: setOnFailure(), onPass: onPass(), inProgress:inProgress)
         XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessToken"] as? String , TestConstants.ACCESS_TOKEN)
         XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessTokenPayload"] as? JSON , try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"])
 
-        print("insufficient scope error")
+        awaitExpectations()
+    }
+
+    func testAuthFlowInsufficientScope() {
+        let api = MockAPIKituraCredentialsPlugin(options:["oauthServerUrl": "testServerUrl"])
         parser.headers["Authorization"] = ["Bearer " + TestConstants.ACCESS_TOKEN]
-        request = RouterRequest(request: httpRequest)
-        response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request)
-        api.authenticate(request: request, response: response, options: ["scope" : "SomeScope"], onSuccess: setOnSuccess(), onFailure: setOnFailure(expectedCode: .forbidden, expected: "Bearer scope=\"appid_default SomeScope\", error=\"insufficient_scope\"", expectation: expectation(description: "test5.1")), onPass: onPass(), inProgress:inProgress)
 
-        print("expired id token")
+        api.authenticate(request: request, response: response, options: ["scope" : "SomeScope"], onSuccess: setOnSuccess(), onFailure: setOnFailure(expectedCode: .forbidden, expected: "Bearer scope=\"appid_default SomeScope\", error=\"insufficient_scope\"", expectation: expectation(description: "testAuthFlowInsufficientScope")), onPass: onPass(), inProgress:inProgress)
+
+        awaitExpectations()
+    }
+
+    func testAuthFlowExpiredIDToken() {
+        let api = MockAPIKituraCredentialsPlugin(options:["oauthServerUrl": "testServerUrl"])
         httpRequest.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN + " " + TestConstants.EXPIRED_ID_TOKEN]
-        request = RouterRequest(request: httpRequest)
-        response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request)
-        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(expectation: expectation(description: "test5.5")), onFailure: setOnFailure(), onPass: onPass(), inProgress:inProgress)
 
-        print("happy flow with id token")
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(expectation: expectation(description: "testAuthFlowExpiredIDToken")), onFailure: setOnFailure(), onPass: onPass(), inProgress:inProgress)
+
+        awaitExpectations()
+    }
+
+    func testAuthFlowHappyFlowWithIDToken() {
+        let api = MockAPIKituraCredentialsPlugin(options:["oauthServerUrl": "testServerUrl"])
         parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN + " " + TestConstants.ID_TOKEN]
-        request = RouterRequest(request: httpRequest)
-        response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request)
-        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "subject", name: "test name", provider: "someprov", expectation: expectation(description: "test6")), onFailure: setOnFailure(), onPass: onPass(), inProgress:inProgress)
+
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "subject", name: "test name", provider: "someprov", expectation: expectation(description: "testAuthFlowHappyFlowWithIDToken")), onFailure: setOnFailure(), onPass: onPass(), inProgress:inProgress)
         XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessToken"] as? String , TestConstants.ACCESS_TOKEN)
         XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessTokenPayload"] as? JSON , try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"])
         XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["identityToken"] as? String , TestConstants.ID_TOKEN)
         XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["identityTokenPayload"] as? JSON , try? Utils.parseToken(from: TestConstants.ID_TOKEN)["payload"])
 
+        awaitExpectations()
+    }
+
+    func testAuthFlowPublicKeys400() {
+        let api = MockAPIKituraCredentialsPlugin(options:["oauthServerUrl": "testServerUrl"], responseCode: 400)
+        parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN + " " + TestConstants.ID_TOKEN]
+
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(expectedCode: .unauthorized, expected: "Bearer scope=\"appid_default\", error=\"internal_server_error\"", expectation: expectation(description: "testAuthFlowBadResponseFromPublicKeysEndpoint")), onPass: onPass(), inProgress:inProgress)
+
+        awaitExpectations()
+    }
+
+    func testAuthFlowPublicKeysMalformedResponse() {
+        let api = MockAPIKituraCredentialsPlugin(options:["oauthServerUrl": "testServerUrl"], responseCode: 200, responseBody: "bad json")
+        parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN + " " + TestConstants.ID_TOKEN]
+
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(expectedCode: .unauthorized, expected: "Bearer scope=\"appid_default\", error=\"internal_server_error\"", expectation: expectation(description: "testAuthFlowPublicKeysMalformedResponse")), onPass: onPass(), inProgress:inProgress)
+
+        awaitExpectations()
+    }
+
+    func awaitExpectations() {
         waitForExpectations(timeout: 1) { error in
             if let error = error {
                 XCTFail("err: \(error)")
             }
         }
-
     }
 }
 

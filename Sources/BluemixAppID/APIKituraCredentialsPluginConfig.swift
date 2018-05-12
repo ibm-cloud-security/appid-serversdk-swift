@@ -25,10 +25,6 @@ internal class APIKituraCredentialsPluginConfig {
     private let pubkeyServerURL = "pubKeyServerUrl"
     private let logger = Logger(forName: "APIKituraCredentialsPluginConfig")
 
-    internal var isTesting: Bool {
-        return serverUrl == "testServerUrl"
-    }
-
     internal var config: [String: Any] {
         return serviceConfig
     }

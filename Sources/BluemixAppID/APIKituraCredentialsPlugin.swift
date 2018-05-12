@@ -119,7 +119,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
 
         let accessTokenString: String = authHeaderComponents[1]
 
-        guard let accessToken = try? Utils.parseToken(from: accessTokenString, using: appIDpubKeys, testMode: serviceConfig.isTesting) else {
+        guard let accessToken = try? Utils.parseToken(from: accessTokenString, using: appIDpubKeys) else {
             logger.debug("access token not created")
             sendUnauthorized(scope: requiredScope, error: .invalidToken, completion: onFailure, response: response)
             return
@@ -163,7 +163,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
         if let idTokenString = authHeaderComponents.count == 3 ? authHeaderComponents[2] : nil {
 
             if Utils.isTokenValid(token: idTokenString),
-                let idToken = try? Utils.parseToken(from: idTokenString, using: appIDpubKeys, testMode: serviceConfig.isTesting),
+                let idToken = try? Utils.parseToken(from: idTokenString, using: appIDpubKeys),
                 let authContext = Utils.getAuthorizedIdentities(from: idToken) {
 
                 logger.debug("Id token is present and has been successfully parsed")
@@ -216,28 +216,11 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
     }
 
     /// Retrieve the public key from the server
-    private func retrievePubKey(onFailure: ((String) -> Void)? = nil, completion: (([String: String]) -> Void)? = nil) {
+    internal func retrievePubKey(onFailure: ((String) -> Void)? = nil, completion: (([String: String]) -> Void)? = nil) {
 
         guard let url = self.serviceConfig.publicKeyServerURL else {
             logger.debug("Invalid public key server url.")
             onFailure?("Invalid public key server url")
-            return
-        }
-
-        if serviceConfig.isTesting {
-            let key = "s8SVzmkIslnxYmr0fa_i88fTS_a6wH3tNzRjE1M2SUHjz0E7IJ2-2Jjqwsefu0QcYDnH_oiwnLGn_m-etw1to" +
-                      "AIC30UeeKiskM1pqRi6Z8LTRZIS3WYHRFGqa3IfVEBf_sjlxjNqfG8y9c4fJ_pRYGxpzCbjeXsDefs0zfSXml" +
-                      "QcWL1MwIIDHN0ZnAcmpjSsOzo0wPQGb_n8MIfT-rUr90bxch9-51wOEVXROE5nQpjkW9n6aCECeySDIK0nvIL" +
-                      "sgXMWUNW3oAIF35tK9yaUkGxXVNju-RGJLipnIIDU5apJY8lmKTVmzBMglY2fgXpNKbgQmMBlUJ4L1X05qUzw5w"
-            let debugJwk = """
-            {"keys": [{"kty":"RSA","n":"\(key)","e":"AQAB","kid":"appId-1504675475000"}]}
-"""
-            logger.debug("Using Test key! Signature verification will FAIL!"   +
-                         "You should only see this during unit tests. If you"  +
-                         "see this otherwise, you have not set oauthServerUrl" +
-                         " option in the APIKituraCredentialPluginConfig.")
-            handlePubKeyResponse(200, debugJwk.data(using: .utf8)!, onFailure, completion)
-            logger.debug("An internal error occured. Request failed.")
             return
         }
 
@@ -256,7 +239,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
     }
 
     /// Parse response token
-    private func handlePubKeyResponse(_ httpCode: Int?,
+    internal func handlePubKeyResponse(_ httpCode: Int?,
                                       _ data: Data,
                                       _ failure: ((String) -> Void)? = nil,
                                       _ completion: (([String: String]) -> Void)? = nil) {
@@ -267,7 +250,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
                     "body \(String(data: data, encoding: .utf8) ?? "")")
                 throw AppIDErrorInternal.publicKeyNotFound
             }
-
+            
             guard let json = try? JSONDecoder().decode([String: [PublicKey]].self, from: data),
                   let tokens = json["keys"] else {
                 logger.debug("Unable to decode data from public key response")
