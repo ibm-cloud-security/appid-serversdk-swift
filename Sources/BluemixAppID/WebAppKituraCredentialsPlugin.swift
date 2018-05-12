@@ -247,7 +247,7 @@ extension WebAppKituraCredentialsPlugin {
               let secret = serviceConfig.secret,
               let serverUrl = serviceConfig.serverUrl else {
 
-                onFailure(HTTPStatusCode(rawValue: 400), nil)
+                onFailure(nil, nil)
                 return
         }
 
