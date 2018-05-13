@@ -15,7 +15,7 @@ import Foundation
 import SimpleLogger
 import SwiftyJSON
 
-internal class CredentialsPluginConfig {
+internal class AppIDPluginConfig {
 
     private let logger = Logger(forName: Constants.APIPlugin.name)
 

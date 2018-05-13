@@ -24,11 +24,11 @@ public class UserAttributeManager {
 
     private let logger = Logger(forName: "UserAttributeManager")
 
-    var serviceConfig: CredentialsPluginConfig
+    var serviceConfig: AppIDPluginConfig
 
     public init(options: [String: Any]?) {
 
-        serviceConfig = CredentialsPluginConfig(options: options)
+        serviceConfig = AppIDPluginConfig(options: options)
 
         guard serviceConfig.userProfileServerUrl != nil, serviceConfig.serverUrl != nil else {
             logger.error("Ensure your app is either bound to an App ID service instance or pass required profilesUrl parameter to the constructor")

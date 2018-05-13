@@ -14,7 +14,7 @@ import Foundation
 import SwiftyJSON
 import SimpleLogger
 
-internal class WebAppKituraCredentialsPluginConfig: CredentialsPluginConfig {
+internal class WebAppKituraCredentialsPluginConfig: AppIDPluginConfig {
 
 	private let logger = Logger(forName: Constants.WebAppPlugin.name)
 
