@@ -143,7 +143,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
 
         var authorizationContext: [String: Any] = [
             "accessToken": accessTokenString,
-            "accessTokenPayload": accessToken["payload"] as Any
+            "accessTokenPayload": accessToken["payload"].dictionaryObject as Any
         ]
 
         /// Merge authorization context and identity context, if necessary
@@ -169,7 +169,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
                 logger.debug("Id token is present and has been successfully parsed")
 
                 identityContext["identityToken"] = idTokenString
-                identityContext["identityTokenPayload"] = idToken["payload"]
+                identityContext["identityTokenPayload"] = idToken["payload"].dictionaryObject as Any
 
                 let provider = authContext.userIdentity.authBy.count > 0 ?
                                     authContext.userIdentity.authBy[0]["provider"].stringValue : ""
@@ -250,7 +250,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
                     "body \(String(data: data, encoding: .utf8) ?? "")")
                 throw AppIDErrorInternal.publicKeyNotFound
             }
-            
+
             guard let json = try? JSONDecoder().decode([String: [PublicKey]].self, from: data),
                   let tokens = json["keys"] else {
                 logger.debug("Unable to decode data from public key response")
