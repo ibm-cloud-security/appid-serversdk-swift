@@ -1,5 +1,5 @@
 /*
- Copyright 2017 IBM Corp.
+ Copyright 2018 IBM Corp.
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
@@ -68,16 +68,16 @@ class WebAppPluginTest: XCTestCase {
         unsetenv("VCAP_APPLICATION")
         var config = WebAppKituraCredentialsPluginConfig(options:[:])
         XCTAssertEqual(config.serviceConfig.count, 0)
-        XCTAssertEqual(config.oAuthServerUrl, "")
-        XCTAssertEqual(config.clientId, "")
-        XCTAssertEqual(config.tenantId, "")
-        XCTAssertEqual(config.secret, "")
-        XCTAssertEqual(config.redirectUri, "")
+        XCTAssertEqual(config.serverUrl, nil)
+        XCTAssertEqual(config.clientId, nil)
+        XCTAssertEqual(config.tenantId, nil)
+        XCTAssertEqual(config.secret, nil)
+        XCTAssertEqual(config.redirectUri, nil)
 
         setenv("VCAP_SERVICES", "{\n  \"AdvancedMobileAccess\": [\n    {\n      \"credentials\": {\n        \"clientId\": \"vcapclient\",\n        \"secret\": \"vcapsecret\",\n        \"tenantId\": \"vcaptenant\",\n        \"oauthServerUrl\": \"vcapserver\"\n      }\n    }\n  ]\n}", 1)
         setenv("VCAP_APPLICATION", "{\n  \"application_uris\": [\n  \"1\"]\n}", 1)
         config = WebAppKituraCredentialsPluginConfig(options: [:])
-        XCTAssertEqual(config.oAuthServerUrl, "vcapserver")
+        XCTAssertEqual(config.serverUrl, "vcapserver")
         XCTAssertEqual(config.clientId, "vcapclient")
         XCTAssertEqual(config.tenantId, "vcaptenant")
         XCTAssertEqual(config.secret, "vcapsecret")
@@ -86,14 +86,14 @@ class WebAppPluginTest: XCTestCase {
 
         setenv("redirectUri", "redirect", 1)
         config = WebAppKituraCredentialsPluginConfig(options: nil)
-        XCTAssertEqual(config.oAuthServerUrl, "vcapserver")
+        XCTAssertEqual(config.serverUrl, "vcapserver")
         XCTAssertEqual(config.clientId, "vcapclient")
         XCTAssertEqual(config.tenantId, "vcaptenant")
         XCTAssertEqual(config.secret, "vcapsecret")
         XCTAssertEqual(config.redirectUri, "redirect")
 
         config = WebAppKituraCredentialsPluginConfig(options: fullOptions)
-        XCTAssertEqual(config.oAuthServerUrl, "someurl")
+        XCTAssertEqual(config.serverUrl, "someurl")
         XCTAssertEqual(config.clientId, "someclient")
         XCTAssertEqual(config.tenantId, "sometenant")
         XCTAssertEqual(config.secret, "somesecret")
@@ -164,13 +164,13 @@ class WebAppPluginTest: XCTestCase {
         let httpRequest =  HTTPServerRequest(socket: try! Socket.create(family: .inet), httpParser: nil)
         let request = RouterRequest(request: httpRequest)
         request.session = SessionState(id: "someSession", store: InMemoryStore())
-        XCTAssertNil(request.session?[WebAppKituraCredentialsPlugin.AuthContext] as? [String:Any])
+        XCTAssertNil(request.session?[Constants.AuthContext.name] as? [String:Any])
 
-        request.session?[WebAppKituraCredentialsPlugin.AuthContext] = [:]
-        request.session?[WebAppKituraCredentialsPlugin.AuthContext] = ["accessTokenPayload" : try! Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"]]
-        XCTAssertNotNil(request.session?[WebAppKituraCredentialsPlugin.AuthContext] as? [String:Any])
+        request.session?[Constants.AuthContext.name] = [:]
+        request.session?[Constants.AuthContext.name] = ["accessTokenPayload" : try! Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"]]
+        XCTAssertNotNil(request.session?[Constants.AuthContext.name] as? [String:Any])
         web.logout(request: request)
-        XCTAssertNil(request.session?[WebAppKituraCredentialsPlugin.AuthContext] as? [String:Any])
+        XCTAssertNil(request.session?[Constants.AuthContext.name] as? [String:Any])
     }
 
     func testWebAuthenticate() {
@@ -268,27 +268,27 @@ class WebAppPluginTest: XCTestCase {
         web.authenticate(request: request, response: response, options: ["forceLogin" : true, "allowAnonymousLogin" : true, "allowCreateNewAnonymousUser": false], onSuccess: setOnSuccess(), onFailure: setOnFailure(expectation: expectation(description: "test7")), onPass: onPass, inProgress:setInProgress())
         //a previous access token exists - not anonymous context
         request.session?["userProfile"] = dictionary
-        request.session?[WebAppKituraCredentialsPlugin.AuthContext] = [:]
-        request.session?[WebAppKituraCredentialsPlugin.AuthContext] = ["accessTokenPayload" : try! Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"]]
+        request.session?[Constants.AuthContext.name] = [:]
+        request.session?[Constants.AuthContext.name] = ["accessTokenPayload" : try! Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"]]
         response =  testRouterResponse(response: httpResponse, router: Router(), request: request, redirectUri: "someurl/authorization?client_id=someclient&response_type=code&redirect_uri=http://someredirect&scope=appid_default", expectation: expectation(description: "test8"))
         web.authenticate(request: request, response: response, options: ["forceLogin": true], onSuccess: setOnSuccess(), onFailure: setOnFailure(), onPass: onPass, inProgress:setInProgress(expectation: expectation(description: "test8.5")))
 
         request.session?["userProfile"] = nil
         //a previous access token exists - with anonymous context
-        request.session?[WebAppKituraCredentialsPlugin.AuthContext] = [:]
-        var authContext = request.session?[WebAppKituraCredentialsPlugin.AuthContext] as? [String : Any]
+        request.session?[Constants.AuthContext.name] = [:]
+        var authContext = request.session?[Constants.AuthContext.name] as? [String : Any]
         authContext?["accessTokenPayload"] = try! Utils.parseToken(from: TestConstants.ANON_TOKEN)["payload"].dictionaryObject
         authContext?["accessToken"] = "someaccesstoken"
-        request.session?[WebAppKituraCredentialsPlugin.AuthContext] = authContext
+        request.session?[Constants.AuthContext.name] = authContext
         response =  testRouterResponse(response: httpResponse, router: Router(), request: request, redirectUri: "someurl/authorization?client_id=someclient&response_type=code&redirect_uri=http://someredirect&scope=appid_default&appid_access_token=someaccesstoken", expectation: expectation(description: "test9"))
         web.authenticate(request: request, response: response, options: ["forceLogin": true], onSuccess: setOnSuccess(), onFailure: setOnFailure(), onPass: onPass, inProgress:setInProgress(expectation: expectation(description: "test9.5")))
 
         // session is encoded and decoded and data persists
-        request.session?[WebAppKituraCredentialsPlugin.AuthContext] = [:]
-        var sessionContext = request.session?[WebAppKituraCredentialsPlugin.AuthContext] as? [String : Any]
+        request.session?[Constants.AuthContext.name] = [:]
+        var sessionContext = request.session?[Constants.AuthContext.name] as? [String : Any]
         sessionContext?["accessTokenPayload"] = try! Utils.parseToken(from: TestConstants.ANON_TOKEN)["payload"].dictionaryObject
         sessionContext?["accessToken"] = "someaccesstoken"
-        request.session?[WebAppKituraCredentialsPlugin.AuthContext] = authContext
+        request.session?[Constants.AuthContext.name] = authContext
         request.session?.save { error in
             if let error = error {
                 XCTFail("error saving to session: \(error)")
@@ -343,9 +343,9 @@ class WebAppPluginTest: XCTestCase {
         //        web.handleTokenResponse(tokenRequest: request, tokenResponse: response, tokenData: "somedata".data(using: .utf8), tokenError: Swift.Error., originalRequest: routerRequest, onFailure:setOnFailure(expectation: expectation(description: "test3")), onSuccess: setOnSuccess())
 
         //success
-        web.handleTokenResponse(httpCode: response, tokenData: "{\n\"access_token\" : \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpPU0UifQ.eyJpc3MiOiJtb2JpbGVjbGllbnRhY2Nlc3Muc3RhZ2UxLm5nLmJsdWVtaXgubmV0IiwiZXhwIjoyNDg3MDg0ODc4LCJhdWQiOiIyNmNiMDEyZWIzMjdjNjEyZDkwYTY4MTkxNjNiNmJjYmQ0ODQ5Y2JiIiwiaWF0IjoxNDg3MDgxMjc4LCJhdXRoX2J5IjoiZmFjZWJvb2siLCJ0ZW5hbnQiOiI0ZGJhOTQzMC01NGU2LTRjZjItYTUxNi02ZjczZmViNzAyYmIiLCJzY29wZSI6ImFwcGlkX2RlZmF1bHQgYXBwaWRfcmVhZHByb2ZpbGUgYXBwaWRfcmVhZHVzZXJhdHRyIGFwcGlkX3dyaXRldXNlcmF0dHIifQ.qU_9KueH3qKLdxqHNdoQ7XOGdjY323WQK9VhzhlhrSkw7dmYkt7bIFVIvr37RJsi7X47v4nsxNewgClmt6tXDcSsQDrvzsq-lFGH2Ot3MFliQxweCzlOTy4EJPHMZtBRHbT6u_7nvegQBTZ1uAqTEQ_0L0eiqGf9BmpY0lDkZNv3Ro73bNku__jdY8M60X-P6trDYHBLOcMdQU0RjTrKm-OQx0jgidKbuTKXlZ2HSASH6knaS1pc7Z89JHeOqg0mF8D4vzD_vwe_yI-XuKg9q3HaFqddaOvVf1tC2cjuy8l54EoyZTLr5aMiPQaboV6DNfyY1YRCfvJd5d7Y1UA5ug\",\n\"id_token\" : \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpPU0UifQ.eyJpc3MiOiJhcHBpZCIsImF1ZCI6ImF1ZDEiLCJleHAiOjI0ODc4NjIyNTMsInRlbmFudCI6InRlc3RUZW5hbnQiLCJpYXQiOjE0ODc4NTg2NTMsImVtYWlsIjoiZW1haWxAZW1haWwuY29tIiwibmFtZSI6InRlc3QgbmFtZSIsInBpY3R1cmUiOiJ0ZXN0SW1hZ2VVcmwiLCJzdWIiOiJzdWJqZWN0IiwiaWRlbnRpdGllcyI6W3sicHJvdmlkZXIiOiJzb21lcHJvdiIsImlkIjoic29tZWlkIn1dLCJhbXIiOlsiZmFjZWJvb2siXSwib2F1dGhfY2xpZW50Ijp7Im5hbWUiOiJzb21lY2xpZW50IiwidHlwZSI6Im1vYmlsZWFwcCIsInNvZnR3YXJlX2lkIjoic29tZUlkIiwic29mdHdhcmVfdmVyc2lvbiI6IjEuMCIsImRldmljZV9pZCI6IjE5MzQ2NDNBLTA3M0UtNEZCOS05MDc2LTQ1RjcxNzkwRDU2MSIsImRldmljZV9tb2RlbCI6ImlQaG9uZSIsImRldmljZV9vcyI6ImlPUyJ9fQ==.sdw2tBI51ltYuwWQGjBDpN1dqLVwOiQOIoC2R1bT5VaUkfFOTLBC_4SFg1eEjdl5FIIxlP4r6oDcOgEccNnAUq-VMn5n6xsGUVdtKEflZ978eEIQ3u7hFjIOVTR853wHABvDvw6Ebv5INY5TFR8xHBF1VMBmlkP5u4Cd6ga90UfqFCPZNQ_0X6pP4rQa0D5FlJX0RaRe3smIepHn5hXsKaFi9TLOf-SXpaEbyuyWh12uKCEqR7b9gm2SsZ9_h0OITpveOa8ns21DxVPV2IL-rCFz57En1Ov2BI6X2NZKihXnClugzmazMs1Dsdw6QIptNaNDTgfvlYp2vWhtGJ0FEw\"\n}\n\n".data(using: .utf8), tokenError: nil, originalRequest: routerRequest, onFailure:setOnFailure(), onSuccess: setOnSuccess(id: "subject", name: "test name", provider: "someprov", expectation: expectation(description: "test2")))
+        web.handleTokenResponse(httpCode: response, tokenData: "{\n\"access_token\" : \"\(TestConstants.ACCESS_TOKEN)\",\n\"id_token\" : \"\(TestConstants.ID_TOKEN)\"\n}\n\n".data(using: .utf8), tokenError: nil, originalRequest: routerRequest, onFailure:setOnFailure(), onSuccess: setOnSuccess(id: "subject", name: "test name", provider: "someprov", expectation: expectation(description: "test2")))
         // no access token in data
-        web.handleTokenResponse(httpCode: response, tokenData: "{\n\"id_token\" : \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpPU0UifQ.eyJpc3MiOiJhcHBpZCIsImF1ZCI6ImF1ZDEiLCJleHAiOjI0ODc4NjIyNTMsInRlbmFudCI6InRlc3RUZW5hbnQiLCJpYXQiOjE0ODc4NTg2NTMsImVtYWlsIjoiZW1haWxAZW1haWwuY29tIiwibmFtZSI6InRlc3QgbmFtZSIsInBpY3R1cmUiOiJ0ZXN0SW1hZ2VVcmwiLCJzdWIiOiJzdWJqZWN0IiwiaWRlbnRpdGllcyI6W3sicHJvdmlkZXIiOiJzb21lcHJvdiIsImlkIjoic29tZWlkIn1dLCJhbXIiOlsiZmFjZWJvb2siXSwib2F1dGhfY2xpZW50Ijp7Im5hbWUiOiJzb21lY2xpZW50IiwidHlwZSI6Im1vYmlsZWFwcCIsInNvZnR3YXJlX2lkIjoic29tZUlkIiwic29mdHdhcmVfdmVyc2lvbiI6IjEuMCIsImRldmljZV9pZCI6IjE5MzQ2NDNBLTA3M0UtNEZCOS05MDc2LTQ1RjcxNzkwRDU2MSIsImRldmljZV9tb2RlbCI6ImlQaG9uZSIsImRldmljZV9vcyI6ImlPUyJ9fQ==.sdw2tBI51ltYuwWQGjBDpN1dqLVwOiQOIoC2R1bT5VaUkfFOTLBC_4SFg1eEjdl5FIIxlP4r6oDcOgEccNnAUq-VMn5n6xsGUVdtKEflZ978eEIQ3u7hFjIOVTR853wHABvDvw6Ebv5INY5TFR8xHBF1VMBmlkP5u4Cd6ga90UfqFCPZNQ_0X6pP4rQa0D5FlJX0RaRe3smIepHn5hXsKaFi9TLOf-SXpaEbyuyWh12uKCEqR7b9gm2SsZ9_h0OITpveOa8ns21DxVPV2IL-rCFz57En1Ov2BI6X2NZKihXnClugzmazMs1Dsdw6QIptNaNDTgfvlYp2vWhtGJ0FEw\"\n}\n\n".data(using: .utf8), tokenError: nil, originalRequest: routerRequest, onFailure:setOnFailure(expectation: expectation(description: "test3")), onSuccess: setOnSuccess())
+        web.handleTokenResponse(httpCode: response, tokenData: "{\n\"id_token\" : \"\(TestConstants.ID_TOKEN)\"\n}\n\n".data(using: .utf8), tokenError: nil, originalRequest: routerRequest, onFailure:setOnFailure(expectation: expectation(description: "test3")), onSuccess: setOnSuccess())
 
         let jsonData = JSON(routerRequest.session?["APPID_AUTH_CONTEXT"] as Any)
         guard let dict = jsonData.dictionary else {return}
@@ -374,8 +374,8 @@ class WebAppPluginTest: XCTestCase {
         let webappKituraCredentialsPlugin = WebAppKituraCredentialsPlugin(options: options)
         let kituraCredentials = Credentials()
         let kituraCredentialsAnonymous = Credentials(options: [
-            WebAppKituraCredentialsPlugin.AllowAnonymousLogin: true,
-            WebAppKituraCredentialsPlugin.AllowCreateNewAnonymousUser: true
+            Constants.AppID.allowAnonymousLogin: true,
+            Constants.AppID.allowCreateNewAnonymousUser: true
             ])
 
         kituraCredentials.register(plugin: webappKituraCredentialsPlugin)
@@ -407,7 +407,7 @@ class WebAppPluginTest: XCTestCase {
         })
 
         router.get("/protected", handler: { (request, response, next) in
-            let appIdAuthContext = request.session?[WebAppKituraCredentialsPlugin.AuthContext] as? [String : Any]
+            let appIdAuthContext = request.session?[Constants.AuthContext.name] as? [String : Any]
             let identityTokenPayload = appIdAuthContext?["identityTokenPayload"]
 
             guard appIdAuthContext != nil, identityTokenPayload != nil else {

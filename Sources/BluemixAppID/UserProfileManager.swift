@@ -8,36 +8,16 @@ import KituraSession
 
 @available(OSX 10.12, *)
 public class UserProfileManager {
-    private let VcapServices = "VCAP_SERVICES"
-    private let VcapServicesCredntials = "credentials"
-    private let VcapServicesServiceName = "AdvancedMobileAccess"
-    private let UserProfileServerURL = "profilesUrl"
-    private let AttributesEndpoint = "/api/v1/attributes"
 
-    private let OAuthServerURL = "oauthServerUrl"
-    private let UserInfoEndpoint = "/userinfo"
+    private let logger = Logger(forName: "UserAttributeManager")
 
-    private let logger = Logger(forName: "UserProfileManager")
-    var serviceConfig: [String:Any] = [:]
+    var serviceConfig: AppIDPluginConfig
 
-    public init(options:[String:Any]?) {
-        let options = options ?? [:]
-        let vcapString = ProcessInfo.processInfo.environment[VcapServices] ?? ""
-        let vcapServices = JSON.parse(string: vcapString)
-        var vcapServiceCredentials: [String:Any]? = [:]
-        if let dict = vcapServices.dictionary {
-            for (key,value) in dict {
-                if key.hasPrefix(VcapServicesServiceName) {
-                    vcapServiceCredentials = (value.array?[0])?.dictionaryObject?[VcapServicesCredntials] as? [String : Any]
-                    break
-                }
-            }
-        }
+    public init(options: [String: Any]?) {
 
-        serviceConfig[UserProfileServerURL] = options[UserProfileServerURL] ?? vcapServiceCredentials?[UserProfileServerURL]
-        serviceConfig[OAuthServerURL] = options[OAuthServerURL] ?? vcapServiceCredentials?[OAuthServerURL]
+        serviceConfig = AppIDPluginConfig(options: options)
 
-        guard serviceConfig[UserProfileServerURL] != nil && serviceConfig[OAuthServerURL] != nil else {
+        guard serviceConfig.userProfileServerUrl != nil, serviceConfig.serverUrl != nil else {
             logger.error("Ensure your app is either bound to an App ID service instance or pass required profilesUrl parameter to the constructor")
             return
         }
@@ -109,24 +89,24 @@ public class UserProfileManager {
 
         self.logger.debug("UserProfileManager :: handle Request - User Info")
 
-        guard let url = serviceConfig[OAuthServerURL] as? String else {
+        guard let url = serviceConfig.serverUrl else {
             completionHandler(RequestError.invalidOauthServerUrl, nil)
             return
         }
 
-        handleRequest(accessToken: accessToken, url: url + UserInfoEndpoint, method: "GET", body: nil, completionHandler: completionHandler)
+        handleRequest(accessToken: accessToken, url: url + Constants.Endpoints.userInfo, method: "GET", body: nil, completionHandler: completionHandler)
     }
 
     private func handleAttributeRequest(attributeName: String?, attributeValue: String?, method:String, accessToken: String, completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
 
         self.logger.debug("UserProfileManager :: handle Request - " + method + " " + (attributeName ?? "all"))
 
-        guard let profileURL = serviceConfig[UserProfileServerURL] as? String else {
+        guard let profileURL = serviceConfig.userProfileServerUrl else {
             completionHandler(RequestError.invalidProfileServerUrl, nil)
             return
         }
 
-        var url = profileURL + AttributesEndpoint + "/"
+        var url = profileURL + Constants.Endpoints.attributes + "/"
         if let attributeName = attributeName {
             url += attributeName
         }

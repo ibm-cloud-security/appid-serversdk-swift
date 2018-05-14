@@ -1,5 +1,5 @@
 /*
- Copyright 2017 IBM Corp.
+ Copyright 2018 IBM Corp.
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
@@ -23,7 +23,7 @@ import SwiftyJSON
 @available(OSX 10.12, *)
 public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
 
-    private let logger = Logger(forName: "APIKituraCredentialsPlugin")
+    private let logger = Logger(forName: Constants.APIPlugin.name)
 
     // kid : pemPkcs
     private var appIDpubKeys: [String: String]?
@@ -35,15 +35,16 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
     public var usersCache: NSCache<NSString, BaseCacheElement>?
 
     public var name: String {
-        return APIKituraCredentialsPlugin.name
+        return Constants.APIPlugin.name
     }
 
     public init(options: [String: Any]?) {
-        logger.debug("Intializing APIKituraCredentialsPlugin")
+        logger.debug("Intializing " + Constants.APIPlugin.name)
         logger.warn("This is a beta version of APIKituraCredentialsPlugin." +
                     "It should not be used for production environments!")
 
         serviceConfig = APIKituraCredentialsPluginConfig(options: options)
+
         retrievePubKey()
     }
 
@@ -57,19 +58,19 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
 
         logger.debug("authenticate")
 
-        var requiredScope = APIKituraCredentialsPlugin.DefaultScope
+        var requiredScope = Constants.AppID.defaultScope
 
         if let opts = options["scope"] as? String {
             requiredScope += " " + opts
         }
 
-        guard let authHeaderComponents = request.headers[APIKituraCredentialsPlugin.AuthHeader]?.components(separatedBy: " ") else {
+        guard let authHeaderComponents = request.headers[Constants.authHeader]?.components(separatedBy: " ") else {
             logger.warn("Authorization header not found")
             sendUnauthorized(scope: requiredScope, error: .missingAuth, completion: onPass, response: response)
             return
         }
 
-        guard authHeaderComponents.first == APIKituraCredentialsPlugin.Bearer else {
+        guard authHeaderComponents.first == Constants.bearer else {
             logger.warn("Unrecognized Authorization Method")
             sendUnauthorized(scope: requiredScope, error: .invalidRequest, completion: onPass, response: response)
             return
@@ -119,7 +120,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
 
         let accessTokenString: String = authHeaderComponents[1]
 
-        guard let accessToken = try? Utils.parseToken(from: accessTokenString, using: appIDpubKeys, testMode: serviceConfig.isTesting) else {
+        guard let accessToken = try? Utils.parseToken(from: accessTokenString, using: appIDpubKeys) else {
             logger.debug("access token not created")
             sendUnauthorized(scope: requiredScope, error: .invalidToken, completion: onFailure, response: response)
             return
@@ -143,13 +144,13 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
 
         var authorizationContext: [String: Any] = [
             "accessToken": accessTokenString,
-            "accessTokenPayload": accessToken["payload"] as Any
+            "accessTokenPayload": accessToken["payload"].dictionaryObject as Any
         ]
 
         /// Merge authorization context and identity context, if necessary
         identityContext.forEach { authorizationContext[$0] = $1 }
 
-        request.userInfo[APIKituraCredentialsPlugin.AuthContext] = authorizationContext
+        request.userInfo[Constants.AuthContext.name] = authorizationContext
         onSuccess(profile)
     }
 
@@ -163,13 +164,13 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
         if let idTokenString = authHeaderComponents.count == 3 ? authHeaderComponents[2] : nil {
 
             if Utils.isTokenValid(token: idTokenString),
-                let idToken = try? Utils.parseToken(from: idTokenString, using: appIDpubKeys, testMode: serviceConfig.isTesting),
+                let idToken = try? Utils.parseToken(from: idTokenString, using: appIDpubKeys),
                 let authContext = Utils.getAuthorizedIdentities(from: idToken) {
 
                 logger.debug("Id token is present and has been successfully parsed")
 
                 identityContext["identityToken"] = idTokenString
-                identityContext["identityTokenPayload"] = idToken["payload"]
+                identityContext["identityTokenPayload"] = idToken["payload"].dictionaryObject as Any
 
                 let provider = authContext.userIdentity.authBy.count > 0 ?
                                     authContext.userIdentity.authBy[0]["provider"].stringValue : ""
@@ -216,28 +217,11 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
     }
 
     /// Retrieve the public key from the server
-    private func retrievePubKey(onFailure: ((String) -> Void)? = nil, completion: (([String: String]) -> Void)? = nil) {
+    internal func retrievePubKey(onFailure: ((String) -> Void)? = nil, completion: (([String: String]) -> Void)? = nil) {
 
         guard let url = self.serviceConfig.publicKeyServerURL else {
             logger.debug("Invalid public key server url.")
             onFailure?("Invalid public key server url")
-            return
-        }
-
-        if serviceConfig.isTesting {
-            let key = "s8SVzmkIslnxYmr0fa_i88fTS_a6wH3tNzRjE1M2SUHjz0E7IJ2-2Jjqwsefu0QcYDnH_oiwnLGn_m-etw1to" +
-                      "AIC30UeeKiskM1pqRi6Z8LTRZIS3WYHRFGqa3IfVEBf_sjlxjNqfG8y9c4fJ_pRYGxpzCbjeXsDefs0zfSXml" +
-                      "QcWL1MwIIDHN0ZnAcmpjSsOzo0wPQGb_n8MIfT-rUr90bxch9-51wOEVXROE5nQpjkW9n6aCECeySDIK0nvIL" +
-                      "sgXMWUNW3oAIF35tK9yaUkGxXVNju-RGJLipnIIDU5apJY8lmKTVmzBMglY2fgXpNKbgQmMBlUJ4L1X05qUzw5w"
-            let debugJwk = """
-            {"keys": [{"kty":"RSA","n":"\(key)","e":"AQAB","kid":"appId-1504675475000"}]}
-"""
-            logger.debug("Using Test key! Signature verification will FAIL!"   +
-                         "You should only see this during unit tests. If you"  +
-                         "see this otherwise, you have not set oauthServerUrl" +
-                         " option in the APIKituraCredentialPluginConfig.")
-            handlePubKeyResponse(200, debugJwk.data(using: .utf8)!, onFailure, completion)
-            logger.debug("An internal error occured. Request failed.")
             return
         }
 
@@ -256,7 +240,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
     }
 
     /// Parse response token
-    private func handlePubKeyResponse(_ httpCode: Int?,
+    internal func handlePubKeyResponse(_ httpCode: Int?,
                                       _ data: Data,
                                       _ failure: ((String) -> Void)? = nil,
                                       _ completion: (([String: String]) -> Void)? = nil) {
@@ -302,7 +286,7 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
                                   response: RouterResponse) {
         logger.debug("sendUnauthorized")
 
-        var msg = APIKituraCredentialsPlugin.Bearer + " scope=\"" + scope + "\", error=\"" + error.rawValue + "\""
+        var msg = Constants.bearer + " scope=\"" + scope + "\", error=\"" + error.rawValue + "\""
         var status: HTTPStatusCode!
 
         switch error {
@@ -312,21 +296,9 @@ public class APIKituraCredentialsPlugin: CredentialsPluginProtocol {
         case .internalServerError: status = .unauthorized
         case .missingAuth        :
             status = .unauthorized
-            msg = APIKituraCredentialsPlugin.Bearer + " realm=\"AppID\""
+            msg = Constants.bearer + " realm=\"AppID\""
         }
 
         completion(status, ["Www-Authenticate": msg])
     }
-}
-
-// Constants
-@available(OSX 10.12, *)
-extension APIKituraCredentialsPlugin {
-
-    public static let name = "appid-api-kitura-credentials-plugin"
-
-    fileprivate static let Bearer = "Bearer"
-    fileprivate static let AuthHeader = "Authorization"
-    fileprivate static let DefaultScope = "appid_default"
-    fileprivate static let AuthContext = "APPID_AUTH_CONTEXT"
 }

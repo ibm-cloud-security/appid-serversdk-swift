@@ -123,17 +123,17 @@ class UserProfileManagerTests: XCTestCase {
     func testInit() {
 
         // check failure - profileUrl was not provided neither trought VCAP nor options
-        XCTAssertNil(MockUserProfileManager(options: [:]).serviceConfig["profilesUrl"])
+        XCTAssertNil(MockUserProfileManager(options: [:]).serviceConfig.userProfileServerUrl)
 
         // check success - profileUrl was provided trought VCAP
         unsetenv("VCAP_SERVICES")
         unsetenv("VCAP_APPLICATION")
         setenv("VCAP_SERVICES", "{\n  \"AdvancedMobileAccess\": [\n    {\n      \"credentials\": {\n        \"clientId\": \"vcapclient\",\n        \"secret\": \"vcapsecret\",\n        \"tenantId\": \"vcaptenant\",\n        \"oauthServerUrl\": \"vcapserver\",\n \"profilesUrl\": \"vcapprofile\"\n     }\n    }\n  ]\n}", 1)
         userProfileManager = MockUserProfileManager(options: [:])
-        XCTAssertNotNil(userProfileManager.serviceConfig["profilesUrl"])
+        XCTAssertNotNil(userProfileManager.serviceConfig.userProfileServerUrl)
 
         // check success - profileUrl was provided trought options
-        XCTAssertNotNil(MockUserProfileManager(options: fullOptions).serviceConfig["profilesUrl"])
+        XCTAssertNotNil(MockUserProfileManager(options: fullOptions).serviceConfig.userProfileServerUrl)
     }
 
     func testSetAttribute() {
