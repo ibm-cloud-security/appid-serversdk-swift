@@ -89,7 +89,7 @@ public class UserManager {
             if let identityToken = identityToken {
                 
                 guard let identityToken = try? Utils.parseToken(from: identityToken) else {
-                    self.logger.debug("Error: Invalid identity Token is missing sub field")
+                    self.logger.debug("Error: Invalid identity Token")
                     return completionHandler(UserInfoError.invalidIdentityToken, nil)
                 }
                 
