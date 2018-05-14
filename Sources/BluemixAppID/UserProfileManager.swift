@@ -90,7 +90,7 @@ public class UserProfileManager {
 
                 guard let identityToken = try? Utils.parseToken(from: identityToken) else {
                     self.logger.debug("Error: Invalid identity Token")
-                    return completionHandler(UserInfoError.invalidIdentityToken, nil)
+                    return completionHandler(UserProfileError.invalidIdentityToken, nil)
                 }
 
                 if let sub = profile["sub"] as? String {

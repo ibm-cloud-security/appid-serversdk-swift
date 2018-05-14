@@ -434,4 +434,5 @@ class UserProfileManagerTests: XCTestCase {
             }
         }
     }
+    
 }
