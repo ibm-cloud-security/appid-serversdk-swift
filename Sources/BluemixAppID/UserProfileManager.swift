@@ -17,7 +17,7 @@ public class UserProfileManager {
     private let OAuthServerURL = "oauthServerUrl"
     private let UserInfoEndpoint = "/userinfo"
 
-    private let logger = Logger(forName: "UserAttributeManager")
+    private let logger = Logger(forName: "UserProfileManager")
     var serviceConfig: [String:Any] = [:]
 
     public init(options:[String:Any]?) {
@@ -49,7 +49,7 @@ public class UserProfileManager {
                               attributeValue: String,
                               completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
 
-        handleRequest(attributeName: attributeName, attributeValue: attributeValue, method: "put", accessToken: accessToken, completionHandler: completionHandler)
+        handleAttributeRequest(attributeName: attributeName, attributeValue: attributeValue, method: "put", accessToken: accessToken, completionHandler: completionHandler)
 
     }
 
@@ -57,14 +57,14 @@ public class UserProfileManager {
     public func getAttribute (accessToken: String,
                               attributeName: String,
                               completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
-        handleRequest(attributeName: attributeName, attributeValue: nil, method: "get", accessToken: accessToken, completionHandler: completionHandler)
+        handleAttributeRequest(attributeName: attributeName, attributeValue: nil, method: "get", accessToken: accessToken, completionHandler: completionHandler)
 
     }
 
     public func getAllAttributes (accessToken: String,
                                   completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
 
-        handleRequest(attributeName: nil, attributeValue: nil, method: "get", accessToken: accessToken, completionHandler: completionHandler)
+        handleAttributeRequest(attributeName: nil, attributeValue: nil, method: "get", accessToken: accessToken, completionHandler: completionHandler)
 
     }
 
@@ -72,7 +72,7 @@ public class UserProfileManager {
                                  attributeName: String,
                                  completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
 
-        handleRequest(attributeName: attributeName, attributeValue: nil, method: "delete", accessToken: accessToken, completionHandler: completionHandler)
+        handleAttributeRequest(attributeName: attributeName, attributeValue: nil, method: "delete", accessToken: accessToken, completionHandler: completionHandler)
 
     }
 
@@ -83,7 +83,7 @@ public class UserProfileManager {
 
             guard error == nil, let profile = profile else {
                 self.logger.debug("Error: Unexpected error while retrieving User Info. Msg: \(error?.localizedDescription ?? "")")
-                return completionHandler(error ?? RequestError.unexceptedError, nil)
+                return completionHandler(error ?? RequestError.unexpectedError, nil)
             }
 
             if let identityToken = identityToken {
@@ -107,7 +107,7 @@ public class UserProfileManager {
 
     private func handleUserInfoRequest(accessToken: String, completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
 
-        self.logger.debug("UserAttributeManager :: handle Request - User Info")
+        self.logger.debug("UserProfileManager :: handle Request - User Info")
 
         guard let url = serviceConfig[OAuthServerURL] as? String else {
             completionHandler(RequestError.invalidOauthServerUrl, nil)
@@ -117,9 +117,9 @@ public class UserProfileManager {
         handleRequest(accessToken: accessToken, url: url + UserInfoEndpoint, method: "GET", body: nil, completionHandler: completionHandler)
     }
 
-    private func handleRequest(attributeName: String?, attributeValue: String?, method:String, accessToken: String, completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
+    private func handleAttributeRequest(attributeName: String?, attributeValue: String?, method:String, accessToken: String, completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
 
-        self.logger.debug("UserAttributeManager :: handle Request - " + method + " " + (attributeName ?? "all"))
+        self.logger.debug("UserProfileManager :: handle Request - " + method + " " + (attributeName ?? "all"))
 
         guard let profileURL = serviceConfig[UserProfileServerURL] as? String else {
             completionHandler(RequestError.invalidProfileServerUrl, nil)
@@ -156,7 +156,7 @@ public class UserProfileManager {
             }
             else {
                 self.logger.error("Unexpected error")
-                completionHandler(RequestError.unexceptedError , nil)
+                completionHandler(RequestError.unexpectedError , nil)
             }
         }
 

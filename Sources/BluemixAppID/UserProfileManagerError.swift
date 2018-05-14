@@ -32,7 +32,7 @@ public enum RequestError: Error {
     case unauthorized
     case notFound
     case parsingError
-    case unexceptedError
+    case unexpectedError
     case invalidOauthServerUrl
     case invalidProfileServerUrl
 
@@ -41,7 +41,7 @@ public enum RequestError: Error {
         case .unauthorized: return "Unauthorized"
         case .notFound: return "Not Found"
         case .parsingError: return "Could not parse response body"
-        case .unexceptedError: return "Unexpected error"
+        case .unexpectedError: return "Unexpected error"
         case .invalidOauthServerUrl: return "Invalid OAuth Server Url"
         case .invalidProfileServerUrl: return "Invalid Profile Server Url"
         }
