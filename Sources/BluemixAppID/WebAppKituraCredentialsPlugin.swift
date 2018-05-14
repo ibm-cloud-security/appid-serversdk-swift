@@ -1,5 +1,5 @@
 /*
- Copyright 2017 IBM Corp.
+ Copyright 2018 IBM Corp.
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
@@ -23,29 +23,20 @@ import KituraSession
 @available(OSX 10.12, *)
 public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
 
-    public static let Name = "appid-webapp-kitura-credentials-plugin"
-    public static let AllowAnonymousLogin = "allowAnonymousLogin"
-    public static let AllowCreateNewAnonymousUser = "allowCreateNewAnonymousUser"
-    public static let ForceLogin = "forceLogin"
-    public static let AuthContext = "APPID_AUTH_CONTEXT"
-
-    private let defaultScope = "appid_default"
-    private let authorizationPath = "/authorization"
-    private let tokenPath = "/token"
     private let serviceConfig: WebAppKituraCredentialsPluginConfig
 
-    private let logger = Logger(forName: "WebAppKituraCredentialsPlugin")
+    private let logger = Logger(forName: Constants.WebAppPlugin.name)
 
     public let redirecting = true
 
     public var usersCache: NSCache<NSString, BaseCacheElement>?
 
     public var name: String {
-        return WebAppKituraCredentialsPlugin.Name
+        return Constants.WebAppPlugin.name
     }
 
     public init(options: [String: Any]?) {
-        logger.debug("Initializing WebAppKituraCredentialsPlugin")
+        logger.debug("Initializing " + Constants.WebAppPlugin.name)
         self.serviceConfig = WebAppKituraCredentialsPluginConfig(options: options)
     }
 
@@ -81,7 +72,7 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
 
     public func logout(request: RouterRequest) {
         //        request.session?.remove(key: OriginalUrl)
-        request.session?.remove(key: WebAppKituraCredentialsPlugin.AuthContext)
+        request.session?.remove(key: Constants.AuthContext.name)
     }
 
 }
@@ -134,9 +125,9 @@ extension WebAppKituraCredentialsPlugin {
                                       inProgress: @escaping () -> Void) {
 
         logger.debug("WebAppKituraCredentialsPlugin :: handleAuthorization")
-        let forceLogin: Bool = options[WebAppKituraCredentialsPlugin.ForceLogin] as? Bool ?? false
-        let allowAnonymousLogin: Bool = options[WebAppKituraCredentialsPlugin.AllowAnonymousLogin] as? Bool ?? false
-        let allowCreateNewAnonymousUser: Bool = options[WebAppKituraCredentialsPlugin.AllowCreateNewAnonymousUser] as? Bool ?? true
+        let forceLogin: Bool = options[Constants.AppID.forceLogin] as? Bool ?? false
+        let allowAnonymousLogin: Bool = options[Constants.AppID.allowAnonymousLogin] as? Bool ?? false
+        let allowCreateNewAnonymousUser: Bool = options[Constants.AppID.allowCreateNewAnonymousUser] as? Bool ?? true
         // If user is already authenticated and new login is not enforced - end processing
         // Otherwise - persist original request url and redirect to authorization
         if let requestUserProfile = request.userProfile, !forceLogin && !allowAnonymousLogin {
@@ -159,7 +150,7 @@ extension WebAppKituraCredentialsPlugin {
         var authUrl = generateAuthorizationUrl(options: options)
 
         // If there's an existing anonymous access token on session - add it to the request url
-        if let appIdAuthContext = request.session?[WebAppKituraCredentialsPlugin.AuthContext] as? [String : Any] {
+        if let appIdAuthContext = request.session?[Constants.AuthContext.name] as? [String : Any] {
             let payload = appIdAuthContext["accessTokenPayload"] as? [String : Any]
             if (payload?["amr"] as? [String])?[0] ==  "appid_anon" {
                 logger.debug("WebAppKituraCredentialsPlugin :: handleAuthorization :: added anonymous access_token to url")
@@ -238,7 +229,7 @@ extension WebAppKituraCredentialsPlugin {
             }
         }
 
-        originalRequest.session?[WebAppKituraCredentialsPlugin.AuthContext] = appIdAuthorizationContext
+        originalRequest.session?[Constants.AuthContext.name] = appIdAuthorizationContext
 
         let userProfile = UserProfile(id: kituraUserId, displayName: kituraDisplayName, provider: kituraProvider)
         onSuccess(userProfile)
@@ -251,11 +242,16 @@ extension WebAppKituraCredentialsPlugin {
                                 request: RouterRequest,
                                 onSuccess: @escaping (UserProfile) -> Void) {
         logger.debug("WebAppKituraCredentialsPlugin :: retrieveTokens")
-        let serviceConfig = self.serviceConfig
 
-        let clientId = serviceConfig.clientId
-        let secret = serviceConfig.secret
-        let tokenEndpoint = serviceConfig.oAuthServerUrl + tokenPath
+        guard let clientId = serviceConfig.clientId,
+              let secret = serviceConfig.secret,
+              let serverUrl = serviceConfig.serverUrl else {
+
+                onFailure(nil, nil)
+                return
+        }
+
+        let tokenEndpoint = serverUrl + Constants.Endpoints.token
         let redirectUri = serviceConfig.redirectUri
         let authorization = clientId + ":" + secret
 
@@ -288,16 +284,15 @@ extension WebAppKituraCredentialsPlugin {
     }
 
     fileprivate func generateAuthorizationUrl(options: [String:Any]) -> String {
-        let serviceConfig = self.serviceConfig
-        let clientId = serviceConfig.clientId
+
         var scopeAddition: String?
         if let addition = options["scope"] as? String {
             scopeAddition = " " + addition
         }
-        let scope = defaultScope + (scopeAddition ?? "")
-        let authorizationEndpoint = serviceConfig.oAuthServerUrl + authorizationPath
-        let redirectUri = serviceConfig.redirectUri
-        var query = "client_id=\(clientId)&response_type=code&redirect_uri=\(redirectUri)&scope=\(scope)"
+
+        let scope = Constants.AppID.defaultScope + (scopeAddition ?? "")
+        let authorizationEndpoint = (serviceConfig.serverUrl ?? "") + Constants.Endpoints.authorization
+        var query = "client_id=\(serviceConfig.clientId ?? "")&response_type=code&redirect_uri=\(serviceConfig.redirectUri ?? "")&scope=\(scope)"
         if (options["allowAnonymousLogin"] as? Bool) == true {
             query += "&idp=appid_anon"
         }

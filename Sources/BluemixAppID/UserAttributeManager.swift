@@ -1,3 +1,16 @@
+/*
+ Copyright 2018 IBM Corp.
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+ http://www.apache.org/licenses/LICENSE-2.0
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ */
+
 import Foundation
 import Kitura
 import Credentials
@@ -8,31 +21,16 @@ import KituraSession
 
 @available(OSX 10.12, *)
 public class UserAttributeManager {
-    private let VcapServices = "VCAP_SERVICES"
-    private let VcapServicesCredntials = "credentials"
-    private let VcapServicesServiceName = "AdvancedMobileAccess"
-    private let UserProfileServerURL = "profilesUrl"
-    private let AttributesEndpoint = "/api/v1/attributes"
+
     private let logger = Logger(forName: "UserAttributeManager")
-    var serviceConfig: [String:Any] = [:]
 
-    public init(options:[String:Any]?) {
-        let options = options ?? [:]
-        let vcapString = ProcessInfo.processInfo.environment[VcapServices] ?? ""
-        let vcapServices = JSON.parse(string: vcapString)
-        var vcapServiceCredentials: [String:Any]? = [:]
-        if let dict = vcapServices.dictionary {
-            for (key,value) in dict {
-                if key.hasPrefix(VcapServicesServiceName) {
-                    vcapServiceCredentials = (value.array?[0])?.dictionaryObject?[VcapServicesCredntials] as? [String : Any]
-                    break
-                }
-            }
-        }
+    var serviceConfig: AppIDPluginConfig
 
-        serviceConfig[UserProfileServerURL] = options[UserProfileServerURL] ?? vcapServiceCredentials?[UserProfileServerURL]
+    public init(options: [String: Any]?) {
 
-        guard serviceConfig[UserProfileServerURL] != nil else {
+        serviceConfig = AppIDPluginConfig(options: options)
+
+        guard serviceConfig.userProfileServerUrl != nil, serviceConfig.serverUrl != nil else {
             logger.error("Ensure your app is either bound to an App ID service instance or pass required profilesUrl parameter to the constructor")
             return
         }
@@ -75,11 +73,13 @@ public class UserAttributeManager {
     internal func handleRequest(attributeName: String?, attributeValue: String?, method:String, accessToken: String,completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
 
         self.logger.debug("UserAttributeManager :: handle Request - " + method + " " + (attributeName ?? "all"))
-        guard let profileURL = serviceConfig[UserProfileServerURL] as? String else {
+
+        guard let profileURL = serviceConfig.userProfileServerUrl else {
             completionHandler(UserAttributeError.userAttributeFailure("Failed to get UserProfileServerURL from serviceConfig as String"), nil)
             return
         }
-        var url:String = profileURL + AttributesEndpoint + "/"
+
+        var url = profileURL + Constants.Endpoints.attributes + "/"
         if let attributeName = attributeName {
             url += attributeName
         }
