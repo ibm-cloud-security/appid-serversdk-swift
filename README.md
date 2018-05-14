@@ -244,6 +244,36 @@ router.get(LOGOUT_URL, handler:  { (request, response, next) in
 
 As mentioned previously the anonymous access_token and identity_token will be automatically persisted in HTTP session by App ID SDK. You can retrieve them from HTTP session via same mechanisms as regular tokens. Access and identity tokens will be kept in HTTP session and will be used until either them or HTTP session expires.
 
+### UserProfileManager
+
+Use the UserProfileManager to store / retrieve attribute of the user and get user info
+
+```
+let userProfileManager = UserProfileManager(options: options)
+
+userProfileManager.getAttribute(accessToken: accessToken, attributeName: "name") { (err, res) in
+}
+
+userProfileManager.setAttribute(accessToken: accessToken, attributeName: "name", attributeValue : "abc") { (err, res) in
+}
+
+userProfileManager.getAllAttributes(accessToken: accessToken) { (err, res) in
+}
+
+userProfileManager.deleteAllAttributes(accessToken: accessToken) { (err, res) in
+}
+
+// Retrieve the UserInfo without validating using your provided identity token
+userProfileManager.getUserInfo(accessToken: AccessTokenSuccess, identityToken: nil) { (err, res) in
+
+}
+
+// Retrieve the UserInfo and validate response using your provided identity token
+userProfileManager.getUserInfo(accessToken: AccessTokenSuccess, identityToken: optionalIdentityToken) { (err, res) in
+
+}
+```
+
 ### License
 This package contains code licensed under the Apache License, Version 2.0 (the "License"). You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 and may also view the License in the LICENSE file within this package.
 
