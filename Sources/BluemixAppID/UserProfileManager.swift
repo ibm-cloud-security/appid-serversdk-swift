@@ -77,7 +77,7 @@ public class UserProfileManager {
     }
 
 
-    public func getUserInfo(accessToken: String, identityToken: String?, completionHandler: @escaping (Swift.Error?, [String: Any]?) -> Void) {
+    public func getUserInfo(accessToken: String, identityToken: String? = nil, completionHandler: @escaping (Swift.Error?, [String: Any]?) -> Void) {
 
         handleUserInfoRequest(accessToken: accessToken) { (error, profile) in
 

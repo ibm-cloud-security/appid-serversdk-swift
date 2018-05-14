@@ -371,7 +371,6 @@ class UserProfileManagerTests: XCTestCase {
 
     func testUserInfo401() {
         userProfileManager.getUserInfo(accessToken: AccessTokenStatusCode401,
-                                    identityToken: nil,
                                     completionHandler: errorHandler("Unauthorized"))
         awaitExpectation()
     }
