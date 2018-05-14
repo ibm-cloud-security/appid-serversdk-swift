@@ -3,7 +3,7 @@ import XCTest
 
 XCTMain([
      testCase(BluemixAppIDTests.allTests),
-     testCase(UserProfileManagerTest.allTests),
+     testCase(UserProfileManagerTests.allTests),
      testCase(UtilsTest.allTests),
      testCase(WebAppPluginTest.allTests),
      testCase(ApiPluginTest.allTests)
