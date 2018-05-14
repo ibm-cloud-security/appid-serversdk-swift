@@ -19,7 +19,10 @@ internal class APIKituraCredentialsPluginConfig: AppIDPluginConfig {
 
     private let logger = Logger(forName: Constants.APIPlugin.name)
 
-    var publicKeyServerURL: String? {
+    internal var publicKeyServerURL: String? {
+
+        // public key url = OAUTH_SERVER_URL/publickey
+        // e.g. https://appid-oauth.ng.bluemix.net/oauth/v3/a8589e38-081e-4128-a777-b1cd76ee1875/publickey
         if let serverUrl = serverUrl {
             if serverUrl.last == "/" {
                 var endpoint = Constants.Endpoints.publicKeys

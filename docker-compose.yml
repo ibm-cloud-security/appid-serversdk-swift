@@ -2,4 +2,4 @@ test:
   image: ibmcom/swift-ubuntu:4.1
   volumes:
       - .:/BluemixAppID
-  command: bash -c "sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev libblocksruntime-dev libkqueue-dev libpthread-workqueue-dev libbsd-dev && cd /BluemixAppID && swift package clean && swift build && swift test && swift package clean"
+  command: bash -c "cd /BluemixAppID && swift package  --build-path .build-ubuntu clean && swift build  --build-path .build-ubuntu && swift test  --build-path .build-ubuntu"

@@ -44,7 +44,7 @@ public class Utils {
     }
 
     @available(OSX 10.12, *)
-    public static func parseToken(from tokenString: String, using publicKeys: [String: String]? = nil, testMode: Bool? = false) throws -> JSON {
+    public static func parseToken(from tokenString: String, using publicKeys: [String: String]? = nil) throws -> JSON {
 
         let tokenComponents = tokenString.components(separatedBy: ".")
 
@@ -66,8 +66,7 @@ public class Utils {
 
         // if public keys are passed, then verify signature
         if let publicKeys = publicKeys {
-            (testMode ?? false) ? try verifySignatureInTestMode(publicKeys: publicKeys, tokenComponents: tokenComponents) :
-                                  try verifySignature(publicKeys: publicKeys, tokenComponents: tokenComponents, kid: jwtHeader["kid"].string)
+            try verifySignature(publicKeys: publicKeys, tokenComponents: tokenComponents, kid: jwtHeader["kid"].string)
         }
 
         var json = JSON([:])
@@ -88,16 +87,6 @@ public class Utils {
         }
         logger.error("Could Not Validate Access Token Signature")
         throw AppIDErrorInternal.couldNotValidateAccessTokenSignature
-    }
-
-    private static func verifySignatureInTestMode(publicKeys: [String: String], tokenComponents: [String]) throws {
-        for (_, key) in publicKeys {
-            if try isSignatureValid(tokenComponents, with: key) {
-                return
-            }
-        }
-        logger.error("Invalid access token signature")
-        throw AppIDErrorInternal.invalidAccessTokenSignature
     }
 
     @available(OSX 10.12, *)
