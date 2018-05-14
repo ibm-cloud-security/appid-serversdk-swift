@@ -76,7 +76,7 @@ let package = Package(
 Below is an example of using this SDK to protect Web applications.
 
 #### Protecting web applications using WebAppKituraCredentialsPlugin
-WebAppKituraCredentialsPlugin is based on the OAuth2 authorization_code grant flow and should be used for web applications that use browsers. The plugin provides tools to easily implement authentication and authorization flows. WebAppKituraCredentialsPlugin provides mechanisms to detect unauthenticated attempts to access protected resources. The WebAppKituraCredentialsPlugin will automatically redirect user's browser to the authentication page. After successful authentication user will be taken back to the web application's callback URL (redirectUri), which will once again use WebAppKituraCredentialsPlugin to obtain access and identity tokens from App ID service. After obtaining these tokens the WebAppKituraCredentialsPlugin will store them in HTTP session under WebAppKituraCredentialsPlugin.AuthContext key. In a scalable cloud environment it is recommended to persist HTTP sessions in a scalable storage like Redis to ensure they're available accross server app instances.
+WebAppKituraCredentialsPlugin is based on the OAuth2 authorization_code grant flow and should be used for web applications that use browsers. The plugin provides tools to easily implement authentication and authorization flows. WebAppKituraCredentialsPlugin provides mechanisms to detect unauthenticated attempts to access protected resources. The WebAppKituraCredentialsPlugin will automatically redirect user's browser to the authentication page. After successful authentication user will be taken back to the web application's callback URL (redirectUri), which will once again use WebAppKituraCredentialsPlugin to obtain access and identity tokens from App ID service. After obtaining these tokens the WebAppKituraCredentialsPlugin will store them in HTTP session under WebAppKituraCredentialsPlugin.AuthContext key. In a scalable cloud environment it is recommended to persist HTTP sessions in a scalable storage like Redis to ensure they're available across  multiple server app instances.
 
 ```swift
 import Kitura
@@ -169,7 +169,7 @@ Kitura.run()
 
 The APIKituraCredentialsPlugin follows the OAuth Bearer Token spec and should be used to protect backend API endpoints.
 
-When your Kitura backend receives a request, the credentials middleware will check for the existence of a Bearer token in its authorization header and then validate it against a App ID public key set. Upon success, the middleware will add the authorization context and user profile to the request and pass it to the next middleware or your handler. If an identity token is not provided, then the fields of the user profile will be empty.
+When your Kitura backend receives a request, the credentials middleware will check for the existence of a Bearer token in its authorization header and then validate it against an App ID public key set. Upon success, the middleware will add the authorization context and user profile to the request and pass it to the next middleware or your handler. If an identity token is not provided, then the fields of the user profile will be empty.
 
 ```swift
 import Kitura
@@ -242,11 +242,11 @@ router.get(LOGOUT_URL, handler:  { (request, response, next) in
 
 ```
 
-As mentioned previously the anonymous access_token and identity_token will be automatically persisted in HTTP session by App ID SDK. You can retrieve them from HTTP session via same mechanisms as regular tokens. Access and identity tokens will be kept in HTTP session and will be used until either them or HTTP session expires.
+The anonymous access token and identity token are automatically persisted in HTTP session by App ID SDK. You can retrieve them from HTTP session via same mechanisms as regular tokens. Access and identity tokens will be kept in HTTP session and will be used until the tokens or the HTTP session expires.
 
 ### UserProfileManager
 
-Use the UserProfileManager to store / retrieve attribute of the user and get user info
+Use the UserProfileManager to store / retrieve attributes of the user and get user information:
 
 ```
 let userProfileManager = UserProfileManager(options: options)
@@ -263,13 +263,14 @@ userProfileManager.getAllAttributes(accessToken: accessToken) { (err, res) in
 userProfileManager.deleteAllAttributes(accessToken: accessToken) { (err, res) in
 }
 
-// Retrieve the UserInfo without validating using your provided identity token
-userProfileManager.getUserInfo(accessToken: AccessTokenSuccess, identityToken: nil) { (err, res) in
+// Retrieve user information by querying the UserInfo endpoint 
+// If identity token is provided (recommended approach), response is validated against the identity token
+userProfileManager.getUserInfo(accessToken: AccessTokenSuccess, identityToken: optionalIdentityToken) { (err, res) in
 
 }
 
-// Retrieve the UserInfo and validate response using your provided identity token
-userProfileManager.getUserInfo(accessToken: AccessTokenSuccess, identityToken: optionalIdentityToken) { (err, res) in
+// Retrieve the UserInfo without any validation
+userProfileManager.getUserInfo(accessToken: AccessTokenSuccess) { (err, res) in
 
 }
 ```
