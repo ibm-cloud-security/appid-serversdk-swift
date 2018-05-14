@@ -1,4 +1,4 @@
-/* *     Copyright 2016, 2017 IBM Corp.
+/* *     Copyright 2016, 2017, 2018 IBM Corp.
  *     Licensed under the Apache License, Version 2.0 (the "License");
  *     you may not use this file except in compliance with the License.
  *     You may obtain a copy of the License at
@@ -12,28 +12,18 @@
 
 import Foundation
 
-public enum UserAttributeError: Error {
-    case userAttributeFailure(String)
-
-    var description: String {
-        switch self {
-        case .userAttributeFailure(let msg) :
-            return msg
-        }
-    }
-}
-
-
-public enum UserInfoError: Error {
+public enum UserProfileError: Error {
     case invalidIdentityToken
     case invalidUserInfoResponse
     case conflictingSubjects
-    
+    case userAttributeFailure(String)
+
     var description: String {
         switch self {
         case .invalidIdentityToken: return "Invalid Identity Token"
         case .invalidUserInfoResponse: return "Invalid User Info Response"
         case .conflictingSubjects: return "Conflicting Subjects. UserInfoResponse.sub must match IdentityToken.sub"
+        case .userAttributeFailure(let msg): return msg
         }
     }
 }
@@ -45,7 +35,7 @@ public enum RequestError: Error {
     case unexceptedError
     case invalidOauthServerUrl
     case invalidProfileServerUrl
-    
+
     var description: String {
         switch self {
         case .unauthorized: return "Unauthorized"

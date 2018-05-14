@@ -7,16 +7,16 @@ import SimpleLogger
 import KituraSession
 
 @available(OSX 10.12, *)
-public class UserManager {
+public class UserProfileManager {
     private let VcapServices = "VCAP_SERVICES"
     private let VcapServicesCredntials = "credentials"
     private let VcapServicesServiceName = "AdvancedMobileAccess"
     private let UserProfileServerURL = "profilesUrl"
     private let AttributesEndpoint = "/api/v1/attributes"
-    
+
     private let OAuthServerURL = "oauthServerUrl"
     private let UserInfoEndpoint = "/userinfo"
-    
+
     private let logger = Logger(forName: "UserAttributeManager")
     var serviceConfig: [String:Any] = [:]
 
@@ -36,7 +36,7 @@ public class UserManager {
 
         serviceConfig[UserProfileServerURL] = options[UserProfileServerURL] ?? vcapServiceCredentials?[UserProfileServerURL]
         serviceConfig[OAuthServerURL] = options[OAuthServerURL] ?? vcapServiceCredentials?[OAuthServerURL]
-        
+
         guard serviceConfig[UserProfileServerURL] != nil && serviceConfig[OAuthServerURL] != nil else {
             logger.error("Ensure your app is either bound to an App ID service instance or pass required profilesUrl parameter to the constructor")
             return
@@ -78,54 +78,54 @@ public class UserManager {
 
 
     public func getUserInfo(accessToken: String, identityToken: String?, completionHandler: @escaping (Swift.Error?, [String: Any]?) -> Void) {
-        
+
         handleUserInfoRequest(accessToken: accessToken) { (error, profile) in
-            
+
             guard error == nil, let profile = profile else {
                 self.logger.debug("Error: Unexpected error while retrieving User Info. Msg: \(error?.localizedDescription ?? "")")
                 return completionHandler(error ?? RequestError.unexceptedError, nil)
             }
-            
+
             if let identityToken = identityToken {
-                
+
                 guard let identityToken = try? Utils.parseToken(from: identityToken) else {
                     self.logger.debug("Error: Invalid identity Token is missing sub field")
-                    return completionHandler(UserInfoError.invalidIdentityToken, nil)
+                    return completionHandler(UserProfileError.invalidIdentityToken, nil)
                 }
-                
+
                 if let sub = profile["sub"] as? String {
                     guard sub == identityToken["payload"]["sub"].string else {
                         self.logger.debug("Error: IdentityToken.sub does not match UserInfoResult.sub.")
-                        return completionHandler(UserInfoError.conflictingSubjects, nil)
+                        return completionHandler(UserProfileError.conflictingSubjects, nil)
                     }
                 }
             }
-            
+
             completionHandler(nil, profile)
         }
     }
 
     private func handleUserInfoRequest(accessToken: String, completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
-        
+
         self.logger.debug("UserAttributeManager :: handle Request - User Info")
-        
+
         guard let url = serviceConfig[OAuthServerURL] as? String else {
             completionHandler(RequestError.invalidOauthServerUrl, nil)
             return
         }
-        
+
         handleRequest(accessToken: accessToken, url: url + UserInfoEndpoint, method: "GET", body: nil, completionHandler: completionHandler)
     }
-    
+
     private func handleRequest(attributeName: String?, attributeValue: String?, method:String, accessToken: String, completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
 
         self.logger.debug("UserAttributeManager :: handle Request - " + method + " " + (attributeName ?? "all"))
-        
+
         guard let profileURL = serviceConfig[UserProfileServerURL] as? String else {
             completionHandler(RequestError.invalidProfileServerUrl, nil)
             return
         }
-        
+
         var url = profileURL + AttributesEndpoint + "/"
         if let attributeName = attributeName {
             url += attributeName
@@ -135,7 +135,7 @@ public class UserManager {
     }
 
     internal func handleRequest(accessToken: String, url: String, method: String, body: String?, completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
-    
+
         let request = HTTP.request(url) {response in
             if response?.status == 401 || response?.status == 403 {
                 self.logger.error("Unauthorized")
@@ -159,11 +159,11 @@ public class UserManager {
                 completionHandler(RequestError.unexceptedError , nil)
             }
         }
-        
+
         if let body = body {
             request.write(from: body)
         }
-        
+
         request.set(.method(method))
         request.set(.headers(["Authorization":"Bearer " + accessToken]))
         request.end()
