@@ -1,5 +1,5 @@
 /*
- Copyright 2017 IBM Corp.
+ Copyright 2018 IBM Corp.
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
@@ -15,68 +15,35 @@ import Foundation
 import SwiftyJSON
 import SimpleLogger
 
-internal class APIKituraCredentialsPluginConfig {
+internal class APIKituraCredentialsPluginConfig: AppIDPluginConfig {
 
-    private let vcapServices = "VCAP_SERVICES"
-    private let vcapServicesCredentials = "credentials"
-    private let vcapServicesName = "AppID"
-    private let vcapApplication = "VCAP_APPLICATION"
-    private let oauthServerURL = "oauthServerUrl"
-    private let pubkeyServerURL = "pubKeyServerUrl"
-    private let logger = Logger(forName: "APIKituraCredentialsPluginConfig")
+    private let logger = Logger(forName: Constants.APIPlugin.name)
 
-    internal var isTesting: Bool {
-        return serverUrl == "testServerUrl"
-    }
-
-    internal var config: [String: Any] {
-        return serviceConfig
-    }
-
-    internal var serverUrl: String? {
-        return serviceConfig[oauthServerURL] as? String
-    }
-
-    internal var publicKeyServerURL: String? {
-        var keyURL: String? = nil
-
-        // public key url = OAUTH_SERVER_URL/publickey
-        // e.g. https://appid-oauth.ng.bluemix.net/oauth/v3/a8589e38-081e-4128-a777-b1cd76ee1875/publickey
-        if let serverUrl = serviceConfig[oauthServerURL] as? String {
+    var publicKeyServerURL: String? {
+        if let serverUrl = serverUrl {
             if serverUrl.last == "/" {
-                keyURL = serverUrl + "./publickeys"
+                var endpoint = Constants.Endpoints.publicKeys
+                endpoint.removeFirst()
+                return serverUrl + endpoint
             } else {
-                keyURL = serverUrl + "/publickeys"
+                return serverUrl + Constants.Endpoints.publicKeys
             }
         }
-        return keyURL
+        return nil
     }
 
-    internal var serviceConfig: [String:Any] = [:]
+    override init(options: [String: Any]?) {
+        logger.debug("Intializing")
 
-    public init(options: [String: Any]?) {
-        logger.debug("Intializing APIKituraCredentialsPluginConfig")
+        super.init(options: options)
 
-        let options = options ?? [:]
-        let vcapString = ProcessInfo.processInfo.environment[self.vcapServices] ?? ""
-        let vcapServices = JSON.parse(string: vcapString)
-        var vcapServiceCredentials: [String: Any]? = [:]
-
-        if let dict = vcapServices.dictionary {
-            for (key, value) in dict {
-                if key.hasPrefix(vcapServicesName) {
-                    vcapServiceCredentials = (value.array?[0])?.dictionaryObject?[vcapServicesCredentials] as? [String : Any]
-                    break
-                }
-            }
+        if serviceConfig[Constants.Credentials.oauthServerUrl] == nil {
+            logger.error("Failed to initialize APIKituraCredentialsPlugin." +
+                         " All requests to protected endpoints will be rejected" +
+                         " Ensure your app is either bound to an AppID service instance" +
+                         " or pass required parameters in the strategy constructor ")
         }
 
-        serviceConfig[oauthServerURL] = options[oauthServerURL] ?? vcapServiceCredentials?[oauthServerURL] ?? nil
-
-        if serviceConfig[oauthServerURL] == nil {
-            logger.error("Failed to initialize APIKituraCredentialsPlugin. All requests to protected endpoints will be rejected")
-            logger.error("Ensure your app is either bound to an AppID service instance or pass required parameters in the strategy constructor ")
-        }
-        logger.info(oauthServerURL + "=" + ((serviceConfig[oauthServerURL] as? String) ?? ""))
+        logger.info(Constants.Credentials.oauthServerUrl + "=" + ((serviceConfig[Constants.Credentials.oauthServerUrl] as? String) ?? ""))
     }
 }

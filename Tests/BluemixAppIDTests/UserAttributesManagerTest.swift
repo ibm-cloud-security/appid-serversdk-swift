@@ -1,5 +1,5 @@
 /*
- Copyright 2017 IBM Corp.
+ Copyright 2018 IBM Corp.
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
@@ -110,17 +110,17 @@ class UserAttributesManagerTest: XCTestCase {
     func testInit() {
 
         // check failure - profileUrl was not provided neither trought VCAP nor options
-        XCTAssertNil(MockUserAttributeManger.init(options: [:]).serviceConfig["profilesUrl"])
+        XCTAssertNil(MockUserAttributeManger.init(options: [:]).serviceConfig.userProfileServerUrl)
 
         // check success - profileUrl was provided trought VCAP
         unsetenv("VCAP_SERVICES")
         unsetenv("VCAP_APPLICATION")
         setenv("VCAP_SERVICES", "{\n  \"AdvancedMobileAccess\": [\n    {\n      \"credentials\": {\n        \"clientId\": \"vcapclient\",\n        \"secret\": \"vcapsecret\",\n        \"tenantId\": \"vcaptenant\",\n        \"oauthServerUrl\": \"vcapserver\",\n \"profilesUrl\": \"vcapprofile\"\n     }\n    }\n  ]\n}", 1)
         userAttManager = MockUserAttributeManger.init(options: [:])
-        XCTAssertNotNil(userAttManager?.serviceConfig["profilesUrl"])
+        XCTAssertNotNil(userAttManager?.serviceConfig.userProfileServerUrl)
 
         // check success - profileUrl was provided trought options
-        XCTAssertNotNil(MockUserAttributeManger.init(options: fullOptions).serviceConfig["profilesUrl"])
+        XCTAssertNotNil(MockUserAttributeManger.init(options: fullOptions).serviceConfig.userProfileServerUrl)
     }
 
     func testSetAttribute() {
