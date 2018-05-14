@@ -148,4 +148,5 @@ public class UserProfileManager {
         request.set(.headers(["Authorization":"Bearer " + accessToken]))
         request.end()
     }
+    
 }
