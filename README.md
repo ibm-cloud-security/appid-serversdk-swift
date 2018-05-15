@@ -244,11 +244,12 @@ router.get(LOGOUT_URL, handler:  { (request, response, next) in
 
 The anonymous access token and identity token are automatically persisted in HTTP session by App ID SDK. You can retrieve them from HTTP session via same mechanisms as regular tokens. Access and identity tokens will be kept in HTTP session and will be used until the tokens or the HTTP session expires.
 
-### UserProfileManager
+### Managing User Profiles
 
-Use the UserProfileManager to store / retrieve attributes of the user and get user information:
+Use the UserProfileManager to store and retrieve attributes of the user as well as to retrieve additional information about the user.
 
-```
+```swift
+
 let userProfileManager = UserProfileManager(options: options)
 
 userProfileManager.getAttribute(accessToken: accessToken, attributeName: "name") { (err, res) in
@@ -265,12 +266,12 @@ userProfileManager.deleteAllAttributes(accessToken: accessToken) { (err, res) in
 
 // Retrieve user information by querying the UserInfo endpoint 
 // If identity token is provided (recommended approach), response is validated against the identity token
-userProfileManager.getUserInfo(accessToken: AccessTokenSuccess, identityToken: optionalIdentityToken) { (err, res) in
+userProfileManager.getUserInfo(accessToken: accessToken, identityToken: optionalIdentityToken) { (err, res) in
 
 }
 
 // Retrieve the UserInfo without any validation
-userProfileManager.getUserInfo(accessToken: AccessTokenSuccess) { (err, res) in
+userProfileManager.getUserInfo(accessToken: accessToken) { (err, res) in
 
 }
 ```
