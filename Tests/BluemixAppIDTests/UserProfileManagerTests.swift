@@ -48,19 +48,19 @@ class UserProfileManagerTests: XCTestCase {
 
         override func handleRequest(accessToken: String, url: String, method: String, body: String?,completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
             if accessToken.range(of:"return_error") != nil {
-                completionHandler(UserProfileError.userAttributeFailure("Unexpected error"), nil)
+                completionHandler(RequestError.unexpectedError, nil)
             }
             else if accessToken.range(of:"return_code") != nil {
                 if let statusCode = Int(accessToken.components(separatedBy: "_")[2]) {
                     switch statusCode {
                     case 401,403:
-                        completionHandler(UserProfileError.userAttributeFailure("Unauthorized"), nil)
+                        completionHandler(RequestError.unauthorized, nil)
                         break
                     case 404:
-                        completionHandler(UserProfileError.userAttributeFailure("Not found"), nil)
+                        completionHandler(RequestError.notFound, nil)
                         break
                     default:
-                        completionHandler(UserProfileError.userAttributeFailure("Unexpected error"), nil)
+                        completionHandler(RequestError.unexpectedError, nil)
                     }
                 }
             }
@@ -91,34 +91,12 @@ class UserProfileManagerTests: XCTestCase {
                         "profilesUrl": "https://someUrl"]
 
     var userProfileManager = MockUserProfileManager(options: ["clientId": "someclient",
-                                                                                           "secret": "somesecret",
-                                                                                           "tenantId": "sometenant",
-                                                                                           "oauthServerUrl": "someurl",
-                                                                                           "redirectUri": "http://someredirect",
-                                                                                           "profilesUrl": "https://someUrl"])
-    var expectation:XCTestExpectation?
-
-
-    func setOnFailure(expectation: XCTestExpectation? = nil, error: Swift.Error? = nil,_ expectedMsg: String = "") {
-        if let fulfillExpectation = expectation {
-            XCTAssert(error.debugDescription.range(of: expectedMsg) != nil)
-            fulfillExpectation.fulfill()
-        } else {
-            XCTFail()
-        }
-
-    }
-
-    func setOnSuccess(expectation:XCTestExpectation? = nil, body:[String:Any] = [:],_ expectedMsg: String = "") {
-        if let fulfillExpectation = expectation {
-            XCTAssert(body.description.range(of: expectedMsg) != nil)
-            fulfillExpectation.fulfill()
-        } else {
-            XCTFail()
-        }
-
-    }
-
+                                                               "secret": "somesecret",
+                                                               "tenantId": "sometenant",
+                                                               "oauthServerUrl": "someurl",
+                                                               "redirectUri": "http://someredirect",
+                                                               "profilesUrl": "https://someUrl"])
+    var expectation: XCTestExpectation?
 
     func testInit() {
 
@@ -141,7 +119,7 @@ class UserProfileManagerTests: XCTestCase {
         // expired accessToken - should fail "Unexpected error"
         userProfileManager.setAttribute(accessToken : AccessTokenFailure, attributeName : "name", attributeValue : "abc", completionHandler : { (err, res) in
             if let error = err {
-                self.setOnFailure(expectation: self.expectation(description: "Unexpected error"), error: error, "Unexpected error")
+                self.setOnFailure(expectation: self.expectation(description: "Unexpected error"), error: error, RequestError.unexpectedError)
             } else {
                 self.setOnSuccess()
             }
@@ -150,7 +128,7 @@ class UserProfileManagerTests: XCTestCase {
         // expired accessToken - should fail "Unauthorized 401"
         userProfileManager.setAttribute(accessToken : AccessTokenStatusCode401, attributeName : "name", attributeValue : "abc", completionHandler : { (err, res) in
             if let error = err {
-                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: error, "Unauthorized")
+                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: error, RequestError.unauthorized)
             } else {
                 self.setOnSuccess()
             }
@@ -159,7 +137,7 @@ class UserProfileManagerTests: XCTestCase {
         // expired accessToken - should fail "Unauthorized 403"
         userProfileManager.setAttribute(accessToken : AccessTokenStatusCode403, attributeName : "name", attributeValue : "abc", completionHandler : { (err, res) in
             if let error = err {
-                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: error, "Unauthorized")
+                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: error, RequestError.unauthorized)
             } else {
                 self.setOnSuccess()
             }
@@ -168,7 +146,7 @@ class UserProfileManagerTests: XCTestCase {
         // expired accessToken - should fail "Not found 404"
         userProfileManager.setAttribute(accessToken : AccessTokenStatusCode404, attributeName : "name", attributeValue : "abc", completionHandler : { (err, res) in
             if let error = err {
-                self.setOnFailure(expectation: self.expectation(description: "Not found"), error: error, "Not found")
+                self.setOnFailure(expectation: self.expectation(description: "Not found"), error: error, RequestError.notFound)
             } else {
                 self.setOnSuccess()
             }
@@ -195,7 +173,7 @@ class UserProfileManagerTests: XCTestCase {
         // expired accessToken - should fail "Unexpected error"
         userProfileManager.getAttribute(accessToken : AccessTokenFailure, attributeName : "name", completionHandler : { (err, res) in
             if let error = err {
-                self.setOnFailure(expectation: self.expectation(description: "Unexpected error"), error: error, "Unexpected error")
+                self.setOnFailure(expectation: self.expectation(description: "Unexpected error"), error: error, RequestError.unexpectedError)
             } else {
                 self.setOnSuccess()
             }
@@ -204,7 +182,7 @@ class UserProfileManagerTests: XCTestCase {
         // expired accessToken - should fail "Unauthorized 401"
         userProfileManager.getAttribute(accessToken : AccessTokenStatusCode401, attributeName : "name", completionHandler : { (err, res) in
             if let error = err {
-                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: error, "Unauthorized")
+                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: error, RequestError.unauthorized)
             } else {
                 self.setOnSuccess()
             }
@@ -213,7 +191,7 @@ class UserProfileManagerTests: XCTestCase {
         // expired accessToken - should fail "Unauthorized 403"
         userProfileManager.getAttribute(accessToken : AccessTokenStatusCode403, attributeName : "name", completionHandler : { (err, res) in
             if let error = err {
-                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: error, "Unauthorized")
+                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: error, RequestError.unauthorized)
             } else {
                 self.setOnSuccess()
             }
@@ -222,7 +200,7 @@ class UserProfileManagerTests: XCTestCase {
         // expired accessToken - should fail "Not found 404"
         userProfileManager.getAttribute(accessToken : AccessTokenStatusCode404, attributeName : "name", completionHandler : { (err, res) in
             if let error = err {
-                self.setOnFailure(expectation: self.expectation(description: "Not found"), error: error, "Not found")
+                self.setOnFailure(expectation: self.expectation(description: "Not found"), error: error, RequestError.notFound)
             } else {
                 self.setOnSuccess()
             }
@@ -251,7 +229,7 @@ class UserProfileManagerTests: XCTestCase {
         // expired accessToken - should fail "Unexpected error"
         userProfileManager.deleteAttribute(accessToken : AccessTokenFailure, attributeName : "name", completionHandler : { (err, res) in
             if let error = err {
-                self.setOnFailure(expectation: self.expectation(description: "Unexpected error"), error: error, "Unexpected error")
+                self.setOnFailure(expectation: self.expectation(description: "Unexpected error"), error: error, RequestError.unexpectedError)
             } else {
                 self.setOnSuccess()
             }
@@ -260,7 +238,7 @@ class UserProfileManagerTests: XCTestCase {
         // expired accessToken - should fail "Unauthorized 401"
         userProfileManager.deleteAttribute(accessToken : AccessTokenStatusCode401, attributeName : "name", completionHandler : { (err, res) in
             if let error = err {
-                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: error, "Unauthorized")
+                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: error, RequestError.unauthorized)
             } else {
                 self.setOnSuccess()
             }
@@ -270,7 +248,7 @@ class UserProfileManagerTests: XCTestCase {
         // expired accessToken - should fail "Unauthorized 403"
         userProfileManager.deleteAttribute(accessToken : AccessTokenStatusCode403, attributeName : "name", completionHandler : { (err, res) in
             if let error = err {
-                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: error, "Unauthorized")
+                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: error, RequestError.unauthorized)
             } else {
                 self.setOnSuccess()
             }
@@ -279,7 +257,7 @@ class UserProfileManagerTests: XCTestCase {
         // expired accessToken - should fail "Not found 404"
         userProfileManager.deleteAttribute(accessToken : AccessTokenStatusCode404, attributeName : "name", completionHandler : { (err, res) in
             if let error = err {
-                self.setOnFailure(expectation: self.expectation(description: "Not found"), error: error, "Not found")
+                self.setOnFailure(expectation: self.expectation(description: "Not found"), error: error, RequestError.notFound)
             } else {
                 self.setOnSuccess()
             }
@@ -306,7 +284,7 @@ class UserProfileManagerTests: XCTestCase {
         // expired accessToken - should fail "Unexpected error"
         userProfileManager.getAllAttributes(accessToken : AccessTokenFailure, completionHandler : { (err, res) in
             if let error = err {
-                self.setOnFailure(expectation: self.expectation(description: "Unexpected error"), error: error, "Unexpected error")
+                self.setOnFailure(expectation: self.expectation(description: "Unexpected error"), error: error, RequestError.unexpectedError)
             } else {
                 self.setOnSuccess()
             }
@@ -315,7 +293,7 @@ class UserProfileManagerTests: XCTestCase {
         // expired accessToken - should fail "Unauthorized 401"
         userProfileManager.getAllAttributes(accessToken : AccessTokenStatusCode401, completionHandler : { (err, res) in
             if let error = err {
-                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: error, "Unauthorized")
+                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: error, RequestError.unauthorized)
             } else {
                 self.setOnSuccess()
             }
@@ -324,7 +302,7 @@ class UserProfileManagerTests: XCTestCase {
         // expired accessToken - should fail "Unauthorized 403"
         userProfileManager.getAllAttributes(accessToken : AccessTokenStatusCode403, completionHandler : { (err, res) in
             if let error = err {
-                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: error, "Unauthorized")
+                self.setOnFailure(expectation: self.expectation(description: "Unauthorized"), error: error, RequestError.unauthorized)
             } else {
                 self.setOnSuccess()
             }
@@ -333,7 +311,7 @@ class UserProfileManagerTests: XCTestCase {
         // expired accessToken - should fail "Not found 404"
         userProfileManager.getAllAttributes(accessToken : AccessTokenStatusCode404, completionHandler : { (err, res) in
             if let error = err {
-                self.setOnFailure(expectation: self.expectation(description: "Not found"), error: error, "Not found")
+                self.setOnFailure(expectation: self.expectation(description: "Not found"), error: error, RequestError.notFound)
             } else {
                 self.setOnSuccess()
             }
@@ -371,35 +349,35 @@ class UserProfileManagerTests: XCTestCase {
 
     func testUserInfo401() {
         userProfileManager.getUserInfo(accessToken: AccessTokenStatusCode401,
-                                    completionHandler: errorHandler("Unauthorized"))
+                                    completionHandler: errorHandler(RequestError.unauthorized))
         awaitExpectation()
     }
 
     func testUserInfo403() {
         userProfileManager.getUserInfo(accessToken: AccessTokenStatusCode403,
                                     identityToken: nil,
-                                    completionHandler: errorHandler("Unauthorized"))
+                                    completionHandler: errorHandler(RequestError.unauthorized))
         awaitExpectation()
     }
 
     func testUserInfo404() {
         userProfileManager.getUserInfo(accessToken: AccessTokenStatusCode404,
                                     identityToken: nil,
-                                    completionHandler: errorHandler("Not found"))
+                                    completionHandler: errorHandler(RequestError.notFound))
         awaitExpectation()
     }
 
     func testUserInfoInvalidIdentityToken() {
         userProfileManager.getUserInfo(accessToken: AccessTokenSuccess,
                                     identityToken: "invalid token",
-                                    completionHandler: errorHandler("UserProfileError.invalidIdentityToken"))
+                                    completionHandler: errorHandler(UserProfileError.invalidIdentityToken))
         awaitExpectation()
     }
 
     func testUserInfoSubjectMismatch() {
         userProfileManager.getUserInfo(accessToken: UserProfileManagerTests.AccessTokenSuccessMismatchedSubjects,
                                     identityToken: IdentityTokenSubject123,
-                                    completionHandler: errorHandler("UserProfileError.conflictingSubjects"))
+                                    completionHandler: errorHandler(UserProfileError.conflictingSubjects))
         awaitExpectation()
     }
 
@@ -415,6 +393,14 @@ class UserProfileManagerTests: XCTestCase {
         }
     }
 
+    func errorHandler(_ expected: UserProfileError) -> (Swift.Error?, [String: Any]?) -> Void {
+        return errorHandler(_: expected.description)
+    }
+
+    func errorHandler(_ expected: RequestError) -> (Swift.Error?, [String: Any]?) -> Void {
+        return errorHandler(_: expected.description)
+    }
+
     func errorHandler(_ expectedMsg: String) -> (Swift.Error?, [String: Any]?) -> Void {
         let expectation = self.expectation(description: expectedMsg)
         return { (err: Swift.Error?, body: [String: Any]?) in
@@ -424,6 +410,36 @@ class UserProfileManagerTests: XCTestCase {
                 self.setOnSuccess()
             }
         }
+    }
+
+    func setOnFailure(expectation: XCTestExpectation? = nil, error: Swift.Error? = nil,_ expectedMsg: RequestError) {
+        setOnFailure(expectation: expectation, error: error, expectedMsg.description)
+    }
+
+    func setOnFailure(expectation: XCTestExpectation? = nil, error: Swift.Error? = nil,_ expectedMsg: String = "") {
+        if let fulfillExpectation = expectation {
+            if let error = error as? UserProfileError {
+                XCTAssertEqual(error.description, expectedMsg)
+            } else if let error = error as? RequestError {
+                XCTAssertEqual(error.description, expectedMsg)
+            } else {
+                XCTAssert(error.debugDescription.range(of: expectedMsg) != nil)
+            }
+            fulfillExpectation.fulfill()
+        } else {
+            XCTFail()
+        }
+
+    }
+
+    func setOnSuccess(expectation:XCTestExpectation? = nil, body:[String:Any] = [:],_ expectedMsg: String = "") {
+        if let fulfillExpectation = expectation {
+            XCTAssert(body.description.range(of: expectedMsg) != nil)
+            fulfillExpectation.fulfill()
+        } else {
+            XCTFail()
+        }
+
     }
 
     func awaitExpectation() {

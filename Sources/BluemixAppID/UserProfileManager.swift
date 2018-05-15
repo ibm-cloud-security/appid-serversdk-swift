@@ -1,3 +1,16 @@
+/*
+ Copyright 2018 IBM Corp.
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+ http://www.apache.org/licenses/LICENSE-2.0
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ */
+
 import Foundation
 import Kitura
 import Credentials
@@ -9,7 +22,7 @@ import KituraSession
 @available(OSX 10.12, *)
 public class UserProfileManager {
 
-    private let logger = Logger(forName: "UserAttributeManager")
+    private let logger = Logger(forName: "UserProfileManager")
 
     var serviceConfig: AppIDPluginConfig
 
@@ -23,7 +36,6 @@ public class UserProfileManager {
         }
     }
 
-
     public func setAttribute (accessToken: String,
                               attributeName: String,
                               attributeValue: String,
@@ -32,7 +44,6 @@ public class UserProfileManager {
         handleAttributeRequest(attributeName: attributeName, attributeValue: attributeValue, method: "put", accessToken: accessToken, completionHandler: completionHandler)
 
     }
-
 
     public func getAttribute (accessToken: String,
                               attributeName: String,
@@ -56,10 +67,21 @@ public class UserProfileManager {
 
     }
 
-
     public func getUserInfo(accessToken: String, identityToken: String? = nil, completionHandler: @escaping (Swift.Error?, [String: Any]?) -> Void) {
 
-        handleUserInfoRequest(accessToken: accessToken) { (error, profile) in
+        handleUserInfoRequest(accessToken: accessToken, identityToken: identityToken, completionHandler: completionHandler)
+    }
+
+    private func handleUserInfoRequest(accessToken: String, identityToken: String?, completionHandler: @escaping (Swift.Error?, [String: Any]?) -> Void) {
+
+        self.logger.debug("UserProfileManager :: handle Request - User Info")
+
+        guard let url = serviceConfig.serverUrl else {
+            completionHandler(RequestError.invalidOauthServerUrl, nil)
+            return
+        }
+
+        handleRequest(accessToken: accessToken, url: url + Constants.Endpoints.userInfo, method: "GET", body: nil) { (error, profile) in
 
             guard error == nil, let profile = profile else {
                 self.logger.debug("Error: Unexpected error while retrieving User Info. Msg: \(error?.localizedDescription ?? "")")
@@ -73,11 +95,9 @@ public class UserProfileManager {
                     return completionHandler(UserProfileError.invalidIdentityToken, nil)
                 }
 
-                if let sub = profile["sub"] as? String {
-                    guard sub == identityToken["payload"]["sub"].string else {
-                        self.logger.debug("Error: IdentityToken.sub does not match UserInfoResult.sub.")
-                        return completionHandler(UserProfileError.conflictingSubjects, nil)
-                    }
+                if let sub = profile["sub"] as? String, sub != identityToken["payload"]["sub"].string {
+                    self.logger.debug("Error: IdentityToken.sub does not match UserInfoResult.sub.")
+                    return completionHandler(UserProfileError.conflictingSubjects, nil)
                 }
             }
 
@@ -85,19 +105,7 @@ public class UserProfileManager {
         }
     }
 
-    private func handleUserInfoRequest(accessToken: String, completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
-
-        self.logger.debug("UserProfileManager :: handle Request - User Info")
-
-        guard let url = serviceConfig.serverUrl else {
-            completionHandler(RequestError.invalidOauthServerUrl, nil)
-            return
-        }
-
-        handleRequest(accessToken: accessToken, url: url + Constants.Endpoints.userInfo, method: "GET", body: nil, completionHandler: completionHandler)
-    }
-
-    private func handleAttributeRequest(attributeName: String?, attributeValue: String?, method:String, accessToken: String, completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
+    private func handleAttributeRequest(attributeName: String?, attributeValue: String?, method: String, accessToken: String, completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
 
         self.logger.debug("UserProfileManager :: handle Request - " + method + " " + (attributeName ?? "all"))
 
@@ -114,7 +122,7 @@ public class UserProfileManager {
         handleRequest(accessToken: accessToken, url: url, method: method, body: attributeValue, completionHandler: completionHandler)
     }
 
-    internal func handleRequest(accessToken: String, url: String, method: String, body: String?, completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
+    internal func handleRequest(accessToken: String, url: String, method: String, body: String?, completionHandler: @escaping (Swift.Error?, [String: Any]?) -> Void) {
 
         let request = HTTP.request(url) {response in
             if response?.status == 401 || response?.status == 403 {
@@ -124,8 +132,8 @@ public class UserProfileManager {
                 self.logger.error("Not found")
                 completionHandler(RequestError.notFound, nil)
             } else if let responseStatus = response?.status, responseStatus >= 200 && responseStatus < 300 {
-                var responseJson : [String:Any] = [:]
-                do{
+                var responseJson: [String: Any] = [:]
+                do {
                     if let body = try response?.readString() {
                         responseJson =  try Utils.parseJsonStringtoDictionary(body)
                     }
@@ -133,10 +141,9 @@ public class UserProfileManager {
                 } catch _ {
                     completionHandler(RequestError.parsingError, nil)
                 }
-            }
-            else {
+            } else {
                 self.logger.error("Unexpected error")
-                completionHandler(RequestError.unexpectedError , nil)
+                completionHandler(RequestError.unexpectedError, nil)
             }
         }
 
@@ -145,7 +152,7 @@ public class UserProfileManager {
         }
 
         request.set(.method(method))
-        request.set(.headers(["Authorization":"Bearer " + accessToken]))
+        request.set(.headers(["Authorization": "Bearer " + accessToken]))
         request.end()
     }
 
