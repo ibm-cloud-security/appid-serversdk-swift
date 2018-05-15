@@ -246,7 +246,7 @@ The anonymous access token and identity token are automatically persisted in HTT
 
 ### Managing User Profiles
 
-Use the UserProfileManager to store and retrieve attributes of the user as well as to retrieve additional information about the user.
+Using the App ID UserProfileManager, you are able to create, delete, and retrieve user profile attributes as well as get additional info about a user.
 
 ```swift
 
