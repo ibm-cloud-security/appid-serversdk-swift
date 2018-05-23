@@ -15,9 +15,17 @@ import Foundation
 import SimpleLogger
 import SwiftyJSON
 
+public protocol TokenValidator {
+    var tenantId: String? { get }
+    var clientId: String? { get }
+    var secret: String? { get }
+    var tokenIssuer: String? { get }
+    var shouldValidateTokenAudAndSub: Bool { get }
+}
+
 /// App ID Configuration Plugin - VCAP / Options parser
 ///
-class AppIDPluginConfig {
+class AppIDPluginConfig: TokenValidator {
 
     private let logger = Logger(forName: Constants.Utils.configuration)
 
@@ -47,7 +55,7 @@ class AppIDPluginConfig {
         return serviceConfig[Constants.Credentials.userProfileServerUrl] as? String
     }
 
-    var serverUrlHost: String? {
+    var tokenIssuer: String? {
         guard let sUrl = serverUrl, let url = URL(string: sUrl) else {
             return nil
         }
@@ -70,8 +78,12 @@ class AppIDPluginConfig {
         return nil
     }
 
-    init(options: [String: Any]?, required: KeyPath<AppIDPluginConfig, String?>...) {
+    var shouldValidateTokenAudAndSub: Bool = true
+    
+    init(options: [String: Any]?, validateEntireToken: Bool = true, required: KeyPath<AppIDPluginConfig, String?>...) {
 
+        self.shouldValidateTokenAudAndSub = validateEntireToken
+        
         logger.debug("Intializing")
 
         let options = options ?? [:]

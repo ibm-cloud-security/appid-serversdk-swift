@@ -30,8 +30,8 @@ class ApiPluginTests: XCTestCase {
             ("testAuthFlowMissingBearerHeader", testAuthFlowMissingBearerHeader),
             ("testAuthFlowMalformedHEader", testAuthFlowMalformedHEader),
             ("testAuthFlowExpiredAccessToken", testAuthFlowExpiredAccessToken),
-            ("testAuthFlowAccessTokenWrongAud", testAuthFlowAccessTokenWrongAud),
-            ("testAuthFlowAccessTokenWrongIss", testAuthFlowAccessTokenWrongIss),
+            ("testAuthFlowAccessTokenHappyFlowIgnoreAud", testAuthFlowAccessTokenHappyFlowIgnoreAud),
+            ("testAuthFlowAccessTokenHappyFlowIgnoreIss", testAuthFlowAccessTokenHappyFlowIgnoreIss),
             ("testAuthFlowAccessTokenWrongTenant", testAuthFlowAccessTokenWrongTenant),
             ("testAuthFlowHappyFlowNoIDToken", testAuthFlowHappyFlowNoIDToken),
             ("testAuthFlowInsufficientScope", testAuthFlowInsufficientScope),
@@ -107,24 +107,6 @@ class ApiPluginTests: XCTestCase {
         awaitExpectations()
     }
 
-    func testAuthFlowAccessTokenWrongIss() {
-        let api = MockAPIKituraCredentialsPlugin(options: TestConstants.options)
-        parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN_WRONG_ISS]
-        let error = generateExpectedError(error: .invalidToken, description: AppIDError.invalidIssuer.description)
-        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(expected: error, expectation: expectation(description: "testAuthFlowAccessTokenWrongIss")), onPass: onPass(), inProgress:inProgress)
-
-        awaitExpectations()
-    }
-
-    func testAuthFlowAccessTokenWrongAud() {
-        let api = MockAPIKituraCredentialsPlugin(options: TestConstants.options)
-        parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN_WRONG_AUD]
-        let error = generateExpectedError(error: .invalidToken, description: AppIDError.invalidAudience.description)
-        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(expected: error, expectation: expectation(description: "testAuthFlowAccessTokenWrongAud")), onPass: onPass(), inProgress:inProgress)
-
-        awaitExpectations()
-    }
-
     func testAuthFlowAccessTokenWrongTenant() {
         let api = MockAPIKituraCredentialsPlugin(options: TestConstants.options)
         parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN_WRONG_TENANT]
@@ -143,6 +125,37 @@ class ApiPluginTests: XCTestCase {
         awaitExpectations()
     }
 
+    func testAuthFlowExpiredIDToken() {
+        let api = MockAPIKituraCredentialsPlugin(options: TestConstants.options)
+        httpRequest.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN + " " + TestConstants.EXPIRED_ID_TOKEN]
+        
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(expectation: expectation(description: "testAuthFlowExpiredIDToken")), onFailure: setOnFailure(), onPass: onPass(), inProgress:inProgress)
+        
+        awaitExpectations()
+    }
+    
+    func testAuthFlowPublicKeys400() {
+        let api = MockAPIKituraCredentialsPlugin(options: TestConstants.options, responseCode: 400)
+        parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN + " " + TestConstants.ID_TOKEN]
+        
+        let error = generateExpectedError(error: .invalidToken, description: AppIDError.missingPublicKey.description)
+        
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(expectedCode: .unauthorized, expected: error, expectation: expectation(description: "testAuthFlowBadResponseFromPublicKeysEndpoint")), onPass: onPass(), inProgress:inProgress)
+        
+        awaitExpectations()
+    }
+    
+    func testAuthFlowPublicKeysMalformedResponse() {
+        let api = MockAPIKituraCredentialsPlugin(options: TestConstants.options, responseCode: 200, responseBody: "bad json")
+        parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN + " " + TestConstants.ID_TOKEN]
+        
+        let error = generateExpectedError(error: .invalidToken, description: AppIDError.missingPublicKey.description)
+        
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(expectedCode: .unauthorized, expected: error, expectation: expectation(description: "testAuthFlowPublicKeysMalformedResponse")), onPass: onPass(), inProgress:inProgress)
+        
+        awaitExpectations()
+    }
+    
     func testAuthFlowHappyFlowNoIDToken() {
         let api = MockAPIKituraCredentialsPlugin(options: TestConstants.options)
         parser.headers["Authorization"] = ["Bearer " + TestConstants.ACCESS_TOKEN]
@@ -154,15 +167,28 @@ class ApiPluginTests: XCTestCase {
         awaitExpectations()
     }
 
-    func testAuthFlowExpiredIDToken() {
+    func testAuthFlowAccessTokenHappyFlowIgnoreIss() {
         let api = MockAPIKituraCredentialsPlugin(options: TestConstants.options)
-        httpRequest.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN + " " + TestConstants.EXPIRED_ID_TOKEN]
-
-        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(expectation: expectation(description: "testAuthFlowExpiredIDToken")), onFailure: setOnFailure(), onPass: onPass(), inProgress:inProgress)
-
+        parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN_WRONG_ISS]
+        let error = generateExpectedError(error: .invalidToken, description: AppIDError.invalidIssuer.description)
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "", name: "", provider: "", expectation: expectation(description: "testAuthFlowHappyFlowWithIDToken")), onFailure: setOnFailure(), onPass: onPass(), inProgress:inProgress)
+        XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessToken"] as? String, TestConstants.ACCESS_TOKEN_WRONG_ISS)
+        XCTAssertEqual(JSON(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessTokenPayload"] as Any), try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN_WRONG_ISS)["payload"])
+        
         awaitExpectations()
     }
-
+    
+    func testAuthFlowAccessTokenHappyFlowIgnoreAud() {
+        let api = MockAPIKituraCredentialsPlugin(options: TestConstants.options)
+        parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN_WRONG_AUD]
+        let error = generateExpectedError(error: .invalidToken, description: AppIDError.invalidAudience.description)
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "", name: "", provider: "", expectation: expectation(description: "testAuthFlowHappyFlowWithIDToken")), onFailure: setOnFailure(), onPass: onPass(), inProgress:inProgress)
+        XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessToken"] as? String, TestConstants.ACCESS_TOKEN_WRONG_AUD)
+        XCTAssertEqual(JSON(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessTokenPayload"] as Any), try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN_WRONG_AUD)["payload"])
+        
+        awaitExpectations()
+    }
+    
     func testAuthFlowHappyFlowWithIDToken() {
         let api = MockAPIKituraCredentialsPlugin(options: TestConstants.options)
         parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN + " " + TestConstants.ID_TOKEN]
@@ -172,28 +198,6 @@ class ApiPluginTests: XCTestCase {
         XCTAssertEqual(JSON(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessTokenPayload"] as Any), try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"])
         XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["identityToken"] as? String, TestConstants.ID_TOKEN)
         XCTAssertEqual(JSON(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["identityTokenPayload"] as Any), try? Utils.parseToken(from: TestConstants.ID_TOKEN)["payload"])
-
-        awaitExpectations()
-    }
-
-    func testAuthFlowPublicKeys400() {
-        let api = MockAPIKituraCredentialsPlugin(options: TestConstants.options, responseCode: 400)
-        parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN + " " + TestConstants.ID_TOKEN]
-
-        let error = generateExpectedError(error: .invalidToken, description: AppIDError.missingPublicKey.description)
-
-        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(expectedCode: .unauthorized, expected: error, expectation: expectation(description: "testAuthFlowBadResponseFromPublicKeysEndpoint")), onPass: onPass(), inProgress:inProgress)
-
-        awaitExpectations()
-    }
-
-    func testAuthFlowPublicKeysMalformedResponse() {
-        let api = MockAPIKituraCredentialsPlugin(options: TestConstants.options, responseCode: 200, responseBody: "bad json")
-        parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN + " " + TestConstants.ID_TOKEN]
-
-        let error = generateExpectedError(error: .invalidToken, description: AppIDError.missingPublicKey.description)
-
-        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(), onFailure: setOnFailure(expectedCode: .unauthorized, expected: error, expectation: expectation(description: "testAuthFlowPublicKeysMalformedResponse")), onPass: onPass(), inProgress:inProgress)
 
         awaitExpectations()
     }

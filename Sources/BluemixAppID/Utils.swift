@@ -134,9 +134,9 @@ public class Utils {
     /// - Parameter: options - the configuration options to use for token validation
     /// - Returns: the decoded jwt payload
     ///      throws AppIDError on token validation failure
-    internal static func decodeAndValidate(tokenString: String,
+    public static func decodeAndValidate(tokenString: String,
                                            publicKeyUtil: PublicKeyUtil,
-                                           options: AppIDPluginConfig,
+                                           options: TokenValidator,
                                            completion: @escaping ([String: Any]?, AppIDError?) -> Void) {
 
         guard let token = try? Utils.parseTokenObject(from: tokenString) else {
@@ -179,19 +179,23 @@ public class Utils {
                     return completion(nil, .expiredToken)
             }
 
-            guard token.aud == options.clientId else {
-                logger.debug("Unable to validate token: " + AppIDError.invalidAudience.description)
-                return completion(nil, .invalidAudience)
-            }
-
             guard token.tenant == options.tenantId else {
                 logger.debug("Unable to validate token: " + AppIDError.invalidTenant.description)
                 return completion(nil, .invalidTenant)
             }
 
-            guard token.iss == options.serverUrlHost else {
-                logger.debug("Unable to validate token: " + AppIDError.invalidIssuer.description)
-                return completion(nil, .invalidIssuer)
+            /// The WebAppStrategy requires full token validation
+            if options.shouldValidateTokenAudAndSub {
+                
+                guard token.aud == options.clientId else {
+                    logger.debug("Unable to validate token: " + AppIDError.invalidAudience.description)
+                    return completion(nil, .invalidAudience)
+                }
+                
+                guard token.iss == options.tokenIssuer else {
+                    logger.debug("Unable to validate token: " + AppIDError.invalidIssuer.description)
+                    return completion(nil, .invalidIssuer)
+                }
             }
 
             completion(payload, nil)

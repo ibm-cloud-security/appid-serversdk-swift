@@ -32,7 +32,7 @@ public class APIKituraCredentialsPlugin: AppIDPlugin, CredentialsPluginProtocol 
     }
 
     public init(options: [String: Any]?) {
-        let config = AppIDPluginConfig(options: options, required: \.serverUrl, \.clientId, \.tenantId)
+        let config = AppIDPluginConfig(options: options, validateEntireToken: false, required: \.serverUrl, \.clientId, \.tenantId)
         super.init(logger: Logger(forName: Constants.APIPlugin.name), config: config)
 
         logger.warn("This is a beta version of APIKituraCredentialsPlugin." +

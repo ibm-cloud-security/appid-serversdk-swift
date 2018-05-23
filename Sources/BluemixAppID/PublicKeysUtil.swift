@@ -16,7 +16,7 @@ import SwiftyRequest
 import SwiftJWKtoPEM
 import Foundation
 
-class PublicKeyUtil {
+public class PublicKeyUtil {
 
     struct PublicKey: Codable {
         let e: String
@@ -25,28 +25,17 @@ class PublicKeyUtil {
         let n: String
     }
 
-    enum Status: String {
-        case success
-        case failure
-        case inProcess
-        case uninitialized
-    }
+    public var publicKeyUrl: String?
 
-    var publicKeyUrl: String?
-
-    var publicKeys: [String: String]?
-
-    var currentStatus: Status = .uninitialized
-
-    private var cond = NSCondition()
-    private let semaphore = DispatchSemaphore(value: 1)
-    private let statusQueue = DispatchQueue(label: "status")
+    public var publicKeys: [String: String]?
 
     private let logger = Logger(forName: Constants.Utils.publicKey)
 
-    init(url: String?) {
+    public init(url: String?) {
         if let url = url {
             publicKeyUrl = url
+        } else {
+            logger.debug("Request public key url not supplied ")
         }
 
         updatePublicKeys { _, _ in }
@@ -57,7 +46,7 @@ class PublicKeyUtil {
     ///
     /// - Parameter kid: A String denoting the key id of the public key to retrieve
     ///
-    func getPublicKey(kid: String, completion: @escaping (String?, AppIDError?) -> Void) {
+    public func getPublicKey(kid: String, completion: @escaping (String?, AppIDError?) -> Void) {
 
         /// Attempt to find public key
         if let publicKeys = publicKeys {
@@ -94,7 +83,7 @@ class PublicKeyUtil {
             }
 
             self.handlePubKeyResponse(status: response.statusCode, data: data, completion: completion)
-            self.logger.debug("Retrieved keys: " + self.currentStatus.rawValue)
+            self.logger.debug("Retrieved keys")
         }
     }
 
@@ -102,11 +91,12 @@ class PublicKeyUtil {
     /// Public Key Response handler
     ///
     func handlePubKeyResponse(status: Int?, data: Data, completion: @escaping ([String: String]?, AppIDError?) -> Void) {
+        
         guard status == 200 else {
             logger.debug("Failed to obtain public key " +
                 "status code \(String(describing: status))\n" +
                 "body \(String(data: data, encoding: .utf8) ?? "")")
-            return completion(nil, AppIDError.missingPublicKey)
+            return completion(nil, .missingPublicKey)
         }
 
         guard let json = try? JSONDecoder().decode([String: [PublicKey]].self, from: data),

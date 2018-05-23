@@ -13,7 +13,7 @@
 
 import Foundation
 
-internal enum AppIDError: Error {
+public enum AppIDError: Error {
 
     // Token Fields
     case invalidAlgorithm
@@ -33,7 +33,7 @@ internal enum AppIDError: Error {
     case jsonParsingError
     case invalidToken(String)
 
-    var description: String {
+    public var description: String {
 
         switch self {
         case .missingTokenKid: return "Provided token does not contain the required kid field"
