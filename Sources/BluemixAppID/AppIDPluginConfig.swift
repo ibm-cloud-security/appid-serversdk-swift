@@ -53,7 +53,7 @@ class AppIDPluginConfig {
         }
         return url.host
     }
-    
+
     var publicKeyServerURL: String? {
 
         // public key url = OAUTH_SERVER_URL/publickey
@@ -71,7 +71,7 @@ class AppIDPluginConfig {
     }
 
     init(options: [String: Any]?, required: KeyPath<AppIDPluginConfig, String?>...) {
-        
+
         logger.debug("Intializing")
 
         let options = options ?? [:]
@@ -110,7 +110,7 @@ class AppIDPluginConfig {
                 serviceConfig[Constants.Credentials.redirectUri] = "https://\(uri.stringValue)/ibm/bluemix/appid/callback"
             }
         }
-        
+
         /// Assert configuration has required fields
         for path in required {
             if self[keyPath: path] == nil {
@@ -121,8 +121,8 @@ class AppIDPluginConfig {
                 break
             }
         }
-        
-        logger.info("ServerUrl: " + (serverUrl ?? "") +
-            "ProfilesUrl: " + (userProfileServerUrl ?? ""))
+
+        logger.info("ServerUrl: " + (serverUrl ?? "unset"))
+        logger.info("ProfilesUrl: " + (userProfileServerUrl ?? "unset"))
     }
 }

@@ -22,22 +22,22 @@ import SwiftyJSON
 
 @available(OSX 10.12, *)
 public class APIKituraCredentialsPlugin: AppIDPlugin, CredentialsPluginProtocol {
-    
+
     public var redirecting = false
 
     public var usersCache: NSCache<NSString, BaseCacheElement>?
-    
+
     public var name: String {
         return Constants.APIPlugin.name
     }
-    
+
     public init(options: [String: Any]?) {
         let config = AppIDPluginConfig(options: options, required: \.serverUrl, \.clientId, \.tenantId)
         super.init(logger: Logger(forName: Constants.APIPlugin.name), config: config)
-        
+
         logger.warn("This is a beta version of APIKituraCredentialsPlugin." +
                     "It should not be used for production environments!")
-        
+
     }
 
     public func authenticate (request: RouterRequest,
@@ -86,7 +86,7 @@ public class APIKituraCredentialsPlugin: AppIDPlugin, CredentialsPluginProtocol 
 
 @available(OSX 10.12, *)
 extension APIKituraCredentialsPlugin {
-    
+
     /// Process access and identity tokens from header components
     fileprivate func processHeaderComponents(authHeaderComponents: [String],
                                          requiredScope: String,
@@ -96,53 +96,52 @@ extension APIKituraCredentialsPlugin {
                                          onFailure: @escaping (HTTPStatusCode?, [String: String]?) -> Void) {
 
         let accessTokenString: String = authHeaderComponents[1]
+        let idToken = authHeaderComponents.count == 3 ? authHeaderComponents[2] : nil
 
-        do {
-            /// Parse / Validate Access Token
-            let payload = try Utils.decodeAndValidate(tokenString: accessTokenString, publicKeyUtil: publicKeyUtil, options: config)
+        /// Parse / Validate Access Token
+        Utils.decodeAndValidate(tokenString: accessTokenString, publicKeyUtil: publicKeyUtil, options: config) {
+            payload, error in
 
-            /// Validate access token scopes
-            guard validateScope(requiredScope: requiredScope, payload: payload) else {
-                sendUnauthorized(scope: requiredScope, error: .insufficientScope, completion: onFailure)
-                return
+            guard let payload = payload, error == nil else {
+                return self.sendUnauthorized(scope: requiredScope,
+                                             error: .invalidToken,
+                                             description: error?.description,
+                                             completion: onFailure)
             }
 
-            /// Parse / Validate Identity Token, if necessary
-            let idToken = authHeaderComponents.count == 3 ? authHeaderComponents[2] : nil
-            let (identityContext, profile) = parseIdentityToken(idTokenString: idToken)
+            /// Validate access token scopes
+            guard self.validateScope(requiredScope: requiredScope, payload: payload) else {
+                return self.sendUnauthorized(scope: requiredScope, error: .insufficientScope, completion: onFailure)
+            }
 
             var authorizationContext: [String: Any] = [
                 "accessToken": accessTokenString,
                 "accessTokenPayload": payload as Any
             ]
 
-            /// Merge authorization context and identity context, if necessary
-            identityContext.forEach { authorizationContext[$0] = $1 }
-
-            request.userInfo[Constants.AuthContext.name] = authorizationContext
-            onSuccess(profile)
-            
-        } catch let error {
-            sendUnauthorized(scope: requiredScope,
-                             error: .invalidToken,
-                             description: (error as? AppIDError)?.description,
-                             completion: onFailure)
+            /// Parse / Validate Identity Token, if necessary
+            self.parseIdentityToken(idTokenString: idToken) { context, profile in
+                /// Merge authorization context and identity context, if necessary
+                context.forEach { authorizationContext[$0] = $1 }
+                request.userInfo[Constants.AuthContext.name] = authorizationContext
+                onSuccess(profile)
+            }
         }
     }
 
     /// Validates that the required scopes were supplied in the access token
     fileprivate func validateScope(requiredScope: String, payload: [String: Any]) -> Bool {
         let requiredScopeElements = requiredScope.components(separatedBy: " ")
-        
+
         if requiredScopeElements.count == 0 {
             return true
         }
-        
+
         guard let scope = payload["scope"] as? String else {
             logger.warn("Access token does not contain the required scopes")
             return false
         }
-        
+
         let suppliedScopeElement = Set(scope.components(separatedBy: " "))
         for requiredScopeElement in requiredScopeElements {
             if !suppliedScopeElement.contains(requiredScopeElement) {

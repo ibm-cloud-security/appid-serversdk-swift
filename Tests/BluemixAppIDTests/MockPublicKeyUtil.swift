@@ -17,13 +17,13 @@ import Foundation
 class MockPublicKeyUtil: PublicKeyUtil {
     let publicKeyResponseCode: Int
     let publicKeyResponse: String
-    
+
     init(url: String?, responseCode: Int = 200, responseBody: String = "{\"keys\": [\(TestConstants.PUBLIC_KEY)]}") {
         publicKeyResponseCode = responseCode
         publicKeyResponse = responseBody
         super.init(url: url)
     }
-    
+
     override func sendRequest(url: String, completion: @escaping (Data?, HTTPURLResponse?, Swift.Error?) -> Void) {
         let res = HTTPURLResponse(url: URL(string: "http://test.com")!,
                                   statusCode: publicKeyResponseCode,

@@ -17,15 +17,15 @@ import SwiftJWKtoPEM
 import Foundation
 
 class PublicKeyUtil {
-    
+
     struct PublicKey: Codable {
         let e: String
         let kid: String
         let kty: String
         let n: String
     }
-    
-    enum Status {
+
+    enum Status: String {
         case success
         case failure
         case inProcess
@@ -35,18 +35,21 @@ class PublicKeyUtil {
     var publicKeyUrl: String?
 
     var publicKeys: [String: String]?
-    
+
     var currentStatus: Status = .uninitialized
-    
+
+    private var cond = NSCondition()
     private let semaphore = DispatchSemaphore(value: 1)
-    
+    private let statusQueue = DispatchQueue(label: "status")
+
     private let logger = Logger(forName: Constants.Utils.publicKey)
-    
+
     init(url: String?) {
         if let url = url {
-            publicKeyUrl = url + Constants.Endpoints.publicKeys
+            publicKeyUrl = url
         }
-        retrievePublicKeys()
+
+        updatePublicKeys { _, _ in }
     }
 
     ///
@@ -54,99 +57,82 @@ class PublicKeyUtil {
     ///
     /// - Parameter kid: A String denoting the key id of the public key to retrieve
     ///
-    func getPublicKey(kid: String) -> String? {
-        
+    func getPublicKey(kid: String, completion: @escaping (String?, AppIDError?) -> Void) {
+
         /// Attempt to find public key
         if let publicKeys = publicKeys {
             if let key = publicKeys[kid] {
-                return key
+                return completion(key, nil)
             }
         }
-        
-        /// The requisite key was not found. Try to update key array.
-        if currentStatus != .inProcess {
-            
-            currentStatus = .inProcess
-            
-            DispatchQueue.main.async {
-                self.retrievePublicKeys()
+
+        /// Updates public keys
+        updatePublicKeys { keys, error in
+            if let key = keys?[kid] {
+                return completion(key, nil)
+            } else {
+                return completion(nil, error ?? .publicKeyNotFound)
             }
-        }
-        
-        /// Wait for response
-        semaphore.wait()
-        
-        switch currentStatus {
-        case .success: return publicKeys?[kid]
-        default: return nil
         }
     }
 
-    
     ///
     /// Helper method to retrieve all App ID public keys
     ///
-    func retrievePublicKeys() {
-        
+    func updatePublicKeys(completion: @escaping ([String: String]?, AppIDError?) -> Void) {
+
         guard let publicKeyUrl = self.publicKeyUrl else {
             logger.error("Cannot retrieve public keys. Missing OAuth server url.")
-            return
+            return completion(nil, .missingPublicKey)
         }
-        
+
         sendRequest(url: publicKeyUrl) { data, response, error in
-            
+
             guard error == nil, let response = response, let data = data else {
                 self.logger.debug("An error occured in the public key retrieval response. Error: \(error?.localizedDescription ?? "")")
-                self.currentStatus = .failure
-                return
+                return completion(nil, .missingPublicKey)
             }
-            
-            self.handlePubKeyResponse(status: response.statusCode, data: data)
-            self.semaphore.signal()
+
+            self.handlePubKeyResponse(status: response.statusCode, data: data, completion: completion)
+            self.logger.debug("Retrieved keys: " + self.currentStatus.rawValue)
         }
     }
 
     ///
     /// Public Key Response handler
     ///
-    func handlePubKeyResponse(status: Int?, data: Data) {
-        do {
-            guard status == 200 else {
-                logger.debug("Failed to obtain public key " +
-                            "status code \(String(describing: status))\n" +
-                            "body \(String(data: data, encoding: .utf8) ?? "")")
-                throw AppIDError.publicKeyNotFound
-            }
+    func handlePubKeyResponse(status: Int?, data: Data, completion: @escaping ([String: String]?, AppIDError?) -> Void) {
+        guard status == 200 else {
+            logger.debug("Failed to obtain public key " +
+                "status code \(String(describing: status))\n" +
+                "body \(String(data: data, encoding: .utf8) ?? "")")
+            return completion(nil, AppIDError.missingPublicKey)
+        }
 
-            guard let json = try? JSONDecoder().decode([String: [PublicKey]].self, from: data),
-                  let tokens = json["keys"] else {
+        guard let json = try? JSONDecoder().decode([String: [PublicKey]].self, from: data),
+            let tokens = json["keys"] else {
                 logger.debug("Unable to decode data from public key response")
-                throw AppIDError.publicKeyNotFound
-            }
+                return completion(nil, .missingPublicKey)
+        }
 
-            // convert JWK key to PEM format
-            let publicKeys = tokens.reduce([String: String]()) { (dict, key) in
-                var dict = dict
+        // convert JWK key to PEM format
+        let publicKeys = tokens.reduce([String: String]()) { (dict, key) in
+            var dict = dict
 
-                guard let pemKey = try? RSAKey(n: key.n, e: key.e).getPublicKey(certEncoding.pemPkcs8),
-                      let publicKey = pemKey else {
+            guard let pemKey = try? RSAKey(n: key.n, e: key.e).getPublicKey(certEncoding.pemPkcs8),
+                let publicKey = pemKey else {
                     logger.debug("Failed to convert public key to pemPkcs: \(key)")
                     return dict
-                }
-                dict[key.kid] = publicKey
-                
-                return dict
             }
+            dict[key.kid] = publicKey
 
-            logger.debug("Public keys retrieved and extracted")
-            
-            self.currentStatus = .success
-            
-            self.publicKeys = publicKeys
-
-        } catch {
-            currentStatus = .failure
+            return dict
         }
+
+        logger.debug("Public keys retrieved and extracted")
+
+        self.publicKeys = publicKeys
+        completion(publicKeys, .publicKeyNotFound)
     }
 
     /// Testing:

@@ -15,12 +15,12 @@ import Foundation
 
 /// The OAuth errors used for response construction
 public enum OauthError: String {
-    
+
     /// OAuth defined errors
     case invalidRequest = "invalid_request"
     case invalidToken = "invalid_token"
     case insufficientScope = "insufficient_scope"
-    
+
     /// Internal errors
     case missingAuth = "missing_authorization"
 }

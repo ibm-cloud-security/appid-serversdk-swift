@@ -50,7 +50,7 @@ public class Utils {
         }
         return AuthorizationContext(idTokenPayload: JSON(data: json))
     }
-    
+
     public static func parseToken(from tokenString: String) throws -> JSON {
 
         let tokenComponents = tokenString.components(separatedBy: ".")
@@ -77,16 +77,16 @@ public class Utils {
         json["signature"] = JSON(jwtSignature)
         return json
     }
-    
+
     private static func parseTokenObject(from tokenString: String) throws -> Token {
         return try Token(with: tokenString)
     }
-    
+
     @available(OSX 10.12, *)
     private static func isSignatureValid(_ token: Token, with pk: String) throws -> Bool {
 
         var isValid: Bool = false
-        
+
         guard let tokenPublicKey = try? CryptorRSA.createPublicKey(withPEM: pk) else {
             throw AppIDError.publicKeyNotFound
         }
@@ -125,7 +125,7 @@ public class Utils {
             return false
         }
     }
-    
+
     ///
     /// Decodes and Validates the provided token
     ///
@@ -134,60 +134,70 @@ public class Utils {
     /// - Parameter: options - the configuration options to use for token validation
     /// - Returns: the decoded jwt payload
     ///      throws AppIDError on token validation failure
-    internal static func decodeAndValidate(tokenString: String, publicKeyUtil: PublicKeyUtil, options: AppIDPluginConfig) throws -> [String: Any] {
-        
-        let token = try Utils.parseTokenObject(from: tokenString)
-        
-        guard let payload = token.payloadDict else {
-            throw AppIDError.invalidToken("Could not parse payload")
+    internal static func decodeAndValidate(tokenString: String,
+                                           publicKeyUtil: PublicKeyUtil,
+                                           options: AppIDPluginConfig,
+                                           completion: @escaping ([String: Any]?, AppIDError?) -> Void) {
+
+        guard let token = try? Utils.parseTokenObject(from: tokenString) else {
+            return completion(nil, .invalidTokenFormat)
         }
-        
+
+        guard let payload = token.payloadDict else {
+            return completion(nil, .invalidToken("Could not parse payload"))
+        }
+
         guard token.alg == "RS256" else {
             logger.debug("Unable to validate token: " + AppIDError.invalidAlgorithm.description)
-            throw AppIDError.invalidAlgorithm
+            return completion(nil, .invalidAlgorithm)
         }
-        
+
         guard let kid = token.kid else {
             logger.debug("Unable to validate token: " + AppIDError.missingTokenKid.description)
-            throw AppIDError.missingTokenKid
+            return completion(nil, .missingTokenKid)
         }
-        
-        guard let key = publicKeyUtil.getPublicKey(kid: kid) else {
-            logger.debug("Unable to validate token: " + AppIDError.missingPublicKey.description)
-            throw AppIDError.missingPublicKey
+
+        publicKeyUtil.getPublicKey(kid: kid) { (key, error) in
+
+            if error != nil {
+                return completion(nil, error)
+            }
+
+            guard let key = key else {
+                return completion(nil, .invalidTokenSignature)
+            }
+
+            // Validate Signature
+            guard let isValid = try? isSignatureValid(token, with: key), isValid else {
+                logger.debug("Unable to validate token: " + AppIDError.invalidTokenSignature.description)
+                return completion(nil, .invalidTokenSignature)
+            }
+
+            guard let jwtExpirationTimestamp = token.exp,
+                Date(timeIntervalSince1970: jwtExpirationTimestamp) > Date() else {
+                    logger.debug("Unable to validate token: " + AppIDError.expiredToken.description)
+                    return completion(nil, .expiredToken)
+            }
+
+            guard token.aud == options.clientId else {
+                logger.debug("Unable to validate token: " + AppIDError.invalidAudience.description)
+                return completion(nil, .invalidAudience)
+            }
+
+            guard token.tenant == options.tenantId else {
+                logger.debug("Unable to validate token: " + AppIDError.invalidTenant.description)
+                return completion(nil, .invalidTenant)
+            }
+
+            guard token.iss == options.serverUrlHost else {
+                logger.debug("Unable to validate token: " + AppIDError.invalidIssuer.description)
+                return completion(nil, .invalidIssuer)
+            }
+
+            completion(payload, nil)
         }
-    
-        // Validate Signature
-        guard let isValid = try? isSignatureValid(token, with: key), isValid else {
-            logger.debug("Unable to validate token: " + AppIDError.invalidTokenSignature.description)
-            throw AppIDError.invalidTokenSignature
-        }
-        
-        guard let jwtExpirationTimestamp = token.exp,
-            Date(timeIntervalSince1970: jwtExpirationTimestamp) > Date() else {
-            logger.debug("Unable to validate token: " + AppIDError.expiredToken.description)
-            throw AppIDError.expiredToken
-        }
-        
-        guard token.aud == options.clientId else {
-            logger.debug("Unable to validate token: " + AppIDError.invalidAudience.description)
-            throw AppIDError.invalidAudience
-        }
-        
-        guard token.tenant == options.tenantId else {
-            logger.debug("Unable to validate token: " + AppIDError.invalidTenant.description)
-            throw AppIDError.invalidTenant
-        }
-        
-        guard token.iss == options.serverUrlHost else {
-            logger.debug("Unable to validate token: " + AppIDError.invalidIssuer.description)
-            throw AppIDError.invalidIssuer
-        }
-        
-        return payload
     }
 
-    
     public static func parseJsonStringtoDictionary(_ jsonString: String) throws -> [String:Any] {
         do {
             guard let data = jsonString.data(using: String.Encoding.utf8),

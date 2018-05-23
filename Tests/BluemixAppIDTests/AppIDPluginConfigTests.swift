@@ -16,8 +16,8 @@ import XCTest
 
 @available(OSX 10.12, *)
 class AppIDPluginConfigTests: XCTestCase {
-    
-    static var allTests : [(String, (AppIDPluginConfigTests) -> () throws -> Void)] {
+
+    static var allTests: [(String, (AppIDPluginConfigTests) -> () throws -> Void)] {
         return [
             ("testConfigEmpty", testConfigEmpty),
             ("testRedirectUrl", testRedirectUrl),
@@ -27,13 +27,13 @@ class AppIDPluginConfigTests: XCTestCase {
             ("testCloudVCAP", testCloudVCAP)
         ]
     }
-    
+
     override func setUp() {
         unsetenv("VCAP_SERVICES")
         unsetenv("VCAP_APPLICATION")
         unsetenv("redirectUri")
     }
-    
+
     func testCloudVCAP() {
         setenv("VCAP_SERVICES", "{\n  \"AdvancedMobileAccess\": [\n    {\n      \"credentials\": {\n        \"clientId\": \"vcapclient\",\n        \"secret\": \"vcapsecret\",\n        \"tenantId\": \"vcaptenant\",\n        \"oauthServerUrl\": \"vcapserver\"\n      }\n    }\n  ]\n}", 1)
         setenv("VCAP_APPLICATION", "{\n  \"application_uris\": [\n  \"1\"]\n}", 1)
@@ -43,9 +43,9 @@ class AppIDPluginConfigTests: XCTestCase {
         XCTAssertEqual(config.tenantId, "vcaptenant")
         XCTAssertEqual(config.secret, "vcapsecret")
         XCTAssertEqual(config.redirectUri, "https://1/ibm/bluemix/appid/callback")
-        
+
     }
-    
+
     func testRedirectUrl() {
         setenv("redirectUri", "redirect", 1)
         setenv("VCAP_SERVICES", "{\n  \"AdvancedMobileAccess\": [\n    {\n      \"credentials\": {\n        \"clientId\": \"vcapclient\",\n        \"secret\": \"vcapsecret\",\n        \"tenantId\": \"vcaptenant\",\n        \"oauthServerUrl\": \"vcapserver\"\n      }\n    }\n  ]\n}", 1)
@@ -57,7 +57,7 @@ class AppIDPluginConfigTests: XCTestCase {
         XCTAssertEqual(config.secret, "vcapsecret")
         XCTAssertEqual(config.redirectUri, "redirect")
     }
-    
+
     func testConfigEmpty() {
         let config = AppIDPluginConfig(options: nil)
         XCTAssertEqual(config.serviceConfig.count, 0)
@@ -81,7 +81,7 @@ class AppIDPluginConfigTests: XCTestCase {
     func testConfigVCAP() {
         setenv("VCAP_SERVICES", "{\n  \"AppID\": [\n    {\n      \"credentials\": {\n      \"oauthServerUrl\": \"https://testvcap/oauth/v3/test\"},    }\n  ]\n}", 1)
         let config = AppIDPluginConfig(options: nil)
-        
+
         XCTAssertEqual(config.serverUrl, "https://testvcap/oauth/v3/test")
     }
 

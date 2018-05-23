@@ -14,7 +14,7 @@
 import Foundation
 
 internal enum AppIDError: Error {
-    
+
     // Token Fields
     case invalidAlgorithm
     case missingTokenKid
@@ -23,7 +23,7 @@ internal enum AppIDError: Error {
     case invalidAudience
     case expiredToken
     case missingPublicKey
-    
+
     // General
     case authorizationHeaderNotFound
     case invalidAuthHeaderFormat
@@ -32,9 +32,9 @@ internal enum AppIDError: Error {
     case publicKeyNotFound
     case jsonParsingError
     case invalidToken(String)
-    
+
     var description: String {
-        
+
         switch self {
         case .missingTokenKid: return "Provided token does not contain the required kid field"
         case .invalidAlgorithm: return "Invalid Algorithm Field. Expected RS256."
@@ -50,7 +50,7 @@ internal enum AppIDError: Error {
         case .publicKeyNotFound: return "Public key not found"
         case .jsonParsingError: return "Unable to parse JSON"
         case .invalidToken(let reason): return "Invalid Token: " + reason
-            
+
         }
     }
 }

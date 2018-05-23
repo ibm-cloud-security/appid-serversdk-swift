@@ -182,13 +182,13 @@ extension WebAppKituraCredentialsPlugin {
                               ": \(errorMessage)\nstatus code : \(code)\ntoken body : \(String(describing: tokenData))")
             return onFailure(nil, nil)
         }
-        
+
         guard let tokenData = tokenData else {
             self.logger.debug("WebAppKituraCredentialsPlugin :: Failed to obtain tokens." +
                               " No token error message. No token data. status code : \(code)")
             return onFailure(nil, nil)
         }
-        
+
         guard httpCode == 200 else {
             self.logger.debug("WebAppKituraCredentialsPlugin :: Failed to obtain tokens." +
                               " Status code wasn't 200. No token error message. status code :" +
@@ -199,29 +199,34 @@ extension WebAppKituraCredentialsPlugin {
         var body = JSON(data: tokenData)
 
         /// Parse access_token
-        guard let accessTokenString = body["access_token"].string,
-              let accessTokenPayload = try? Utils.decodeAndValidate(tokenString: accessTokenString,
-                                                            publicKeyUtil: publicKeyUtil,
-                                                            options: config) else {
+        guard let accessTokenString = body["access_token"].string else {
             return onFailure(nil, nil)
         }
 
+        Utils.decodeAndValidate(tokenString: accessTokenString, publicKeyUtil: publicKeyUtil, options: config) {
+            payload, error in
 
-        var appIdAuthorizationContext: [String:Any] = [
-            "accessToken": accessTokenString,
-            "accessTokenPayload": accessTokenPayload as Any
-        ]
+            guard let payload = payload, error == nil else {
+                return onFailure(nil, nil)
+            }
 
-        /// Parse Identity Token
-        let (identityContext, profile) = parseIdentityToken(idTokenString: body["id_token"].string)
+            var appIdAuthorizationContext: [String:Any] = [
+                "accessToken": accessTokenString,
+                "accessTokenPayload": payload as Any
+            ]
 
-        /// Merge authorization context and identity context, if necessary
-        identityContext.forEach { appIdAuthorizationContext[$0] = $1 }
+            /// Parse / Validate Identity Token, if necessary
+            self.parseIdentityToken(idTokenString: body["id_token"].string) { context, profile in
 
-        originalRequest.session?[Constants.AuthContext.name] = appIdAuthorizationContext
-        onSuccess(profile)
+                /// Merge authorization context and identity context, if necessary
+                context.forEach { appIdAuthorizationContext[$0] = $1 }
 
-        self.logger.debug("retrieveTokens :: tokens retrieved")
+                originalRequest.session?[Constants.AuthContext.name] = appIdAuthorizationContext
+                onSuccess(profile)
+
+                self.logger.debug("retrieveTokens :: tokens retrieved")
+            }
+        }
     }
 
     fileprivate func retrieveTokens(options: [String: Any],
@@ -264,7 +269,7 @@ extension WebAppKituraCredentialsPlugin {
                                      onSuccess: onSuccess)
         }
     }
-    
+
     fileprivate func generateAuthorizationUrl(options: [String:Any]) -> String {
 
         var scopeAddition: String?

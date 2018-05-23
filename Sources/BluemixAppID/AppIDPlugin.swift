@@ -17,7 +17,7 @@ import KituraNet
 
 @available(OSX 10.12, *)
 public class AppIDPlugin {
-    
+
     let logger: Logger
 
     var publicKeyUtil: PublicKeyUtil
@@ -35,7 +35,7 @@ public class AppIDPlugin {
     /// - Parameter idTokenString: The id token to parse and validate
     /// - Returns: The id token identityContext dictionary and the user's profile
     ///
-    func parseIdentityToken(idTokenString: String?) -> ([String: Any], UserProfile) {
+    func parseIdentityToken(idTokenString: String?, completion: @escaping ([String: Any], UserProfile) -> Void) {
 
         var profile = UserProfile(id: "", displayName: "", provider: "")
 
@@ -43,31 +43,37 @@ public class AppIDPlugin {
 
         guard let idTokenString = idTokenString else {
             logger.debug("Identity token does not exist")
-            return (identityContext, profile)
+            return completion(identityContext, profile)
         }
 
-        guard let payload = try? Utils.decodeAndValidate(tokenString: idTokenString, publicKeyUtil: publicKeyUtil, options: config),
-            let authContext = Utils.getAuthorizedIdentities(from: payload) else {
-                logger.debug("Identity token is malformed")
-                return (identityContext, profile)
+        Utils.decodeAndValidate(tokenString: idTokenString, publicKeyUtil: publicKeyUtil, options: config) { payload, error in
+
+            guard let payload = payload, error == nil else {
+                self.logger.debug("Identity token is malformed")
+                return completion(identityContext, profile)
+            }
+
+            guard let authContext = Utils.getAuthorizedIdentities(from: payload) else {
+                self.logger.debug("Identity token is malformed")
+                return completion(identityContext, profile)
+            }
+
+            self.logger.debug("Identity token successfully parsed")
+
+            identityContext["identityToken"] = idTokenString
+            identityContext["identityTokenPayload"] = payload as Any
+
+            let provider = authContext.userIdentity.authBy.count > 0 ?
+                authContext.userIdentity.authBy[0]["provider"].stringValue : ""
+
+            profile = UserProfile(id: authContext.userIdentity.id,
+                                  displayName: authContext.userIdentity.displayName,
+                                  provider: provider)
+
+            return completion(identityContext, profile)
         }
-
-        logger.debug("Identity token successfully parsed")
-
-        identityContext["identityToken"] = idTokenString
-        identityContext["identityTokenPayload"] = payload as Any
-
-        let provider = authContext.userIdentity.authBy.count > 0 ?
-            authContext.userIdentity.authBy[0]["provider"].stringValue : ""
-
-        profile = UserProfile(id: authContext.userIdentity.id,
-                              displayName: authContext.userIdentity.displayName,
-                              provider: provider)
-
-        return (identityContext, profile)
-
     }
-    
+
     /// Parses / validates the given identity token
     ///
     /// - Parameter scope: The expected scopes of the request
@@ -80,16 +86,16 @@ public class AppIDPlugin {
                                   error: OauthError,
                                   description: String? = nil,
                                   completion: @escaping (HTTPStatusCode?, [String: String]?) -> Void) {
-        
+
         logger.debug("Sending unauthorized response")
 
         var msg = Constants.bearer + " scope=\"" + scope + "\", error=\"" + error.rawValue + "\""
         var status: HTTPStatusCode!
-        
+
         if let description = description {
             msg +=  ", error_description=\"" + description + "\""
         }
-        
+
         switch error {
         case .invalidRequest     : status = .badRequest
         case .invalidToken       : status = .unauthorized
