@@ -91,7 +91,7 @@ public class PublicKeyUtil {
     /// Public Key Response handler
     ///
     func handlePubKeyResponse(status: Int?, data: Data, completion: @escaping ([String: String]?, AppIDError?) -> Void) {
-        
+
         guard status == 200 else {
             logger.debug("Failed to obtain public key " +
                 "status code \(String(describing: status))\n" +
@@ -129,4 +129,5 @@ public class PublicKeyUtil {
     func sendRequest(url: String, completion: @escaping (Data?, HTTPURLResponse?, Error?) -> Void) {
         RestRequest(url: url).response(completionHandler: completion)
     }
+
 }

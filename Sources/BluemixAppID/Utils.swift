@@ -186,12 +186,12 @@ public class Utils {
 
             /// The WebAppStrategy requires full token validation
             if options.shouldValidateTokenAudAndSub {
-                
+
                 guard token.aud == options.clientId else {
                     logger.debug("Unable to validate token: " + AppIDError.invalidAudience.description)
                     return completion(nil, .invalidAudience)
                 }
-                
+
                 guard token.iss == options.tokenIssuer else {
                     logger.debug("Unable to validate token: " + AppIDError.invalidIssuer.description)
                     return completion(nil, .invalidIssuer)

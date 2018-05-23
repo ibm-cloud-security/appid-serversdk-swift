@@ -107,4 +107,5 @@ public class AppIDPlugin {
 
         completion(status, ["Www-Authenticate": msg])
     }
+
 }

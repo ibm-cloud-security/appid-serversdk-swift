@@ -31,4 +31,5 @@ class MockPublicKeyUtil: PublicKeyUtil {
                                   headerFields: nil)
         completion(publicKeyResponse.data(using: .utf8)!, res, nil)
     }
+
 }

@@ -79,11 +79,11 @@ class AppIDPluginConfig: TokenValidator {
     }
 
     var shouldValidateTokenAudAndSub: Bool = true
-    
+
     init(options: [String: Any]?, validateEntireToken: Bool = true, required: KeyPath<AppIDPluginConfig, String?>...) {
 
         self.shouldValidateTokenAudAndSub = validateEntireToken
-        
+
         logger.debug("Intializing")
 
         let options = options ?? [:]
@@ -137,4 +137,5 @@ class AppIDPluginConfig: TokenValidator {
         logger.info("ServerUrl: " + (serverUrl ?? "unset"))
         logger.info("ProfilesUrl: " + (userProfileServerUrl ?? "unset"))
     }
+
 }
