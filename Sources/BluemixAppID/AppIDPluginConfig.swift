@@ -15,15 +15,13 @@ import Foundation
 import SimpleLogger
 import SwiftyJSON
 
-internal class AppIDPluginConfig {
+/// App ID Configuration Plugin - VCAP / Options parser
+///
+class AppIDPluginConfig {
 
-    private let logger = Logger(forName: Constants.APIPlugin.name)
+    private let logger = Logger(forName: Constants.Utils.configuration)
 
     var serviceConfig: [String: Any] = [:]
-
-    var isTesting: Bool {
-        return serverUrl == "testServerUrl"
-    }
 
     var tenantId: String? {
         return serviceConfig[Constants.Credentials.tenantId] as? String
@@ -49,8 +47,31 @@ internal class AppIDPluginConfig {
         return serviceConfig[Constants.Credentials.userProfileServerUrl] as? String
     }
 
-    public init(options: [String: Any]?) {
+    var serverUrlHost: String? {
+        guard let sUrl = serverUrl, let url = URL(string: sUrl) else {
+            return nil
+        }
+        return url.host
+    }
+    
+    var publicKeyServerURL: String? {
 
+        // public key url = OAUTH_SERVER_URL/publickey
+        // e.g. https://appid-oauth.ng.bluemix.net/oauth/v3/a8589e38-081e-4128-a777-b1cd76ee1875/publickey
+        if let serverUrl = serverUrl {
+            if serverUrl.last == "/" {
+                var endpoint = Constants.Endpoints.publicKeys
+                endpoint.removeFirst()
+                return serverUrl + endpoint
+            } else {
+                return serverUrl + Constants.Endpoints.publicKeys
+            }
+        }
+        return nil
+    }
+
+    init(options: [String: Any]?, required: KeyPath<AppIDPluginConfig, String?>...) {
+        
         logger.debug("Intializing")
 
         let options = options ?? [:]
@@ -89,5 +110,19 @@ internal class AppIDPluginConfig {
                 serviceConfig[Constants.Credentials.redirectUri] = "https://\(uri.stringValue)/ibm/bluemix/appid/callback"
             }
         }
+        
+        /// Assert configuration has required fields
+        for path in required {
+            if self[keyPath: path] == nil {
+                logger.error("Failed to initialize App ID Plugin Configuration." +
+                    " All requests to protected endpoints will be rejected." +
+                    " Ensure your app is either bound to an App ID service instance" +
+                    " or pass required parameters in the strategy constructor")
+                break
+            }
+        }
+        
+        logger.info("ServerUrl: " + (serverUrl ?? "") +
+            "ProfilesUrl: " + (userProfileServerUrl ?? ""))
     }
 }

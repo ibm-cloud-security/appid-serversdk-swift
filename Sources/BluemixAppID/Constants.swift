@@ -23,6 +23,12 @@ struct Constants {
         static let name = "WebAppKituraCredentialsPlugin"
     }
 
+    struct Utils {
+        static let publicKey = "PublicKeyUtil"
+        static let configuration = "AppIDPluginConfig"
+        static let appId = "BluemixAppIDUtils"
+    }
+
     struct VCAP {
         static let services = "VCAP_SERVICES"
         static let application = "VCAP_APPLICATION"

@@ -59,10 +59,10 @@ class UtilsTest: XCTestCase {
     
     func testAuthorizationContext() {
         let context = Utils.getAuthorizedIdentities(from: try! Utils.parseToken(from: TestConstants.ID_TOKEN))
-        XCTAssertEqual(context?.audience, "aud1")
+        XCTAssertEqual(context?.audience, TestConstants.clientId)
         XCTAssertEqual(context?.expirationDate, 2487862253)
         XCTAssertEqual(context?.issuedAt, 1487858653)
-        XCTAssertEqual(context?.issuer, "appid")
+        XCTAssertEqual(context?.issuer, "mobileclientaccess.stage1.ng.bluemix.net")
         XCTAssertEqual(context?.subject, "subject")
         let id = context?.userIdentity
         XCTAssertEqual(id?.authBy[0].dictionary?["provider"]?.string, "someprov")

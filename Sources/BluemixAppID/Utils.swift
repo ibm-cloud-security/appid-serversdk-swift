@@ -36,38 +36,40 @@ extension String {
 @available(OSX 10.12, *)
 public class Utils {
 
-    private static let logger = Logger(forName: "BluemixAppIDUtils")
+    private static let logger = Logger(forName: Constants.Utils.appId)
 
     public static func getAuthorizedIdentities(from idToken: JSON) -> AuthorizationContext? {
         logger.debug("APIStrategy getAuthorizedIdentities")
-        return  AuthorizationContext(idTokenPayload: idToken["payload"])
+        return AuthorizationContext(idTokenPayload: idToken["payload"])
     }
 
-    @available(OSX 10.12, *)
-    public static func parseToken(from tokenString: String, using publicKeys: [String: String]? = nil) throws -> JSON {
+    public static func getAuthorizedIdentities(from idToken: [String: Any]) -> AuthorizationContext? {
+        logger.debug("APIStrategy getAuthorizedIdentities")
+        guard let json = try? JSONSerialization.data(withJSONObject: idToken, options: .prettyPrinted) else {
+            return nil
+        }
+        return AuthorizationContext(idTokenPayload: JSON(data: json))
+    }
+    
+    public static func parseToken(from tokenString: String) throws -> JSON {
 
         let tokenComponents = tokenString.components(separatedBy: ".")
 
         guard tokenComponents.count == 3 else {
             logger.error("Invalid access token format")
-            throw AppIDErrorInternal.invalidAccessTokenFormat
+            throw AppIDError.invalidTokenFormat
         }
 
         guard let jwtHeaderData = tokenComponents[0].base64decodedData(),
               let jwtPayloadData = tokenComponents[1].base64decodedData()
         else {
             logger.error("Invalid access token format")
-            throw AppIDErrorInternal.invalidAccessTokenFormat
+            throw AppIDError.invalidTokenFormat
         }
 
         let jwtHeader = JSON(data: jwtHeaderData)
         let jwtPayload = JSON(data: jwtPayloadData)
         let jwtSignature = tokenComponents[2]
-
-        // if public keys are passed, then verify signature
-        if let publicKeys = publicKeys {
-            try verifySignature(publicKeys: publicKeys, tokenComponents: tokenComponents, kid: jwtHeader["kid"].string)
-        }
 
         var json = JSON([:])
         json["header"] = jwtHeader
@@ -75,43 +77,33 @@ public class Utils {
         json["signature"] = JSON(jwtSignature)
         return json
     }
-
-    private static func verifySignature(publicKeys: [String: String], tokenComponents: [String], kid: String?) throws {
-        for (pKid, key) in publicKeys where pKid == kid {
-            if try isSignatureValid(tokenComponents, with: key) {
-                return
-            } else {
-                logger.error("Invalid access token signature")
-                throw AppIDErrorInternal.invalidAccessTokenSignature
-            }
-        }
-        logger.error("Could Not Validate Access Token Signature")
-        throw AppIDErrorInternal.couldNotValidateAccessTokenSignature
+    
+    private static func parseTokenObject(from tokenString: String) throws -> Token {
+        return try Token(with: tokenString)
     }
-
+    
     @available(OSX 10.12, *)
-    private static func isSignatureValid(_ tokenParts: [String], with pk: String) throws -> Bool {
+    private static func isSignatureValid(_ token: Token, with pk: String) throws -> Bool {
 
         var isValid: Bool = false
-
-        let tokenPublicKey = try? CryptorRSA.createPublicKey(withPEM: pk)
-        guard tokenPublicKey != nil else {
-            throw AppIDErrorInternal.publicKeyNotFound
+        
+        guard let tokenPublicKey = try? CryptorRSA.createPublicKey(withPEM: pk) else {
+            throw AppIDError.publicKeyNotFound
         }
 
         // Signed message is the first two components of the token
-        let messageString = String(tokenParts[0] + "." + tokenParts[1])
+        let messageString = token.rawHeader + "." + token.rawPayload
         let messageData = messageString.data(using: String.Encoding(rawValue: String.Encoding.utf8.rawValue))!
         let message = CryptorRSA.createPlaintext(with: messageData)
 
         // signature is 3rd component
         // add padding, URL decode, base64 decode
-        guard let sigData = String(tokenParts[2]).base64decodedData() else {
-            throw AppIDErrorInternal.invalidAccessTokenSignature
+        guard let sigData = token.signature.base64decodedData() else {
+            throw AppIDError.invalidTokenSignature
         }
         let signature = CryptorRSA.createSigned(with: sigData)
 
-        isValid = try message.verify(with: tokenPublicKey!, signature: signature, algorithm: .sha256)
+        isValid = try message.verify(with: tokenPublicKey, signature: signature, algorithm: .sha256)
         if !isValid {
 	        logger.error("invalid signature on token")
         }
@@ -133,21 +125,76 @@ public class Utils {
             return false
         }
     }
+    
+    ///
+    /// Decodes and Validates the provided token
+    ///
+    /// - Parameter: tokenString - the jwt string to decode and validate validate
+    /// - Parameter: publicKeyUtil - the public key utility used to retrieve keys
+    /// - Parameter: options - the configuration options to use for token validation
+    /// - Returns: the decoded jwt payload
+    ///      throws AppIDError on token validation failure
+    internal static func decodeAndValidate(tokenString: String, publicKeyUtil: PublicKeyUtil, options: AppIDPluginConfig) throws -> [String: Any] {
+        
+        let token = try Utils.parseTokenObject(from: tokenString)
+        
+        guard let payload = token.payloadDict else {
+            throw AppIDError.invalidToken("Could not parse payload")
+        }
+        
+        guard token.alg == "RS256" else {
+            logger.debug("Unable to validate token: " + AppIDError.invalidAlgorithm.description)
+            throw AppIDError.invalidAlgorithm
+        }
+        
+        guard let kid = token.kid else {
+            logger.debug("Unable to validate token: " + AppIDError.missingTokenKid.description)
+            throw AppIDError.missingTokenKid
+        }
+        
+        guard let key = publicKeyUtil.getPublicKey(kid: kid) else {
+            logger.debug("Unable to validate token: " + AppIDError.missingPublicKey.description)
+            throw AppIDError.missingPublicKey
+        }
+    
+        // Validate Signature
+        guard let isValid = try? isSignatureValid(token, with: key), isValid else {
+            logger.debug("Unable to validate token: " + AppIDError.invalidTokenSignature.description)
+            throw AppIDError.invalidTokenSignature
+        }
+        
+        guard let jwtExpirationTimestamp = token.exp,
+            Date(timeIntervalSince1970: jwtExpirationTimestamp) > Date() else {
+            logger.debug("Unable to validate token: " + AppIDError.expiredToken.description)
+            throw AppIDError.expiredToken
+        }
+        
+        guard token.aud == options.clientId else {
+            logger.debug("Unable to validate token: " + AppIDError.invalidAudience.description)
+            throw AppIDError.invalidAudience
+        }
+        
+        guard token.tenant == options.tenantId else {
+            logger.debug("Unable to validate token: " + AppIDError.invalidTenant.description)
+            throw AppIDError.invalidTenant
+        }
+        
+        guard token.iss == options.serverUrlHost else {
+            logger.debug("Unable to validate token: " + AppIDError.invalidIssuer.description)
+            throw AppIDError.invalidIssuer
+        }
+        
+        return payload
+    }
 
+    
     public static func parseJsonStringtoDictionary(_ jsonString: String) throws -> [String:Any] {
         do {
             guard let data = jsonString.data(using: String.Encoding.utf8),
                 let responseJson =  try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
-                throw AppIDError.jsonUtilsError
+                throw AppIDError.jsonParsingError
             }
             return responseJson as [String:Any]
         }
     }
-}
-
-struct PublicKey: Codable {
-    let e: String
-    let kid: String
-    let kty: String
-    let n: String
 }

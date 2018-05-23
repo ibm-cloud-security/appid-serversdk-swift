@@ -6,5 +6,6 @@ XCTMain([
      testCase(UserProfileManagerTests.allTests),
      testCase(UtilsTest.allTests),
      testCase(WebAppPluginTest.allTests),
-     testCase(ApiPluginTest.allTests)
+     testCase(ApiPluginTests.allTests),
+     testCase(AppIDPluginConfigTests.allTests)
 ])
