@@ -210,19 +210,24 @@ extension WebAppKituraCredentialsPlugin {
                 return onFailure(nil, nil)
             }
 
-            var appIdAuthorizationContext: [String:Any] = [
+            var authorizationContext: [String:Any] = [
                 "accessToken": accessTokenString,
                 "accessTokenPayload": payload as Any
             ]
 
             /// Parse / Validate Identity Token, if necessary
-            self.parseIdentityToken(idTokenString: body["id_token"].string) { context, profile in
+            self.parseIdentityToken(idTokenString: body["id_token"].string) { context, error in
+
+                /// On error (Web strategy only), we will fail
+                guard let context = context, error == nil else {
+                    return onFailure(nil, nil)
+                }
 
                 /// Merge authorization context and identity context, if necessary
-                context.forEach { appIdAuthorizationContext[$0] = $1 }
+                context.0.forEach { authorizationContext[$0] = $1 }
 
-                originalRequest.session?[Constants.AuthContext.name] = appIdAuthorizationContext
-                onSuccess(profile)
+                originalRequest.session?[Constants.AuthContext.name] = authorizationContext
+                onSuccess(context.1)
 
                 self.logger.debug("retrieveTokens :: tokens retrieved")
             }

@@ -44,7 +44,8 @@ class WebAppPluginTest: XCTestCase {
             ("testHandleTokenResponseAccessTokenWrongTenant", testHandleTokenResponseAccessTokenWrongTenant),
             ("testHandleTokenResponseAccessTokenWrongAudience", testHandleTokenResponseAccessTokenWrongAudience),
             ("testHandleTokenResponseAccessTokenWrongIssuer", testHandleTokenResponseAccessTokenWrongIssuer),
-            ("testHandleTokenResponseMissingIdentityToken", testHandleTokenResponseMissingIdentityToken)
+            ("testHandleTokenResponseMissingIdentityToken", testHandleTokenResponseMissingIdentityToken),
+            ("testHandleTokenResponseInvalidIdentityToken", testHandleTokenResponseInvalidIdentityToken)
         ]
     }
 
@@ -392,9 +393,24 @@ class WebAppPluginTest: XCTestCase {
         builder
             .setWebMock(with: TestConstants.options)
             .setSession()
-            .status(code: 200)
+            .status(code: 401)
             .response(string: "{\n\"access_token\" : \"\(TestConstants.ACCESS_TOKEN)\"\n}\n\n")
-            .setSuccess(id: "", name: "", provider: "")
+            .setFailure()
+            .execute(expectation(description: builder.name))
+            .expect(accessToken: TestConstants.ACCESS_TOKEN)
+
+        awaitExpectations()
+    }
+
+    func testHandleTokenResponseInvalidIdentityToken() {
+        let builder = TokenResponseBuilder(name: "testHandleTokenResponseInvalidIdentityToken")
+
+        builder
+            .setWebMock(with: TestConstants.options)
+            .setSession()
+            .status(code: 401)
+            .response(string: "{\n\"access_token\" : \"\(TestConstants.ACCESS_TOKEN)\",\n\"id_token\" : \"invalid token\"\n}\n\n")
+            .setFailure()
             .execute(expectation(description: builder.name))
             .expect(accessToken: TestConstants.ACCESS_TOKEN)
 

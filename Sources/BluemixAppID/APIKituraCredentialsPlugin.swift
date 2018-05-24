@@ -120,11 +120,19 @@ extension APIKituraCredentialsPlugin {
             ]
 
             /// Parse / Validate Identity Token, if necessary
-            self.parseIdentityToken(idTokenString: idToken) { context, profile in
+            self.parseIdentityToken(idTokenString: idToken) { (context, error) in
+
+                /// On error (API strategy only), we will not return identity token information, but only a default profile
+                guard let context = context, error == nil else {
+                    request.userInfo[Constants.AuthContext.name] = authorizationContext
+                    onSuccess(UserProfile(id: "", displayName: "", provider: ""))
+                    return
+                }
+
                 /// Merge authorization context and identity context, if necessary
-                context.forEach { authorizationContext[$0] = $1 }
+                context.0.forEach { authorizationContext[$0] = $1 }
                 request.userInfo[Constants.AuthContext.name] = authorizationContext
-                onSuccess(profile)
+                onSuccess(context.1)
             }
         }
     }

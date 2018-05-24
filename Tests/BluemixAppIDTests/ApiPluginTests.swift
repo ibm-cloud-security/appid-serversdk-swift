@@ -170,7 +170,6 @@ class ApiPluginTests: XCTestCase {
     func testAuthFlowAccessTokenHappyFlowIgnoreIss() {
         let api = MockAPIKituraCredentialsPlugin(options: TestConstants.options)
         parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN_WRONG_ISS]
-        let error = generateExpectedError(error: .invalidToken, description: AppIDError.invalidIssuer.description)
         api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "", name: "", provider: "", expectation: expectation(description: "testAuthFlowHappyFlowWithIDToken")), onFailure: setOnFailure(), onPass: onPass(), inProgress:inProgress)
         XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessToken"] as? String, TestConstants.ACCESS_TOKEN_WRONG_ISS)
         XCTAssertEqual(JSON(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessTokenPayload"] as Any), try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN_WRONG_ISS)["payload"])
@@ -181,7 +180,6 @@ class ApiPluginTests: XCTestCase {
     func testAuthFlowAccessTokenHappyFlowIgnoreAud() {
         let api = MockAPIKituraCredentialsPlugin(options: TestConstants.options)
         parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN_WRONG_AUD]
-        let error = generateExpectedError(error: .invalidToken, description: AppIDError.invalidAudience.description)
         api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "", name: "", provider: "", expectation: expectation(description: "testAuthFlowHappyFlowWithIDToken")), onFailure: setOnFailure(), onPass: onPass(), inProgress:inProgress)
         XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessToken"] as? String, TestConstants.ACCESS_TOKEN_WRONG_AUD)
         XCTAssertEqual(JSON(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessTokenPayload"] as Any), try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN_WRONG_AUD)["payload"])

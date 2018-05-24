@@ -33,44 +33,42 @@ public class AppIDPlugin {
     /// Parses / validates the given identity token
     ///
     /// - Parameter idTokenString: The id token to parse and validate
-    /// - Returns: The id token identityContext dictionary and the user's profile
+    /// - Parameter completion: Handler returning the user context information or an error
     ///
-    func parseIdentityToken(idTokenString: String?, completion: @escaping ([String: Any], UserProfile) -> Void) {
-
-        var profile = UserProfile(id: "", displayName: "", provider: "")
-
-        var identityContext: [String: Any] = [:]
+    func parseIdentityToken(idTokenString: String?, completion: @escaping (([String: Any], UserProfile)?, AppIDError?) -> Void) {
 
         guard let idTokenString = idTokenString else {
             logger.debug("Identity token does not exist")
-            return completion(identityContext, profile)
+            return completion(nil, AppIDError.invalidToken(""))
         }
 
         Utils.decodeAndValidate(tokenString: idTokenString, publicKeyUtil: publicKeyUtil, options: config) { payload, error in
 
             guard let payload = payload, error == nil else {
                 self.logger.debug("Identity token is malformed")
-                return completion(identityContext, profile)
+                return completion(nil, AppIDError.invalidToken(""))
             }
 
             guard let authContext = Utils.getAuthorizedIdentities(from: payload) else {
                 self.logger.debug("Identity token is malformed")
-                return completion(identityContext, profile)
+                return completion(nil, AppIDError.invalidToken(""))
             }
 
             self.logger.debug("Identity token successfully parsed")
 
-            identityContext["identityToken"] = idTokenString
-            identityContext["identityTokenPayload"] = payload as Any
+            let identityContext = [
+                "identityToken": idTokenString,
+                "identityTokenPayload": payload as Any
+            ]
 
             let provider = authContext.userIdentity.authBy.count > 0 ?
                 authContext.userIdentity.authBy[0]["provider"].stringValue : ""
 
-            profile = UserProfile(id: authContext.userIdentity.id,
-                                  displayName: authContext.userIdentity.displayName,
-                                  provider: provider)
+            let profile = UserProfile(id: authContext.userIdentity.id,
+                                      displayName: authContext.userIdentity.displayName,
+                                      provider: provider)
 
-            return completion(identityContext, profile)
+            return completion((identityContext, profile), nil)
         }
     }
 
