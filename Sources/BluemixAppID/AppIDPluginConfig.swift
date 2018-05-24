@@ -84,7 +84,7 @@ class AppIDPluginConfig: TokenValidator {
 
         self.shouldValidateTokenAudAndSub = validateEntireToken
 
-        logger.debug("Intializing")
+        logger.debug("Intializing configuration")
 
         let options = options ?? [:]
         let vcapString = ProcessInfo.processInfo.environment[Constants.VCAP.services] ?? ""
@@ -126,10 +126,9 @@ class AppIDPluginConfig: TokenValidator {
         /// Assert configuration has required fields
         for path in required {
             if self[keyPath: path] == nil {
-                logger.error("Failed to initialize App ID Plugin Configuration." +
-                    " All requests to protected endpoints will be rejected." +
-                    " Ensure your app is either bound to an App ID service instance" +
-                    " or pass required parameters in the strategy constructor")
+                logger.error("Failed to fully initialize configuration." +
+                    " To ensure complete functionality, ensure your app is either bound to an" +
+                    " App ID service instance or pass the required parameters to the constructor")
                 break
             }
         }
