@@ -139,61 +139,59 @@ public class Utils {
                                            options: TokenValidator,
                                            completion: @escaping ([String: Any]?, AppIDError?) -> Void) {
 
+        func logAndReturn(_ error: AppIDError, completion: @escaping ([String: Any]?, AppIDError?) -> Void) {
+            logger.debug("Unable to validate token: " + error.description)
+            completion(nil, error)
+        }
+
         guard let token = try? Utils.parseTokenObject(from: tokenString) else {
-            return completion(nil, .invalidTokenFormat)
+            return logAndReturn(.invalidTokenFormat, completion: completion)
         }
 
         guard let payload = token.payloadDict else {
-            return completion(nil, .invalidToken("Could not parse payload"))
+            return logAndReturn(.invalidToken("Could not parse payload"), completion: completion)
         }
 
         guard token.alg == "RS256" else {
-            logger.debug("Unable to validate token: " + AppIDError.invalidAlgorithm.description)
-            return completion(nil, .invalidAlgorithm)
+            return logAndReturn(.invalidAlgorithm, completion: completion)
         }
 
         guard let kid = token.kid else {
-            logger.debug("Unable to validate token: " + AppIDError.missingTokenKid.description)
-            return completion(nil, .missingTokenKid)
+            return logAndReturn(.missingTokenKid, completion: completion)
         }
 
         publicKeyUtil.getPublicKey(kid: kid) { (key, error) in
 
-            if error != nil {
-                return completion(nil, error)
+            if let error = error {
+                return logAndReturn(error, completion: completion)
             }
 
             guard let key = key else {
-                return completion(nil, .invalidTokenSignature)
+                return logAndReturn(.missingPublicKey, completion: completion)
             }
 
             // Validate Signature
             guard let isValid = try? isSignatureValid(token, with: key), isValid else {
-                logger.debug("Unable to validate token: " + AppIDError.invalidTokenSignature.description)
-                return completion(nil, .invalidTokenSignature)
+                return logAndReturn(.missingTokenKid, completion: completion)
             }
 
             guard token.isExpired == false else {
-                    logger.debug("Unable to validate token: " + AppIDError.expiredToken.description)
-                    return completion(nil, .expiredToken)
+                return logAndReturn(.expiredToken, completion: completion)
             }
 
             guard token.tenant == options.tenantId else {
-                logger.debug("Unable to validate token: " + AppIDError.invalidTenant.description)
-                return completion(nil, .invalidTenant)
+                return logAndReturn(.invalidTenant, completion: completion)
             }
 
             /// The WebAppStrategy requires full token validation
             if options.shouldValidateAudAndIssuer {
 
                 guard token.aud == options.clientId else {
-                    logger.debug("Unable to validate token: " + AppIDError.invalidAudience.description)
-                    return completion(nil, .invalidAudience)
+                    return logAndReturn(.invalidAudience, completion: completion)
                 }
 
                 guard token.iss == options.tokenIssuer else {
-                    logger.debug("Unable to validate token: " + AppIDError.invalidIssuer.description)
-                    return completion(nil, .invalidIssuer)
+                    return logAndReturn(.invalidIssuer, completion: completion)
                 }
             }
 

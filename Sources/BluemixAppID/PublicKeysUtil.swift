@@ -24,7 +24,7 @@ public class PublicKeyUtil {
         let kty: String
         let n: String
     }
-    
+
     private var isWaiting = false
 
     public var publicKeyUrl: String?
@@ -47,7 +47,7 @@ public class PublicKeyUtil {
         /// Initiate first public keys request
         stateQueue.async {
             self.suspendAndWait() // Block other requests from initiating a public key request
-            self.updatePublicKeys { _,_ in
+            self.updatePublicKeys { _, _ in
                 self.resume() // Resume handling other requests
             }
         }

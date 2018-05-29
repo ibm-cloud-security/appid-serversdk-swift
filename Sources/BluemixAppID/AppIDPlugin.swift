@@ -39,19 +39,19 @@ public class AppIDPlugin {
 
         guard let idTokenString = idTokenString else {
             logger.debug("Identity token does not exist")
-            return completion(nil, AppIDError.invalidToken(""))
+            return completion(nil, AppIDError.invalidToken("Identity token does not exist"))
         }
 
         Utils.decodeAndValidate(tokenString: idTokenString, publicKeyUtil: publicKeyUtil, options: config) { payload, error in
 
             guard let payload = payload, error == nil else {
                 self.logger.debug("Identity token is malformed")
-                return completion(nil, AppIDError.invalidToken(""))
+                return completion(nil, error ?? AppIDError.invalidToken("Identity token could not be decoded"))
             }
 
             guard let authContext = Utils.getAuthorizedIdentities(from: payload) else {
                 self.logger.debug("Identity token is malformed")
-                return completion(nil, AppIDError.invalidToken(""))
+                return completion(nil, error ?? AppIDError.invalidToken("Identity token could not be decoded"))
             }
 
             self.logger.debug("Identity token successfully parsed")
