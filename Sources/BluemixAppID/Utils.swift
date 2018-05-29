@@ -173,8 +173,7 @@ public class Utils {
                 return completion(nil, .invalidTokenSignature)
             }
 
-            guard let jwtExpirationTimestamp = token.exp,
-                Date(timeIntervalSince1970: jwtExpirationTimestamp) > Date() else {
+            guard token.isExpired == false else {
                     logger.debug("Unable to validate token: " + AppIDError.expiredToken.description)
                     return completion(nil, .expiredToken)
             }
@@ -185,7 +184,7 @@ public class Utils {
             }
 
             /// The WebAppStrategy requires full token validation
-            if options.shouldValidateTokenAudAndSub {
+            if options.shouldValidateAudAndIssuer {
 
                 guard token.aud == options.clientId else {
                     logger.debug("Unable to validate token: " + AppIDError.invalidAudience.description)

@@ -51,6 +51,13 @@ public class Token {
         return payload.dictionaryObject
     }
 
+    public var isExpired: Bool? {
+        guard let exp = self.exp else {
+            return nil
+        }
+        return Date(timeIntervalSince1970: exp) < Date()
+    }
+
     internal var header: JSON
     internal var payload: JSON
 

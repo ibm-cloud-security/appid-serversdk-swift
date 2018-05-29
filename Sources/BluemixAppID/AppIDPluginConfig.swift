@@ -20,7 +20,7 @@ public protocol TokenValidator {
     var clientId: String? { get }
     var secret: String? { get }
     var tokenIssuer: String? { get }
-    var shouldValidateTokenAudAndSub: Bool { get }
+    var shouldValidateAudAndIssuer: Bool { get }
 }
 
 /// App ID Configuration Plugin - VCAP / Options parser
@@ -78,11 +78,11 @@ class AppIDPluginConfig: TokenValidator {
         return nil
     }
 
-    var shouldValidateTokenAudAndSub: Bool = true
+    var shouldValidateAudAndIssuer: Bool = true
 
     init(options: [String: Any]?, validateEntireToken: Bool = true, required: KeyPath<AppIDPluginConfig, String?>...) {
 
-        self.shouldValidateTokenAudAndSub = validateEntireToken
+        self.shouldValidateAudAndIssuer = validateEntireToken
 
         logger.debug("Intializing configuration")
 
