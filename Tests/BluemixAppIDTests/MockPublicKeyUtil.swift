@@ -15,8 +15,8 @@ import Foundation
 @testable import BluemixAppID
 
 class MockPublicKeyUtil: PublicKeyUtil {
-    let publicKeyResponseCode: Int
-    let publicKeyResponse: String
+    var publicKeyResponseCode: Int
+    var publicKeyResponse: String
 
     init(url: String?, responseCode: Int = 200, responseBody: String = "{\"keys\": [\(TestConstants.PUBLIC_KEY)]}") {
         publicKeyResponseCode = responseCode

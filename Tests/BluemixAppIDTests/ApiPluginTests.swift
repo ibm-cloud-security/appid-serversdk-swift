@@ -35,6 +35,7 @@ class ApiPluginTests: XCTestCase {
             ("testAuthFlowAccessTokenWrongTenant", testAuthFlowAccessTokenWrongTenant),
             ("testAuthFlowHappyFlowNoIDToken", testAuthFlowHappyFlowNoIDToken),
             ("testAuthFlowInsufficientScope", testAuthFlowInsufficientScope),
+            ("testAuthFlowMultiKey", testAuthFlowMultiKey),
             ("testAuthFlowExpiredIDToken", testAuthFlowExpiredIDToken),
             ("testAuthFlowHappyFlowWithIDToken", testAuthFlowHappyFlowWithIDToken),
             ("testAuthFlowPublicKeys400", testAuthFlowPublicKeys400),
@@ -145,6 +146,62 @@ class ApiPluginTests: XCTestCase {
         awaitExpectations()
     }
 
+    func testAuthFlowMultiKey() {
+        let api = MockAPIKituraCredentialsPlugin(options: TestConstants.options, responseCode: 400)
+        parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN]
+        let error = generateExpectedError(error: .invalidToken, description: AppIDError.missingPublicKey.description)
+
+        api.authenticate(request: self.request,
+                         response: self.response,
+                         options: [:],
+                         onSuccess: self.setOnSuccess(),
+                         onFailure: self.setOnFailure(expectedCode: .unauthorized, expected: error, expectation: expectation(description: "Should fail")),
+                         onPass: self.onPass(),
+                         inProgress: self.inProgress)
+
+        // Allow the first failure request to be processed
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            (api.publicKeyUtil as? MockPublicKeyUtil)!.publicKeyResponseCode = 200
+
+            for i in stride(from: 0, to: 10, by: 2) {
+                let e1 = self.expectation(description: String(i))
+                let e2 = self.expectation(description: String(i + 1))
+                let callback = {
+                    XCTAssertEqual(((self.request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessToken"] as? String, TestConstants.ACCESS_TOKEN)
+                    XCTAssertEqual(JSON(((self.request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessTokenPayload"] as Any), try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"])
+                    e1.fulfill()
+                }
+                api.authenticate(request: self.request,
+                             response: self.response,
+                             options: ["scope": "appid_readuserattr"],
+                             onSuccess: self.setOnSuccess(id: "", name: "", provider: "", expectation: e2, callback: callback),
+                             onFailure: self.setOnFailure(),
+                             onPass: self.onPass(),
+                             inProgress: self.inProgress)
+            }
+
+            for i in 0..<5 {
+                let e1 = self.expectation(description: String(10 + i))
+                let e2 = self.expectation(description: String(10 + i + 1))
+                let callback = {
+                    XCTAssertNotNil(((self.request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessToken"] as? String)
+                    XCTAssertNotNil(JSON(((self.request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessTokenPayload"] as Any))
+                    e1.fulfill()
+                }
+                (api.publicKeyUtil as? MockPublicKeyUtil)!.publicKeyResponse = "{\"keys\": [\(TestConstants.PUBLIC_KEY),\(TestConstants.PUBLIC_KEY2)]}"
+                self.parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN_KID_2]
+                api.authenticate(request: self.request,
+                             response: self.response,
+                             options: ["scope": "appid_readuserattr"],
+                             onSuccess: self.setOnSuccess(id: "", name: "", provider: "", expectation: e2, callback: callback),
+                             onFailure: self.setOnFailure(),
+                             onPass: self.onPass(),
+                             inProgress: self.inProgress)
+            }
+        }
+        self.awaitExpectations()
+    }
+
     func testAuthFlowPublicKeysMalformedResponse() {
         let api = MockAPIKituraCredentialsPlugin(options: TestConstants.options, responseCode: 200, responseBody: "bad json")
         parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN + " " + TestConstants.ID_TOKEN]
@@ -160,9 +217,15 @@ class ApiPluginTests: XCTestCase {
         let api = MockAPIKituraCredentialsPlugin(options: TestConstants.options)
         parser.headers["Authorization"] = ["Bearer " + TestConstants.ACCESS_TOKEN]
 
-        api.authenticate(request: request, response: response, options: ["scope": "appid_readuserattr"], onSuccess: setOnSuccess(id: "", name: "", provider: "", expectation: expectation(description: "testAuthFlowHappyFlowNoIDToken")), onFailure: setOnFailure(), onPass: onPass(), inProgress:inProgress)
-        XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessToken"] as? String, TestConstants.ACCESS_TOKEN)
-        XCTAssertEqual(JSON(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessTokenPayload"] as Any), try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"])
+        let exp = expectation(description: "testAuthFlowHappyFlowNoIDToken callback")
+
+        let callback = {
+            XCTAssertEqual(((self.request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessToken"] as? String, TestConstants.ACCESS_TOKEN)
+            XCTAssertEqual(JSON(((self.request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessTokenPayload"] as Any), try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"])
+            exp.fulfill()
+        }
+
+        api.authenticate(request: request, response: response, options: ["scope": "appid_readuserattr"], onSuccess: setOnSuccess(id: "", name: "", provider: "", expectation: expectation(description: "testAuthFlowHappyFlowNoIDToken"), callback: callback), onFailure: setOnFailure(), onPass: onPass(), inProgress:inProgress)
 
         awaitExpectations()
     }
@@ -170,9 +233,16 @@ class ApiPluginTests: XCTestCase {
     func testAuthFlowAccessTokenHappyFlowIgnoreIss() {
         let api = MockAPIKituraCredentialsPlugin(options: TestConstants.options)
         parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN_WRONG_ISS]
-        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "", name: "", provider: "", expectation: expectation(description: "testAuthFlowHappyFlowWithIDToken")), onFailure: setOnFailure(), onPass: onPass(), inProgress:inProgress)
-        XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessToken"] as? String, TestConstants.ACCESS_TOKEN_WRONG_ISS)
-        XCTAssertEqual(JSON(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessTokenPayload"] as Any), try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN_WRONG_ISS)["payload"])
+
+        let exp = expectation(description: "testAuthFlowAccessTokenHappyFlowIgnoreIss callback")
+
+        let callback = {
+            XCTAssertEqual(((self.request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessToken"] as? String, TestConstants.ACCESS_TOKEN_WRONG_ISS)
+            XCTAssertEqual(JSON(((self.request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessTokenPayload"] as Any), try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN_WRONG_ISS)["payload"])
+            exp.fulfill()
+        }
+
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "", name: "", provider: "", expectation: expectation(description: "testAuthFlowAccessTokenHappyFlowIgnoreIss"), callback: callback), onFailure: setOnFailure(), onPass: onPass(), inProgress:inProgress)
 
         awaitExpectations()
     }
@@ -180,9 +250,16 @@ class ApiPluginTests: XCTestCase {
     func testAuthFlowAccessTokenHappyFlowIgnoreAud() {
         let api = MockAPIKituraCredentialsPlugin(options: TestConstants.options)
         parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN_WRONG_AUD]
-        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "", name: "", provider: "", expectation: expectation(description: "testAuthFlowHappyFlowWithIDToken")), onFailure: setOnFailure(), onPass: onPass(), inProgress:inProgress)
-        XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessToken"] as? String, TestConstants.ACCESS_TOKEN_WRONG_AUD)
-        XCTAssertEqual(JSON(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessTokenPayload"] as Any), try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN_WRONG_AUD)["payload"])
+
+        let exp = expectation(description: "testAuthFlowAccessTokenHappyFlowIgnoreAud callback")
+
+        let callback = {
+            XCTAssertEqual(((self.request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessToken"] as? String, TestConstants.ACCESS_TOKEN_WRONG_AUD)
+            XCTAssertEqual(JSON(((self.request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessTokenPayload"] as Any), try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN_WRONG_AUD)["payload"])
+            exp.fulfill()
+        }
+
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "", name: "", provider: "", expectation: expectation(description: "testAuthFlowAccessTokenHappyFlowIgnoreAud"), callback: callback), onFailure: setOnFailure(), onPass: onPass(), inProgress:inProgress)
 
         awaitExpectations()
     }
@@ -191,17 +268,23 @@ class ApiPluginTests: XCTestCase {
         let api = MockAPIKituraCredentialsPlugin(options: TestConstants.options)
         parser.headers["Authorization"] =  ["Bearer " + TestConstants.ACCESS_TOKEN + " " + TestConstants.ID_TOKEN]
 
-        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "subject", name: "test name", provider: "someprov", expectation: expectation(description: "testAuthFlowHappyFlowWithIDToken")), onFailure: setOnFailure(), onPass: onPass(), inProgress:inProgress)
-        XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessToken"] as? String, TestConstants.ACCESS_TOKEN)
-        XCTAssertEqual(JSON(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessTokenPayload"] as Any), try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"])
-        XCTAssertEqual(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["identityToken"] as? String, TestConstants.ID_TOKEN)
-        XCTAssertEqual(JSON(((request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["identityTokenPayload"] as Any), try? Utils.parseToken(from: TestConstants.ID_TOKEN)["payload"])
+        let exp = expectation(description: "testAuthFlowAccessTokenHappyFlowIgnoreAud callback")
+
+        let callback = {
+            XCTAssertEqual(((self.request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessToken"] as? String, TestConstants.ACCESS_TOKEN)
+            XCTAssertEqual(JSON(((self.request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["accessTokenPayload"] as Any), try? Utils.parseToken(from: TestConstants.ACCESS_TOKEN)["payload"])
+            XCTAssertEqual(((self.request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["identityToken"] as? String, TestConstants.ID_TOKEN)
+            XCTAssertEqual(JSON(((self.request.userInfo as [String:Any])["APPID_AUTH_CONTEXT"] as? [String:Any])?["identityTokenPayload"] as Any), try? Utils.parseToken(from: TestConstants.ID_TOKEN)["payload"])
+            exp.fulfill()
+        }
+
+        api.authenticate(request: request, response: response, options: [:], onSuccess: setOnSuccess(id: "subject", name: "test name", provider: "someprov", expectation: expectation(description: "testAuthFlowHappyFlowWithIDToken"), callback: callback), onFailure: setOnFailure(), onPass: onPass(), inProgress:inProgress)
 
         awaitExpectations()
     }
 
     func awaitExpectations() {
-        waitForExpectations(timeout: 1) { error in
+        waitForExpectations(timeout: 5) { error in
             if let error = error {
                 XCTFail("err: \(error)")
             }
@@ -252,7 +335,7 @@ extension ApiPluginTests {
         }
     }
 
-    func setOnSuccess(id: String = "", name: String = "", provider: String = "", expectation: XCTestExpectation? = nil) -> ((_:UserProfile ) -> Void) {
+    func setOnSuccess(id: String = "", name: String = "", provider: String = "", expectation: XCTestExpectation? = nil, callback: (() -> Void)? = nil) -> ((_:UserProfile ) -> Void) {
 
         return { (profile: UserProfile) -> Void in
             if expectation == nil {
@@ -262,6 +345,8 @@ extension ApiPluginTests {
                 XCTAssertEqual(profile.displayName, name)
                 XCTAssertEqual(profile.provider, provider)
                 expectation?.fulfill()
+                print("Making callback", callback == nil)
+                callback?()
             }
         }
 
