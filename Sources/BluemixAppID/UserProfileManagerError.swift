@@ -18,7 +18,7 @@ public enum UserProfileError: Error {
     case conflictingSubjects
     case userAttributeFailure(String)
 
-    var description: String {
+    public var description: String {
         switch self {
         case .invalidIdentityToken: return "Invalid Identity Token"
         case .invalidUserInfoResponse: return "Invalid User Info Response"
@@ -28,7 +28,7 @@ public enum UserProfileError: Error {
     }
 }
 
-public enum RequestError: Error {
+public enum AppIDRequestError: Error {
     case unauthorized
     case notFound
     case parsingError
@@ -36,7 +36,7 @@ public enum RequestError: Error {
     case invalidOauthServerUrl
     case invalidProfileServerUrl
 
-    var description: String {
+    public var description: String {
         switch self {
         case .unauthorized: return "Unauthorized"
         case .notFound: return "Not Found"
