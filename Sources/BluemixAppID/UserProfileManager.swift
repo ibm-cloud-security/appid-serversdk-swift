@@ -75,10 +75,16 @@ public class UserProfileManager {
             return
         }
 
-        handleRequest(accessToken: accessToken, url: url + Constants.Endpoints.userInfo, method: "GET", body: nil) { (error, profile) in
+        handleRequest(accessToken: accessToken, url: url + Constants.Endpoints.userInfo, method: "GET", body: nil) { (error, userInfo) in
 
-            guard error == nil, let profile = profile else {
+            guard error == nil, let userInfo = userInfo else {
                 self.logger.debug("Error: Unexpected error while retrieving User Info. Msg: \(error?.localizedDescription ?? "")")
+                return completionHandler(error ?? RequestError.unexpectedError, nil)
+            }
+
+            // Validate userinfo response has subject field
+            guard let subject = userInfo["sub"] as? String else {
+                self.logger.error("Error: Invalid response user info response must contain the subject field.")
                 return completionHandler(error ?? RequestError.unexpectedError, nil)
             }
 
@@ -89,13 +95,13 @@ public class UserProfileManager {
                     return completionHandler(UserProfileError.invalidIdentityToken, nil)
                 }
 
-                if let sub = profile["sub"] as? String, sub != identityToken["payload"]["sub"].string {
+                if let idSubject = identityToken["payload"]["sub"].string, subject != idSubject {
                     self.logger.debug("Error: IdentityToken.sub does not match UserInfoResult.sub.")
                     return completionHandler(UserProfileError.conflictingSubjects, nil)
                 }
             }
 
-            completionHandler(nil, profile)
+            completionHandler(nil, userInfo)
         }
     }
 
