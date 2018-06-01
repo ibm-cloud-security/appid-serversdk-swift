@@ -15,17 +15,9 @@ import Foundation
 import SimpleLogger
 import SwiftyJSON
 
-public protocol TokenValidator {
-    var tenantId: String? { get }
-    var clientId: String? { get }
-    var secret: String? { get }
-    var tokenIssuer: String? { get }
-    var shouldValidateAudAndIssuer: Bool { get }
-}
-
 /// App ID Configuration Plugin - VCAP / Options parser
 ///
-class AppIDPluginConfig: TokenValidator {
+class AppIDPluginConfig {
 
     private let logger = Logger(forName: Constants.Utils.configuration)
 
@@ -78,6 +70,7 @@ class AppIDPluginConfig: TokenValidator {
         return nil
     }
 
+    /// Whether the Audience and Issuer should be validated (Required by Web Strategy)
     var shouldValidateAudAndIssuer: Bool = true
 
     init(options: [String: Any]?, validateEntireToken: Bool = true, required: KeyPath<AppIDPluginConfig, String?>...) {
@@ -91,6 +84,7 @@ class AppIDPluginConfig: TokenValidator {
         let vcapServices = JSON.parse(string: vcapString)
         var vcapServiceCredentials: [String: Any]? = [:]
 
+        /// Parse vcap services
         if let dict = vcapServices.dictionary {
             for (key, value) in dict {
                 if key.hasPrefix(Constants.VCAP.serviceName) || key.hasPrefix(Constants.VCAP.serviceNameV1) {
@@ -106,6 +100,7 @@ class AppIDPluginConfig: TokenValidator {
                            Constants.Credentials.oauthServerUrl,
                            Constants.Credentials.userProfileServerUrl]
 
+        /// Create service config. Options override vcap services.
         for field in credentials {
             serviceConfig[field] = options[field] ?? vcapServiceCredentials?[field]
         }

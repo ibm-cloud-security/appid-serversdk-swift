@@ -15,6 +15,10 @@ import SimpleLogger
 import Credentials
 import KituraNet
 
+///
+/// App ID Plugin parent class
+/// - Contains shared methods used in api and web strategies
+///
 @available(OSX 10.12, *)
 public class AppIDPlugin {
 

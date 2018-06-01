@@ -14,6 +14,7 @@
 import Foundation
 import SwiftyJSON
 
+/// Abstract JWT token class
 @available(OSX 10.12, *)
 public class Token {
 

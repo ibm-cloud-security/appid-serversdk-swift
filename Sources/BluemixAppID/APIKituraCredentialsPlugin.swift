@@ -154,9 +154,7 @@ extension APIKituraCredentialsPlugin {
         for requiredScopeElement in requiredScopeElements {
             if !suppliedScopeElement.contains(requiredScopeElement) {
                 logger.warn("Access token does not contain required scope. Expected " +
-                            requiredScope +
-                            " received " +
-                            scope)
+                            " \(requiredScope) + received + \(scope)")
                 return false
             }
         }

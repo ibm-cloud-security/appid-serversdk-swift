@@ -16,6 +16,8 @@ import SwiftyRequest
 import SwiftJWKtoPEM
 import Foundation
 
+/// Public Key utility class.
+/// - Responsible for retrieving and storing App ID public keys
 public class PublicKeyUtil {
 
     struct PublicKey: Codable {
@@ -76,13 +78,19 @@ public class PublicKeyUtil {
                     }
                     completion(nil, .publicKeyNotFound)
                 }
-            } else {
-                /// Not found, retry key retrieval
+            } else { /// Not found, retry key retrieval
+                // Block other requests from initiating public keys request
+                self.isWaiting = true
                 /// Enqueue to first clear the pending requests before blocking
                 self.processQueue.async {
-                    self.suspendAndWait()
+                    /// Block requests until keys response is returned
+                    self.processQueue.suspend()
+                    /// Retrieve keys asynchronously
                     self.retrieveKey(kid: kid) { key, error in
-                        self.resume()
+                        self.processQueue.resume() // Now that a response has been returned, process waiting reqs
+                        self.stateQueue.async {
+                            self.isWaiting = false
+                        }
                         completion(key, error)
                     }
                 }

@@ -34,16 +34,16 @@ extension String {
 }
 
 @available(OSX 10.12, *)
-public class Utils {
+class Utils {
 
     private static let logger = Logger(forName: Constants.Utils.appId)
 
-    public static func getAuthorizedIdentities(from idToken: JSON) -> AuthorizationContext? {
+    static func getAuthorizedIdentities(from idToken: JSON) -> AuthorizationContext? {
         logger.debug("APIStrategy getAuthorizedIdentities")
         return AuthorizationContext(idTokenPayload: idToken["payload"])
     }
 
-    public static func getAuthorizedIdentities(from idToken: [String: Any]) -> AuthorizationContext? {
+    static func getAuthorizedIdentities(from idToken: [String: Any]) -> AuthorizationContext? {
         logger.debug("APIStrategy getAuthorizedIdentities")
         guard let json = try? JSONSerialization.data(withJSONObject: idToken, options: .prettyPrinted) else {
             return nil
@@ -51,7 +51,7 @@ public class Utils {
         return AuthorizationContext(idTokenPayload: JSON(data: json))
     }
 
-    public static func parseToken(from tokenString: String) throws -> JSON {
+    static func parseToken(from tokenString: String) throws -> JSON {
 
         let tokenComponents = tokenString.components(separatedBy: ".")
 
@@ -111,7 +111,7 @@ public class Utils {
         return isValid
     }
 
-    public static func isTokenValid(token: String) -> Bool {
+    static func isTokenValid(token: String) -> Bool {
         logger.debug("isTokenValid")
         if let jwt = try? parseToken(from: token) {
             let jwtPayload = jwt["payload"].dictionary
@@ -134,10 +134,10 @@ public class Utils {
     /// - Parameter: options - the configuration options to use for token validation
     /// - Returns: the decoded jwt payload
     ///      throws AppIDError on token validation failure
-    public static func decodeAndValidate(tokenString: String,
-                                           publicKeyUtil: PublicKeyUtil,
-                                           options: TokenValidator,
-                                           completion: @escaping ([String: Any]?, AppIDError?) -> Void) {
+    static func decodeAndValidate(tokenString: String,
+                                  publicKeyUtil: PublicKeyUtil,
+                                  options: AppIDPluginConfig,
+                                  completion: @escaping ([String: Any]?, AppIDError?) -> Void) {
 
         func logAndReturn(_ error: AppIDError, completion: @escaping ([String: Any]?, AppIDError?) -> Void) {
             logger.debug("Unable to validate token: " + error.description)
@@ -199,7 +199,7 @@ public class Utils {
         }
     }
 
-    public static func parseJsonStringtoDictionary(_ jsonString: String) throws -> [String:Any] {
+    static func parseJsonStringtoDictionary(_ jsonString: String) throws -> [String:Any] {
         do {
             guard let data = jsonString.data(using: String.Encoding.utf8),
                 let responseJson =  try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {

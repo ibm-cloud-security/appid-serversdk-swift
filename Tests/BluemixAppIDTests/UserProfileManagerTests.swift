@@ -49,11 +49,10 @@ class UserProfileManagerTests: XCTestCase {
         override func handleRequest(accessToken: String, url: String, method: String, body: String?, completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
             if accessToken.range(of:"return_error") != nil {
                 completionHandler(AppIDRequestError.unexpectedError, nil)
-            }
-            else if accessToken.range(of:"return_code") != nil {
+            } else if accessToken.range(of:"return_code") != nil {
                 if let statusCode = Int(accessToken.components(separatedBy: "_")[2]) {
                     switch statusCode {
-                    case 401,403:
+                    case 401, 403:
                         completionHandler(AppIDRequestError.unauthorized, nil)
                         break
                     case 404:

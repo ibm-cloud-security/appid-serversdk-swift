@@ -13,6 +13,7 @@
 
 import Foundation
 
+/// Errors occuring in Api and Web strategies
 public enum AppIDError: Error {
 
     // Token Fields
