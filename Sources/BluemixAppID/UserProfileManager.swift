@@ -27,13 +27,7 @@ public class UserProfileManager {
     var serviceConfig: AppIDPluginConfig
 
     public init(options: [String: Any]?) {
-
-        serviceConfig = AppIDPluginConfig(options: options)
-
-        guard serviceConfig.userProfileServerUrl != nil, serviceConfig.serverUrl != nil else {
-            logger.error("Ensure your app is either bound to an App ID service instance or pass required profilesUrl parameter to the constructor")
-            return
-        }
+        serviceConfig = AppIDPluginConfig(options: options, required: \.userProfileServerUrl, \.serverUrl)
     }
 
     public func setAttribute (accessToken: String,
@@ -77,7 +71,7 @@ public class UserProfileManager {
         self.logger.debug("UserProfileManager :: handle Request - User Info")
 
         guard let url = serviceConfig.serverUrl else {
-            completionHandler(RequestError.invalidOauthServerUrl, nil)
+            completionHandler(AppIDRequestError.invalidOauthServerUrl, nil)
             return
         }
 
@@ -85,13 +79,13 @@ public class UserProfileManager {
 
             guard error == nil, let userInfo = userInfo else {
                 self.logger.debug("Error: Unexpected error while retrieving User Info. Msg: \(error?.localizedDescription ?? "")")
-                return completionHandler(error ?? RequestError.unexpectedError, nil)
+                return completionHandler(error ?? AppIDRequestError.unexpectedError, nil)
             }
 
             // Validate userinfo response has subject field
             guard let subject = userInfo["sub"] as? String else {
                 self.logger.error("Error: Invalid response user info response must contain the subject field.")
-                return completionHandler(error ?? RequestError.unexpectedError, nil)
+                return completionHandler(error ?? AppIDRequestError.unexpectedError, nil)
             }
 
             if let identityToken = identityToken {
@@ -116,7 +110,7 @@ public class UserProfileManager {
         self.logger.debug("UserProfileManager :: handle Request - " + method + " " + (attributeName ?? "all"))
 
         guard let profileURL = serviceConfig.userProfileServerUrl else {
-            completionHandler(RequestError.invalidProfileServerUrl, nil)
+            completionHandler(AppIDRequestError.invalidProfileServerUrl, nil)
             return
         }
 
@@ -133,10 +127,10 @@ public class UserProfileManager {
         let request = HTTP.request(url) {response in
             if response?.status == 401 || response?.status == 403 {
                 self.logger.error("Unauthorized")
-                completionHandler(RequestError.unauthorized, nil)
+                completionHandler(AppIDRequestError.unauthorized, nil)
             } else if response?.status == 404 {
                 self.logger.error("Not found")
-                completionHandler(RequestError.notFound, nil)
+                completionHandler(AppIDRequestError.notFound, nil)
             } else if let responseStatus = response?.status, responseStatus >= 200 && responseStatus < 300 {
                 var responseJson: [String: Any] = [:]
                 do {
@@ -145,11 +139,11 @@ public class UserProfileManager {
                     }
                     completionHandler(nil, responseJson)
                 } catch _ {
-                    completionHandler(RequestError.parsingError, nil)
+                    completionHandler(AppIDRequestError.parsingError, nil)
                 }
             } else {
                 self.logger.error("Unexpected error")
-                completionHandler(RequestError.unexpectedError, nil)
+                completionHandler(AppIDRequestError.unexpectedError, nil)
             }
         }
 

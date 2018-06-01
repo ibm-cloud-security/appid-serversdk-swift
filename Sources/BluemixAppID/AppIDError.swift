@@ -1,5 +1,5 @@
 /*
- Copyright 2017 IBM Corp.
+ Copyright 2018 IBM Corp.
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
@@ -10,28 +10,47 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
+
 import Foundation
 
-public enum AppIDError: String, Error {
-    case unauthorized = "Unauthorized"
-    case failedParsingAuthContext = "Failed to parse authorization context"
-    case jsonUtilsError = "json is malformed"
-}
-
-internal enum AppIDErrorInternal: String, Error {
-    case authorizationHeaderNotFound = "Authorization header not found"
-    case invalidAuthHeaderFormat = "Invalid authorization header format. Expected format 'Bearer accessToken idToken'"
-    case invalidAccessToken = "Invalid access token"
-    case invalidAccessTokenFormat = "Invalid access token format"
-    case invalidAccessTokenSignature = "Invalid access token signature"
-    case couldNotValidateAccessTokenSignature = "Could not validate access token signature"
-    case publicKeyNotFound = "Public key not found"
-}
-
-internal enum OauthError: String {
-    case invalidRequest = "invalid_request"
-    case invalidToken = "invalid_token"
-    case insufficientScope = "insufficient_scope"
-    case missingAuth = "missing_authorization"
-    case internalServerError = "internal_server_error"
+internal enum AppIDError: Error {
+    
+    // Token Fields
+    case invalidAlgorithm
+    case missingTokenKid
+    case invalidIssuer
+    case invalidTenant
+    case invalidAudience
+    case expiredToken
+    case missingPublicKey
+    
+    // General
+    case authorizationHeaderNotFound
+    case invalidAuthHeaderFormat
+    case invalidTokenFormat
+    case invalidTokenSignature
+    case publicKeyNotFound
+    case jsonParsingError
+    case invalidToken(String)
+    
+    var description: String {
+        
+        switch self {
+        case .missingTokenKid: return "Provided token does not contain the required kid field"
+        case .invalidAlgorithm: return "Invalid Algorithm Field. Expected RS256."
+        case .invalidIssuer: return "Invalid Issuer Field"
+        case .invalidTenant: return "Invalid Tenant Field"
+        case .invalidAudience: return "Invalid Audience Field"
+        case .expiredToken: return "Token has expired"
+        case .missingPublicKey: return "Could not retrieve the required public key"
+        case .authorizationHeaderNotFound: return "Authorization header not found"
+        case .invalidAuthHeaderFormat: return "Invalid authorization header format. Expected format 'Bearer accessToken idToken'"
+        case .invalidTokenFormat: return "Invalid token format"
+        case .invalidTokenSignature: return "Invalid token signature"
+        case .publicKeyNotFound: return "Public key not found"
+        case .jsonParsingError: return "Unable to parse JSON"
+        case .invalidToken(let reason): return "Invalid Token: " + reason
+            
+        }
+    }
 }
