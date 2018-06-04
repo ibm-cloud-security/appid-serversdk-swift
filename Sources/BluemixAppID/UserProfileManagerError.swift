@@ -11,6 +11,7 @@
  */
 
 import Foundation
+import Kitura
 
 public enum UserProfileError: Error {
     case invalidIdentityToken

@@ -1,5 +1,5 @@
 /*
- Copyright 2017 IBM Corp.
+ Copyright 2018 IBM Corp.
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
@@ -10,18 +10,17 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
-import XCTest
-@testable import BluemixAppID
 
-class BluemixAppIDTests: XCTestCase {
+import Foundation
 
-    func testExample() {
-        XCTAssertEqual(1, 1)
-    }
+/// The OAuth errors used for response construction
+public enum OauthError: String {
 
-    static var allTests: [(String, (BluemixAppIDTests) -> () throws -> Void)] {
-        return [
-            ("testExample", testExample)
-        ]
-    }
+    /// OAuth defined errors
+    case invalidRequest = "invalid_request"
+    case invalidToken = "invalid_token"
+    case insufficientScope = "insufficient_scope"
+
+    /// Internal errors
+    case missingAuth = "missing_authorization"
 }

@@ -15,15 +15,13 @@ import Foundation
 import SimpleLogger
 import SwiftyJSON
 
-internal class AppIDPluginConfig {
+/// App ID Configuration Plugin - VCAP / Options parser
+///
+class AppIDPluginConfig {
 
-    private let logger = Logger(forName: Constants.APIPlugin.name)
+    private let logger = Logger(forName: Constants.Utils.configuration)
 
     var serviceConfig: [String: Any] = [:]
-
-    var isTesting: Bool {
-        return serverUrl == "testServerUrl"
-    }
 
     var tenantId: String? {
         return serviceConfig[Constants.Credentials.tenantId] as? String
@@ -49,15 +47,44 @@ internal class AppIDPluginConfig {
         return serviceConfig[Constants.Credentials.userProfileServerUrl] as? String
     }
 
-    public init(options: [String: Any]?) {
+    var tokenIssuer: String? {
+        guard let sUrl = serverUrl, let url = URL(string: sUrl) else {
+            return nil
+        }
+        return url.host
+    }
 
-        logger.debug("Intializing")
+    var publicKeyServerURL: String? {
+
+        // public key url = OAUTH_SERVER_URL/publickey
+        // e.g. https://appid-oauth.ng.bluemix.net/oauth/v3/a8589e38-081e-4128-a777-b1cd76ee1875/publickey
+        if let serverUrl = serverUrl {
+            if serverUrl.last == "/" {
+                var endpoint = Constants.Endpoints.publicKeys
+                endpoint.removeFirst()
+                return serverUrl + endpoint
+            } else {
+                return serverUrl + Constants.Endpoints.publicKeys
+            }
+        }
+        return nil
+    }
+
+    /// Whether the Audience and Issuer should be validated (Required by Web Strategy)
+    var shouldValidateAudAndIssuer: Bool = true
+
+    init(options: [String: Any]?, validateEntireToken: Bool = true, required: KeyPath<AppIDPluginConfig, String?>...) {
+
+        self.shouldValidateAudAndIssuer = validateEntireToken
+
+        logger.debug("Intializing configuration")
 
         let options = options ?? [:]
         let vcapString = ProcessInfo.processInfo.environment[Constants.VCAP.services] ?? ""
         let vcapServices = JSON.parse(string: vcapString)
         var vcapServiceCredentials: [String: Any]? = [:]
 
+        /// Parse vcap services
         if let dict = vcapServices.dictionary {
             for (key, value) in dict {
                 if key.hasPrefix(Constants.VCAP.serviceName) || key.hasPrefix(Constants.VCAP.serviceNameV1) {
@@ -73,6 +100,7 @@ internal class AppIDPluginConfig {
                            Constants.Credentials.oauthServerUrl,
                            Constants.Credentials.userProfileServerUrl]
 
+        /// Create service config. Options override vcap services.
         for field in credentials {
             serviceConfig[field] = options[field] ?? vcapServiceCredentials?[field]
         }
@@ -89,5 +117,19 @@ internal class AppIDPluginConfig {
                 serviceConfig[Constants.Credentials.redirectUri] = "https://\(uri.stringValue)/ibm/bluemix/appid/callback"
             }
         }
+
+        /// Assert configuration has required fields
+        for path in required {
+            if self[keyPath: path] == nil {
+                logger.error("Failed to fully initialize configuration." +
+                    " To ensure complete functionality, ensure your app is either bound to an" +
+                    " App ID service instance or pass the required parameters to the constructor")
+                break
+            }
+        }
+
+        logger.info("ServerUrl: " + (serverUrl ?? "unset"))
+        logger.info("ProfilesUrl: " + (userProfileServerUrl ?? "unset"))
     }
+
 }
