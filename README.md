@@ -1,7 +1,7 @@
 # IBM Cloud App ID
 Swift SDK for the IBM Cloud App ID service
 
-[![Bluemix powered][img-bluemix-powered]][url-bluemix]
+[![IBM Cloud powered][img-ibmcloud-powered]][url-ibmcloud]
 [![Travis][img-travis-master]][url-travis-master]
 [![Coveralls][img-coveralls-master]][url-coveralls-master]
 [![Codacy][img-codacy]][url-codacy]
@@ -48,7 +48,7 @@ swift package generate-xcodeproj --xcconfig-overrides openssl.xcconfig
 ```
 The extra xcconfig are needed to be able to build in Xcode or use `xcodebuild`.
 
-**These extra flags are necessary for any target that uses `BluemixAppID` library as a dependency.**
+**These extra flags are necessary for any target that uses `IBMCloudAppID` library as a dependency.**
 
 
 ### Installation
@@ -62,7 +62,7 @@ let package = Package(
     ]
     .target(
         name: "<Your Target>",
-        dependencies: ["BluemixAppID"]
+        dependencies: ["IBMCloudAppID"]
     )
 )
 ```
@@ -83,7 +83,7 @@ import Kitura
 import KituraSession
 import Credentials
 import SwiftyJSON
-import BluemixAppID
+import IBMCloudAppID
 
 // Below URLs will be used for App ID OAuth flows
 var LOGIN_URL = "/ibm/bluemix/appid/login"
@@ -100,7 +100,7 @@ let session = Session(secret: "Some secret")
 router.all(middleware: session)
 
 // Use static resources if required directory
-router.all("/", middleware: StaticFileServer(path: "./Tests/BluemixAppIDTests/public"))
+router.all("/", middleware: StaticFileServer(path: "./Tests/IBMCloudAppIDTests/public"))
 
 // Below configuration can be obtained from Service Credentials
 // tab in the App ID Dashboard. You're not required to manually provide below
@@ -174,7 +174,7 @@ When your Kitura backend receives a request, the credentials middleware will che
 ```swift
 import Kitura
 import Credentials
-import BluemixAppID
+import IBMCloudAppID
 
 // Below configuration can be obtained from Service Credentials
 // tab in the App ID Dashboard. You're not required to manually provide below
@@ -264,7 +264,7 @@ userProfileManager.getAllAttributes(accessToken: accessToken) { (err, res) in
 userProfileManager.deleteAllAttributes(accessToken: accessToken) { (err, res) in
 }
 
-// Retrieve user information by querying the UserInfo endpoint 
+// Retrieve user information by querying the UserInfo endpoint
 // If identity token is provided (recommended approach), response is validated against the identity token
 userProfileManager.getUserInfo(accessToken: accessToken, identityToken: optionalIdentityToken) { (err, res) in
 
@@ -279,8 +279,8 @@ userProfileManager.getUserInfo(accessToken: accessToken) { (err, res) in
 ### License
 This package contains code licensed under the Apache License, Version 2.0 (the "License"). You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 and may also view the License in the LICENSE file within this package.
 
-[img-bluemix-powered]: https://img.shields.io/badge/bluemix-powered-blue.svg
-[url-bluemix]: http://bluemix.net
+[img-ibmcloud-powered]: https://img.shields.io/badge/ibm%20cloud-powered-blue.svg
+[url-ibmcloud]: https://www.ibm.com/cloud/
 [url-repo]: https://github.com/ibm-cloud-security/appid-serversdk-swift
 [img-license]: https://img.shields.io/github/license/ibm-cloud-security/appid-serversdk-swift.svg
 [img-version]: https://img.shields.io/github/release/ibm-cloud-security/appid-serversdk-swift.svg

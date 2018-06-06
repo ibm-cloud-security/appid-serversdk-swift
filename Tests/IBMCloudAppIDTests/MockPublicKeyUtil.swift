@@ -12,7 +12,7 @@
  */
 
 import Foundation
-@testable import BluemixAppID
+@testable import IBMCloudAppID
 
 class MockPublicKeyUtil: PublicKeyUtil {
     var publicKeyResponseCode: Int

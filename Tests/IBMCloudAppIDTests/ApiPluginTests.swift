@@ -19,7 +19,7 @@ import Credentials
 import Socket
 import SwiftyJSON
 import Foundation
-@testable import BluemixAppID
+@testable import IBMCloudAppID
 
 @available(OSX 10.12, *)
 class ApiPluginTests: XCTestCase {

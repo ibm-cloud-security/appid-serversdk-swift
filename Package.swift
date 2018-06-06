@@ -15,12 +15,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "BluemixAppID",
+    name: "IBMCloudAppID",
     products: [
         // Products define the executables and libraries produced by a package, and make them visible to other packages.
         .library(
-            name: "BluemixAppID",
-            targets: ["BluemixAppID"]
+            name: "IBMCloudAppID",
+            targets: ["IBMCloudAppID"]
         )
     ],
     dependencies: [
@@ -36,12 +36,12 @@ let package = Package(
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
         // Targets can depend on other targets in this package, and on products in packages which this package depends on.
         .target(
-            name: "BluemixAppID",
+            name: "IBMCloudAppID",
             dependencies: ["Credentials", "SwiftyRequest", "SimpleLogger", "SwiftyJSON", "KituraSession", "SwiftJWKtoPEM", "CryptorRSA"]
         ),
         .testTarget(
-            name: "BluemixAppIDTests",
-            dependencies: ["BluemixAppID"]
+            name: "IBMCloudAppIDTests",
+            dependencies: ["IBMCloudAppID"]
         )
     ]
 )

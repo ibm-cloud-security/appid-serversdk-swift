@@ -27,7 +27,7 @@ import Socket
 import SwiftyJSON
 import Foundation
 
-@testable import BluemixAppID
+@testable import IBMCloudAppID
 
 @available(OSX 10.12, *)
 class WebAppPluginTest: XCTestCase {
@@ -417,7 +417,7 @@ class WebAppPluginTest: XCTestCase {
         let router = Router()
         let session = Session(secret: "Some secret")
         router.all(middleware: session)
-        router.all("/", middleware: StaticFileServer(path: "./Tests/BluemixAppIDTests/public"))
+        router.all("/", middleware: StaticFileServer(path: "./Tests/IBMCloudAppIDTests/public"))
 
         let webappKituraCredentialsPlugin = WebAppKituraCredentialsPlugin(options: options)
         let kituraCredentials = Credentials()
