@@ -31,6 +31,7 @@ extension String {
 
         return Data(base64Encoded: base64, options: Data.Base64DecodingOptions())
     }
+
 }
 
 @available(OSX 10.12, *)
