@@ -70,6 +70,7 @@ struct Constants {
         static let userInfo = "/userinfo"
     }
 
+    static let state = "state"
     static let bearer = "Bearer"
     static let authHeader = "Authorization"
 }
