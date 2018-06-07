@@ -27,6 +27,7 @@ public enum UserProfileError: Error {
         case .userAttributeFailure(let msg): return msg
         }
     }
+
 }
 
 public enum AppIDRequestError: Error {
@@ -47,4 +48,5 @@ public enum AppIDRequestError: Error {
         case .invalidProfileServerUrl: return "Invalid Profile Server Url"
         }
     }
+
 }

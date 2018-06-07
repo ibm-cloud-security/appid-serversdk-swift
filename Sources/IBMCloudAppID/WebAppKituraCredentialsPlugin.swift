@@ -293,4 +293,5 @@ extension WebAppKituraCredentialsPlugin {
         self.logger.debug("AUTHURL: \(authUrl)")
         return authUrl
     }
+
 }
