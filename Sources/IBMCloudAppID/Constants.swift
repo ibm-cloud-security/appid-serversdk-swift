@@ -26,7 +26,7 @@ struct Constants {
     struct Utils {
         static let publicKey = "PublicKeyUtil"
         static let configuration = "AppIDPluginConfig"
-        static let appId = "BluemixAppIDUtils"
+        static let appId = "IBMCloudAppIDUtils"
     }
 
     struct VCAP {

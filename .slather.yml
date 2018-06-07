@@ -1,6 +1,6 @@
 coverage_service: coveralls
-xcodeproj: BluemixAppID.xcodeproj
-scheme: BluemixAppID
+xcodeproj: IBMCloudAppID.xcodeproj
+scheme: IBMCloudAppID
 ignore:
   - Tests/*
   - Packages/*

@@ -1,5 +1,5 @@
 test:
-  image: ibmcom/swift-ubuntu:4.1
+  image: ibmcom/swift-ubuntu-xenial
   volumes:
-      - .:/BluemixAppID
-  command: bash -c "cd /BluemixAppID && swift package  --build-path .build-ubuntu clean && swift build  --build-path .build-ubuntu && swift test  --build-path .build-ubuntu"
+      - .:/IBMCloudAppID
+  command: bash -c "cd /IBMCloudAppID && swift package  --build-path .build-ubuntu clean && swift build  --build-path .build-ubuntu && swift test  --build-path .build-ubuntu"

@@ -11,15 +11,15 @@
  limitations under the License.
  */
 import XCTest
-@testable import BluemixAppID
+@testable import IBMCloudAppID
 
-class BluemixAppIDTests: XCTestCase {
+class IBMCloudAppIDTests: XCTestCase {
 
     func testExample() {
         XCTAssertEqual(1, 1)
     }
 
-    static var allTests: [(String, (BluemixAppIDTests) -> () throws -> Void)] {
+    static var allTests: [(String, (IBMCloudAppIDTests) -> () throws -> Void)] {
         return [
             ("testExample", testExample)
         ]

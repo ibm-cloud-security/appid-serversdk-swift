@@ -1,8 +1,8 @@
 import XCTest
-@testable import BluemixAppIDTests
+@testable import IBMCloudAppIDTests
 
 XCTMain([
-     testCase(BluemixAppIDTests.allTests),
+     testCase(IBMCloudAppIDTests.allTests),
      testCase(UserProfileManagerTests.allTests),
      testCase(UtilsTest.allTests),
      testCase(WebAppPluginTest.allTests),

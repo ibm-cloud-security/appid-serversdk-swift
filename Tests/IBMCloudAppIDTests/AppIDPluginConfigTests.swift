@@ -12,7 +12,7 @@
  */
 
 import XCTest
-@testable import BluemixAppID
+@testable import IBMCloudAppID
 
 @available(OSX 10.12, *)
 class AppIDPluginConfigTests: XCTestCase {
