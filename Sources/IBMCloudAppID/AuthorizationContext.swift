@@ -52,7 +52,8 @@ public class AuthorizationContext {
             let json = JSON(data: jsonData)
             return AuthorizationContext(idTokenPayload: json)
         } else {
-            throw AppIDError.failedParsingAuthContext
+            throw AppIDError.jsonParsingError
         }
     }
+
 }

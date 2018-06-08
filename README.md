@@ -1,7 +1,7 @@
 # IBM Cloud App ID
 Swift SDK for the IBM Cloud App ID service
 
-[![Bluemix powered][img-bluemix-powered]][url-bluemix]
+[![IBM Cloud powered][img-ibmcloud-powered]][url-ibmcloud]
 [![Travis][img-travis-master]][url-travis-master]
 [![Coveralls][img-coveralls-master]][url-coveralls-master]
 [![Codacy][img-codacy]][url-codacy]
@@ -31,7 +31,7 @@ Read the [official documentation](https://console.bluemix.net/docs/services/appi
 
 ### Requirements
 * Swift 4.1
-* Kitura 2.2
+* Kitura 2.3
 * OpenSSL
 
 ### Build Instructions
@@ -48,7 +48,7 @@ swift package generate-xcodeproj --xcconfig-overrides openssl.xcconfig
 ```
 The extra xcconfig are needed to be able to build in Xcode or use `xcodebuild`.
 
-**These extra flags are necessary for any target that uses `BluemixAppID` library as a dependency.**
+**These extra flags are necessary for any target that uses `IBMCloudAppID` library as a dependency.**
 
 
 ### Installation
@@ -62,7 +62,7 @@ let package = Package(
     ]
     .target(
         name: "<Your Target>",
-        dependencies: ["BluemixAppID"]
+        dependencies: ["IBMCloudAppID"]
     )
 )
 ```
@@ -76,14 +76,14 @@ let package = Package(
 Below is an example of using this SDK to protect Web applications.
 
 #### Protecting web applications using WebAppKituraCredentialsPlugin
-WebAppKituraCredentialsPlugin is based on the OAuth2 authorization_code grant flow and should be used for web applications that use browsers. The plugin provides tools to easily implement authentication and authorization flows. WebAppKituraCredentialsPlugin provides mechanisms to detect unauthenticated attempts to access protected resources. The WebAppKituraCredentialsPlugin will automatically redirect user's browser to the authentication page. After successful authentication user will be taken back to the web application's callback URL (redirectUri), which will once again use WebAppKituraCredentialsPlugin to obtain access and identity tokens from App ID service. After obtaining these tokens the WebAppKituraCredentialsPlugin will store them in HTTP session under WebAppKituraCredentialsPlugin.AuthContext key. In a scalable cloud environment it is recommended to persist HTTP sessions in a scalable storage like Redis to ensure they're available accross server app instances.
+WebAppKituraCredentialsPlugin is based on the OAuth2 authorization_code grant flow and should be used for web applications that use browsers. The plugin provides tools to easily implement authentication and authorization flows. WebAppKituraCredentialsPlugin provides mechanisms to detect unauthenticated attempts to access protected resources. The WebAppKituraCredentialsPlugin will automatically redirect user's browser to the authentication page. After successful authentication user will be taken back to the web application's callback URL (redirectUri), which will once again use WebAppKituraCredentialsPlugin to obtain access and identity tokens from App ID service. After obtaining these tokens the WebAppKituraCredentialsPlugin will store them in HTTP session under WebAppKituraCredentialsPlugin.AuthContext key. In a scalable cloud environment it is recommended to persist HTTP sessions in a scalable storage like Redis to ensure they're available across  multiple server app instances.
 
 ```swift
 import Kitura
 import KituraSession
 import Credentials
 import SwiftyJSON
-import BluemixAppID
+import IBMCloudAppID
 
 // Below URLs will be used for App ID OAuth flows
 var LOGIN_URL = "/ibm/bluemix/appid/login"
@@ -100,7 +100,7 @@ let session = Session(secret: "Some secret")
 router.all(middleware: session)
 
 // Use static resources if required directory
-router.all("/", middleware: StaticFileServer(path: "./Tests/BluemixAppIDTests/public"))
+router.all("/", middleware: StaticFileServer(path: "./Tests/IBMCloudAppIDTests/public"))
 
 // Below configuration can be obtained from Service Credentials
 // tab in the App ID Dashboard. You're not required to manually provide below
@@ -169,12 +169,12 @@ Kitura.run()
 
 The APIKituraCredentialsPlugin follows the OAuth Bearer Token spec and should be used to protect backend API endpoints.
 
-When your Kitura backend receives a request, the credentials middleware will check for the existence of a Bearer token in its authorization header and then validate it against a App ID public key set. Upon success, the middleware will add the authorization context and user profile to the request and pass it to the next middleware or your handler. If an identity token is not provided, then the fields of the user profile will be empty.
+When your Kitura backend receives a request, the credentials middleware will check for the existence of a Bearer token in its authorization header and then validate it against an App ID public key set. Upon success, the middleware will add the authorization context and user profile to the request and pass it to the next middleware or your handler. If an identity token is not provided, then the fields of the user profile will be empty.
 
 ```swift
 import Kitura
 import Credentials
-import BluemixAppID
+import IBMCloudAppID
 
 // Below configuration can be obtained from Service Credentials
 // tab in the App ID Dashboard. You're not required to manually provide below
@@ -242,13 +242,45 @@ router.get(LOGOUT_URL, handler:  { (request, response, next) in
 
 ```
 
-As mentioned previously the anonymous access_token and identity_token will be automatically persisted in HTTP session by App ID SDK. You can retrieve them from HTTP session via same mechanisms as regular tokens. Access and identity tokens will be kept in HTTP session and will be used until either them or HTTP session expires.
+The anonymous access token and identity token are automatically persisted in HTTP session by App ID SDK. You can retrieve them from HTTP session via same mechanisms as regular tokens. Access and identity tokens will be kept in HTTP session and will be used until the tokens or the HTTP session expires.
+
+### Managing User Profiles
+
+Using the App ID UserProfileManager, you are able to create, delete, and retrieve user profile attributes as well as get additional info about a user.
+
+```swift
+
+let userProfileManager = UserProfileManager(options: options)
+
+userProfileManager.getAttribute(accessToken: accessToken, attributeName: "name") { (err, res) in
+}
+
+userProfileManager.setAttribute(accessToken: accessToken, attributeName: "name", attributeValue : "abc") { (err, res) in
+}
+
+userProfileManager.getAllAttributes(accessToken: accessToken) { (err, res) in
+}
+
+userProfileManager.deleteAllAttributes(accessToken: accessToken) { (err, res) in
+}
+
+// Retrieve user information by querying the UserInfo endpoint
+// If identity token is provided (recommended approach), response is validated against the identity token
+userProfileManager.getUserInfo(accessToken: accessToken, identityToken: optionalIdentityToken) { (err, res) in
+
+}
+
+// Retrieve the UserInfo without any validation
+userProfileManager.getUserInfo(accessToken: accessToken) { (err, res) in
+
+}
+```
 
 ### License
 This package contains code licensed under the Apache License, Version 2.0 (the "License"). You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 and may also view the License in the LICENSE file within this package.
 
-[img-bluemix-powered]: https://img.shields.io/badge/bluemix-powered-blue.svg
-[url-bluemix]: http://bluemix.net
+[img-ibmcloud-powered]: https://img.shields.io/badge/ibm%20cloud-powered-blue.svg
+[url-ibmcloud]: https://www.ibm.com/cloud/
 [url-repo]: https://github.com/ibm-cloud-security/appid-serversdk-swift
 [img-license]: https://img.shields.io/github/license/ibm-cloud-security/appid-serversdk-swift.svg
 [img-version]: https://img.shields.io/github/release/ibm-cloud-security/appid-serversdk-swift.svg

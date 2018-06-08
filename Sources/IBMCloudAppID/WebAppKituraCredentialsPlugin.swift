@@ -1,5 +1,5 @@
 /*
- Copyright 2017 IBM Corp.
+ Copyright 2018 IBM Corp.
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
@@ -21,40 +21,27 @@ import SimpleLogger
 import KituraSession
 
 @available(OSX 10.12, *)
-public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
-
-    public static let Name = "appid-webapp-kitura-credentials-plugin"
-    public static let AllowAnonymousLogin = "allowAnonymousLogin"
-    public static let AllowCreateNewAnonymousUser = "allowCreateNewAnonymousUser"
-    public static let ForceLogin = "forceLogin"
-    public static let AuthContext = "APPID_AUTH_CONTEXT"
-
-    private let defaultScope = "appid_default"
-    private let authorizationPath = "/authorization"
-    private let tokenPath = "/token"
-    private let serviceConfig: WebAppKituraCredentialsPluginConfig
-
-    private let logger = Logger(forName: "WebAppKituraCredentialsPlugin")
+public class WebAppKituraCredentialsPlugin: AppIDPlugin, CredentialsPluginProtocol {
 
     public let redirecting = true
 
     public var usersCache: NSCache<NSString, BaseCacheElement>?
 
     public var name: String {
-        return WebAppKituraCredentialsPlugin.Name
+        return Constants.WebAppPlugin.name
     }
 
     public init(options: [String: Any]?) {
-        logger.debug("Initializing WebAppKituraCredentialsPlugin")
-        self.serviceConfig = WebAppKituraCredentialsPluginConfig(options: options)
+        let config = AppIDPluginConfig(options: options, required: \.serverUrl, \.clientId, \.tenantId, \.secret, \.redirectUri)
+        super.init(logger: Logger(forName: Constants.WebAppPlugin.name), config: config)
     }
 
     public func authenticate (request: RouterRequest,
                               response: RouterResponse,
                               options: [String: Any],
                               onSuccess: @escaping (UserProfile) -> Void,
-                              onFailure: @escaping (HTTPStatusCode?, [String:String]?) -> Void,
-                              onPass: @escaping (HTTPStatusCode?, [String:String]?) -> Void,
+                              onFailure: @escaping (HTTPStatusCode?, [String: String]?) -> Void,
+                              onPass: @escaping (HTTPStatusCode?, [String: String]?) -> Void,
                               inProgress: @escaping () -> Void) {
 
         if request.session == nil {
@@ -81,7 +68,7 @@ public class WebAppKituraCredentialsPlugin: CredentialsPluginProtocol {
 
     public func logout(request: RouterRequest) {
         //        request.session?.remove(key: OriginalUrl)
-        request.session?.remove(key: WebAppKituraCredentialsPlugin.AuthContext)
+        request.session?.remove(key: Constants.AuthContext.name)
     }
 
 }
@@ -134,9 +121,9 @@ extension WebAppKituraCredentialsPlugin {
                                       inProgress: @escaping () -> Void) {
 
         logger.debug("WebAppKituraCredentialsPlugin :: handleAuthorization")
-        let forceLogin: Bool = options[WebAppKituraCredentialsPlugin.ForceLogin] as? Bool ?? false
-        let allowAnonymousLogin: Bool = options[WebAppKituraCredentialsPlugin.AllowAnonymousLogin] as? Bool ?? false
-        let allowCreateNewAnonymousUser: Bool = options[WebAppKituraCredentialsPlugin.AllowCreateNewAnonymousUser] as? Bool ?? true
+        let forceLogin: Bool = options[Constants.AppID.forceLogin] as? Bool ?? false
+        let allowAnonymousLogin: Bool = options[Constants.AppID.allowAnonymousLogin] as? Bool ?? false
+        let allowCreateNewAnonymousUser: Bool = options[Constants.AppID.allowCreateNewAnonymousUser] as? Bool ?? true
         // If user is already authenticated and new login is not enforced - end processing
         // Otherwise - persist original request url and redirect to authorization
         if let requestUserProfile = request.userProfile, !forceLogin && !allowAnonymousLogin {
@@ -159,7 +146,7 @@ extension WebAppKituraCredentialsPlugin {
         var authUrl = generateAuthorizationUrl(options: options)
 
         // If there's an existing anonymous access token on session - add it to the request url
-        if let appIdAuthContext = request.session?[WebAppKituraCredentialsPlugin.AuthContext] as? [String : Any] {
+        if let appIdAuthContext = request.session?[Constants.AuthContext.name] as? [String : Any] {
             let payload = appIdAuthContext["accessTokenPayload"] as? [String : Any]
             if (payload?["amr"] as? [String])?[0] ==  "appid_anon" {
                 logger.debug("WebAppKituraCredentialsPlugin :: handleAuthorization :: added anonymous access_token to url")
@@ -185,7 +172,7 @@ extension WebAppKituraCredentialsPlugin {
                                       tokenData: Data?,
                                       tokenError: Swift.Error?,
                                       originalRequest: RouterRequest,
-                                      onFailure: @escaping (HTTPStatusCode?, [String:String]?) -> Void,
+                                      onFailure: @escaping (HTTPStatusCode?, [String: String]?) -> Void,
                                       onSuccess: @escaping (UserProfile) -> Void) {
 
         let code = httpCode.map { String(describing: $0) } ?? "<no http code>"
@@ -195,11 +182,13 @@ extension WebAppKituraCredentialsPlugin {
                               ": \(errorMessage)\nstatus code : \(code)\ntoken body : \(String(describing: tokenData))")
             return onFailure(nil, nil)
         }
+
         guard let tokenData = tokenData else {
             self.logger.debug("WebAppKituraCredentialsPlugin :: Failed to obtain tokens." +
                               " No token error message. No token data. status code : \(code)")
             return onFailure(nil, nil)
         }
+
         guard httpCode == 200 else {
             self.logger.debug("WebAppKituraCredentialsPlugin :: Failed to obtain tokens." +
                               " Status code wasn't 200. No token error message. status code :" +
@@ -208,41 +197,41 @@ extension WebAppKituraCredentialsPlugin {
         }
 
         var body = JSON(data: tokenData)
-        var appIdAuthorizationContext: [String:Any] = [:]
 
-        var kituraUserId = ""
-        var kituraDisplayName = ""
-        var kituraProvider = ""
-
-        if let accessTokenString = body["access_token"].string,
-           let accessTokenPayload = try? Utils.parseToken(from: accessTokenString)["payload"] {
-            // Parse access_token
-            appIdAuthorizationContext["accessToken"] = accessTokenString
-            appIdAuthorizationContext["accessTokenPayload"] = accessTokenPayload.dictionaryObject
-        } else {
+        /// Parse access_token
+        guard let accessTokenString = body["access_token"].string else {
             return onFailure(nil, nil)
         }
 
-        if let identityTokenString = body["id_token"].string,
-           let identityToken = try? Utils.parseToken(from: identityTokenString),
-           let context = Utils.getAuthorizedIdentities(from: identityToken) {
-            // Parse identity_token
-            appIdAuthorizationContext["identityToken"] = identityTokenString
-            appIdAuthorizationContext["identityTokenPayload"] = identityToken["payload"].dictionaryObject
-            kituraUserId = context.userIdentity.id
-            kituraDisplayName = context.userIdentity.displayName
-            if context.userIdentity.authBy.count > 0 && context.userIdentity.authBy[0]["provider"].string != nil {
-                kituraProvider =  context.userIdentity.authBy[0]["provider"].stringValue
-            } else {
-                kituraProvider =  ""
+        Utils.decodeAndValidate(tokenString: accessTokenString, publicKeyUtil: publicKeyUtil, options: config) {
+            payload, error in
+
+            guard let payload = payload, error == nil else {
+                return onFailure(nil, nil)
+            }
+
+            var authorizationContext: [String:Any] = [
+                "accessToken": accessTokenString,
+                "accessTokenPayload": payload as Any
+            ]
+
+            /// Parse / Validate Identity Token, if necessary
+            self.parseIdentityToken(idTokenString: body["id_token"].string) { context, error in
+
+                /// On error (Web strategy only), we will fail
+                guard let context = context, error == nil else {
+                    return onFailure(nil, nil)
+                }
+
+                /// Merge authorization context and identity context, if necessary
+                context.0.forEach { authorizationContext[$0] = $1 }
+
+                originalRequest.session?[Constants.AuthContext.name] = authorizationContext
+                onSuccess(context.1)
+
+                self.logger.debug("retrieveTokens :: tokens retrieved")
             }
         }
-
-        originalRequest.session?[WebAppKituraCredentialsPlugin.AuthContext] = appIdAuthorizationContext
-
-        let userProfile = UserProfile(id: kituraUserId, displayName: kituraDisplayName, provider: kituraProvider)
-        onSuccess(userProfile)
-        self.logger.debug("retrieveTokens :: tokens retrieved")
     }
 
     fileprivate func retrieveTokens(options: [String: Any],
@@ -251,12 +240,17 @@ extension WebAppKituraCredentialsPlugin {
                                 request: RouterRequest,
                                 onSuccess: @escaping (UserProfile) -> Void) {
         logger.debug("WebAppKituraCredentialsPlugin :: retrieveTokens")
-        let serviceConfig = self.serviceConfig
 
-        let clientId = serviceConfig.clientId
-        let secret = serviceConfig.secret
-        let tokenEndpoint = serviceConfig.oAuthServerUrl + tokenPath
-        let redirectUri = serviceConfig.redirectUri
+        guard let clientId = config.clientId,
+              let secret = config.secret,
+              let serverUrl = config.serverUrl else {
+
+                onFailure(nil, nil)
+                return
+        }
+
+        let tokenEndpoint = serverUrl + Constants.Endpoints.token
+        let redirectUri = config.redirectUri
         let authorization = clientId + ":" + secret
 
         let restReq = RestRequest(method: .post, url: tokenEndpoint, containsSelfSignedCert: false)
@@ -272,32 +266,25 @@ extension WebAppKituraCredentialsPlugin {
         }
 
         restReq.response { (tokenData, tokenResponse, tokenError) in
-            if let err = tokenError {
-                self.logger.debug("An error occured in the token response. Error: \(err)")
-            } else if let tokenResponse = tokenResponse, let tokenData = tokenData {
-                self.handleTokenResponse(httpCode: tokenResponse.statusCode,
-                                         tokenData: tokenData,
-                                         tokenError: tokenError,
-                                         originalRequest: request,
-                                         onFailure: onFailure,
-                                         onSuccess: onSuccess)
-            } else {
-                self.logger.debug("An internal error occured. Request failed.")
-            }
+            self.handleTokenResponse(httpCode: tokenResponse?.statusCode,
+                                     tokenData: tokenData,
+                                     tokenError: tokenError,
+                                     originalRequest: request,
+                                     onFailure: onFailure,
+                                     onSuccess: onSuccess)
         }
     }
 
     fileprivate func generateAuthorizationUrl(options: [String:Any]) -> String {
-        let serviceConfig = self.serviceConfig
-        let clientId = serviceConfig.clientId
+
         var scopeAddition: String?
         if let addition = options["scope"] as? String {
             scopeAddition = " " + addition
         }
-        let scope = defaultScope + (scopeAddition ?? "")
-        let authorizationEndpoint = serviceConfig.oAuthServerUrl + authorizationPath
-        let redirectUri = serviceConfig.redirectUri
-        var query = "client_id=\(clientId)&response_type=code&redirect_uri=\(redirectUri)&scope=\(scope)"
+
+        let scope = Constants.AppID.defaultScope + (scopeAddition ?? "")
+        let authorizationEndpoint = (config.serverUrl ?? "") + Constants.Endpoints.authorization
+        var query = "client_id=\(config.clientId ?? "")&response_type=code&redirect_uri=\(config.redirectUri ?? "")&scope=\(scope)"
         if (options["allowAnonymousLogin"] as? Bool) == true {
             query += "&idp=appid_anon"
         }
@@ -306,4 +293,5 @@ extension WebAppKituraCredentialsPlugin {
         self.logger.debug("AUTHURL: \(authUrl)")
         return authUrl
     }
+
 }
