@@ -161,4 +161,5 @@ extension APIKituraCredentialsPlugin {
 
         return true
     }
+
 }

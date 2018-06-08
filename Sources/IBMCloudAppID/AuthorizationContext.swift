@@ -55,4 +55,5 @@ public class AuthorizationContext {
             throw AppIDError.jsonParsingError
         }
     }
+
 }
