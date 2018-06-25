@@ -686,7 +686,7 @@ extension WebAppPluginTest {
 
         /// Adds the state paramter to the session
         func setSessionState(_ state: String, isAnonymous: Bool = false) {
-            request.session?["context"] = ["state": state, "isAnonymous": isAnonymous]
+            request.session?[Constants.context] = ["state": state, "isAnonymous": isAnonymous]
         }
         
         /// Adds the user profile object to the request with the provided params

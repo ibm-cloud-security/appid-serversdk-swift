@@ -201,14 +201,20 @@ extension WebAppKituraCredentialsPlugin {
                                               onFailure: @escaping (HTTPStatusCode?, [String: String]?) -> Void) {
         
         /// Validate state parameter in session matches response state
-        /// The anonymous flow does not currently return a state parameter.
-        if let isAnonymous = getRequestContext(param: Constants.isAnonymous, type: Bool.self, from: request), !isAnonymous {
+        guard let context = request.session?[Constants.context] as? [String: Any],
+            let isAnonymous = context[Constants.isAnonymous] as? Bool else {
+            logger.error("The session is missing the required context")
+            return onFailure(nil, nil)
+        }
         
-            guard let storedState = getRequestContext(param: Constants.state, type: String.self, from: request) else {
-                logger.error("The expected state parameter was not found in the request session")
-                return onFailure(nil, nil)
-            }
-            
+        guard let storedState = context[Constants.state] as? String else {
+            logger.error("The expected state parameter was not found in the request session")
+            return onFailure(nil, nil)
+        }
+        
+        /// The anonymous flow does not currently return a state parameter.
+        if !isAnonymous {
+ 
             guard let returnedState = getRequestState(from: request) else {
                 logger.error("The redirect URI does not have required state")
                 return onFailure(nil, nil)
@@ -349,10 +355,5 @@ extension WebAppKituraCredentialsPlugin {
         let authUrl = "\(authorizationEndpoint)?\(query)"
         self.logger.debug("AUTHURL: \(authUrl)")
         return authUrl
-    }
-
-    /// Getter for the a request session
-    private func getRequestContext<T: Codable>(param: String, type: T.Type, from request: RouterRequest) -> T? {
-        return (request.session?[Constants.context] as? [String: Any])?[param] as? T
     }
 }
