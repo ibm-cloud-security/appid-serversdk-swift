@@ -68,6 +68,7 @@ public class WebAppKituraCredentialsPlugin: AppIDPlugin, CredentialsPluginProtoc
 
     public func logout(request: RouterRequest) {
         // request.session?.remove(key: OriginalUrl)
+        request.session?.remove(key: Constants.context)
         request.session?.remove(key: Constants.AuthContext.name)
     }
 
