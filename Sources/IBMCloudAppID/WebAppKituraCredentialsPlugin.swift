@@ -74,17 +74,17 @@ public class WebAppKituraCredentialsPlugin: AppIDPlugin, CredentialsPluginProtoc
     //////////////////////////
     // Internal for testing //
     //////////////////////////
-    
+
     /// Generates a high entropy random state parameter
     internal func generateState(of length: Int) -> String {
         return String.generateStateParameter(of: length)
     }
-    
+
     /// Executes a ResRequest
     internal func executeRequest(_ request: RestRequest, completion: @escaping (Data?, HTTPURLResponse?, Swift.Error?) -> Void) {
         request.response(completionHandler: completion)
     }
-    
+
     /// Getter for the a RouterRequest state query parameter
     internal func getRequestState(from request: RouterRequest) -> String? {
         return request.parsedURL.queryParameters[Constants.state]
@@ -146,7 +146,7 @@ extension WebAppKituraCredentialsPlugin {
         // If user is already authenticated and new login is not enforced - end processing
         // Otherwise - persist original request url and redirect to authorization
         if let requestUserProfile = request.userProfile, !forceLogin && !allowAnonymousLogin {
-            logger.debug("ALREADY AUTHENTICATED !!!")
+            logger.debug("ALREADY AUTHENTICATED!!!")
             return onSuccess(requestUserProfile)
         } else {
             //			request.session?[OriginalUrl] = JSON(request.originalURL)
@@ -179,7 +179,7 @@ extension WebAppKituraCredentialsPlugin {
 
         // Store and add high entropy state
         let state = generateState(of: 10)
-    
+
         authUrl += "&state=\(state)"
         logger.debug(authUrl)
         request.session?[Constants.context] = [Constants.state: state, Constants.isAnonymous: authUrl.range(of: "idp=appid_anon") != nil]
@@ -199,42 +199,42 @@ extension WebAppKituraCredentialsPlugin {
                                               request: RouterRequest,
                                               onSuccess: @escaping (UserProfile) -> Void,
                                               onFailure: @escaping (HTTPStatusCode?, [String: String]?) -> Void) {
-        
+
         /// Validate state parameter in session matches response state
         guard let context = request.session?[Constants.context] as? [String: Any],
             let isAnonymous = context[Constants.isAnonymous] as? Bool else {
             logger.error("The session is missing the required context")
             return onFailure(nil, nil)
         }
-        
+
         guard let storedState = context[Constants.state] as? String else {
             logger.error("The expected state parameter was not found in the request session")
             return onFailure(nil, nil)
         }
-        
+
         /// The anonymous flow does not currently return a state parameter.
         if !isAnonymous {
- 
+
             guard let returnedState = getRequestState(from: request) else {
                 logger.error("The redirect URI does not have required state")
                 return onFailure(nil, nil)
             }
-            
+
             guard storedState == returnedState else {
                 logger.error("Stored State does not match redirect uri state query parameter")
                 return onFailure(nil, nil)
             }
         }
-        
+
         retrieveTokens(grantCode: code, request: request, onSuccess: onSuccess, onFailure: onFailure)
     }
-    
+
     /// Retrieves tokens using the callback grant code
     fileprivate func retrieveTokens(grantCode: String,
                                     request: RouterRequest,
                                     onSuccess: @escaping (UserProfile) -> Void,
                                     onFailure: @escaping (HTTPStatusCode?, [String: String]?) -> Void) {
-       
+
         logger.debug("WebAppKituraCredentialsPlugin :: retrieveTokens")
 
         guard let clientId = config.clientId,
@@ -270,7 +270,7 @@ extension WebAppKituraCredentialsPlugin {
                                      onSuccess: onSuccess)
         }
     }
-    
+
     /// Parses and validates token request response
     fileprivate func handleTokenResponse(httpCode: Int?,
                                          tokenData: Data?,
@@ -278,7 +278,7 @@ extension WebAppKituraCredentialsPlugin {
                                          originalRequest: RouterRequest,
                                          onFailure: @escaping (HTTPStatusCode?, [String: String]?) -> Void,
                                          onSuccess: @escaping (UserProfile) -> Void) {
-        
+
         let code = httpCode.map { String(describing: $0) } ?? "<no http code>"
         if let tokenError = tokenError {
             let errorMessage = String(describing: tokenError)
@@ -286,53 +286,53 @@ extension WebAppKituraCredentialsPlugin {
                 ": \(errorMessage)\nstatus code : \(code)\ntoken body : \(String(describing: tokenData))")
             return onFailure(nil, nil)
         }
-        
+
         guard let tokenData = tokenData else {
             self.logger.debug("WebAppKituraCredentialsPlugin :: Failed to obtain tokens." +
                 " No token error message. No token data. status code : \(code)")
             return onFailure(nil, nil)
         }
-        
+
         guard httpCode == 200 else {
             self.logger.debug("WebAppKituraCredentialsPlugin :: Failed to obtain tokens." +
                 " Status code wasn't 200. No token error message. status code :" +
                 " \(code)\n token body : \(String(describing: tokenData))")
             return onFailure(nil, nil)
         }
-        
+
         var body = JSON(data: tokenData)
-        
+
         /// Parse access_token
         guard let accessTokenString = body["access_token"].string else {
             return onFailure(nil, nil)
         }
-        
+
         Utils.decodeAndValidate(tokenString: accessTokenString, publicKeyUtil: publicKeyUtil, options: config) {
             payload, error in
-            
+
             guard let payload = payload, error == nil else {
                 return onFailure(nil, nil)
             }
-            
+
             var authorizationContext: [String: Any] = [
                 "accessToken": accessTokenString,
                 "accessTokenPayload": payload as Any
             ]
-            
+
             /// Parse / Validate Identity Token, if necessary
             self.parseIdentityToken(idTokenString: body["id_token"].string) { context, error in
-                
+
                 /// On error (Web strategy only), we will fail
                 guard let context = context, error == nil else {
                     return onFailure(nil, nil)
                 }
-                
+
                 /// Merge authorization context and identity context, if necessary
                 context.0.forEach { authorizationContext[$0] = $1 }
-                
+
                 originalRequest.session?[Constants.AuthContext.name] = authorizationContext
                 onSuccess(context.1)
-                
+
                 self.logger.debug("retrieveTokens :: tokens retrieved")
             }
         }
@@ -356,4 +356,5 @@ extension WebAppKituraCredentialsPlugin {
         self.logger.debug("AUTHURL: \(authUrl)")
         return authUrl
     }
+
 }

@@ -42,8 +42,8 @@ after_success:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       gem install slather;
       swift package generate-xcodeproj --xcconfig-overrides openssl.xcconfig;
-      slather setup BluemixAppID.xcodeproj;
-      xcodebuild -project BluemixAppID.xcodeproj -scheme BluemixAppID build;
-      xcodebuild -project BluemixAppID.xcodeproj -scheme BluemixAppID -enableCodeCoverage YES test;
-      slather coverage --coveralls --binary-basename BluemixAppID.framework -v;
+      slather setup IBMCloudAppID.xcodeproj;
+      xcodebuild -project IBMCloudAppID.xcodeproj -scheme IBMCloudAppID build;
+      xcodebuild -project IBMCloudAppID.xcodeproj -scheme IBMCloudAppID -enableCodeCoverage YES test;
+      slather coverage --coveralls --binary-basename IBMCloudAppID.framework -v;
     fi

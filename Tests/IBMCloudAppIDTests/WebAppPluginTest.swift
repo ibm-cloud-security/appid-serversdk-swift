@@ -28,7 +28,7 @@ import Socket
 import SwiftyJSON
 import Foundation
 
-@testable import BluemixAppID
+@testable import IBMCloudAppID
 
 @available(OSX 10.12, *)
 class WebAppPluginTest: XCTestCase {
@@ -427,20 +427,7 @@ class WebAppPluginTest: XCTestCase {
     func off_testRunWebAppServer() {
         logger.debug("Starting")
 
-        let options = [
-            "apikey": "8UtThbBNmt7S3V3uNJYiLogq0ETqGIkqi51vYR2Pd12a",
-            "clientId": "bd79b940-bb8b-4f34-a205-d585cd14eedf",
-            "iam_apikey_description": "Auto generated apikey during resource-key operation for Instance - crn:v1:bluemix:public:appid:us-south:a/bb525b5d9d27128460eaaa9e4a2ca718:798288dc-79cb-4faf-9825-dad68cd4ed6f::",
-            "iam_apikey_name": "auto-generated-apikey-bd79b940-bb8b-4f34-a205-d585cd14eedf",
-            "iam_role_crn": "crn:v1:bluemix:public:iam::::serviceRole:Reader",
-            "iam_serviceid_crn": "crn:v1:bluemix:public:iam-identity::a/bb525b5d9d27128460eaaa9e4a2ca718::serviceid:ServiceId-790a1c5e-32b3-488f-9ebf-e7b424dad882",
-            "managementUrl": "https://appid-management.ng.bluemix.net/management/v4/798288dc-79cb-4faf-9825-dad68cd4ed6f",
-            "oauthServerUrl": "https://appid-oauth.ng.bluemix.net/oauth/v3/798288dc-79cb-4faf-9825-dad68cd4ed6f",
-            "profilesUrl": "https://appid-profiles.ng.bluemix.net",
-            "secret": "YjYxZDg1NTAtNmVkYi00YTA4LTg0ODYtZTYyZGY3NGY3ODU0",
-            "tenantId": "798288dc-79cb-4faf-9825-dad68cd4ed6f",
-            "redirectUri": "http://localhost:8090/ibm/bluemix/appid/callback"
-        ]
+        let options = []
 
         let LOGIN_URL = "/ibm/bluemix/appid/login"
         let LOGIN_ANON_URL = "/ibm/bluemix/appid/loginanon"
@@ -451,7 +438,7 @@ class WebAppPluginTest: XCTestCase {
         let router = Router()
         let session = Session(secret: "Some secret")
         router.all(middleware: session)
-        router.all("/", middleware: StaticFileServer(path: "./Tests/BluemixAppIDTests/public"))
+        router.all("/", middleware: StaticFileServer(path: "./Tests/IBMCloudAppIDTests/public"))
 
         let webappKituraCredentialsPlugin = WebAppKituraCredentialsPlugin(options: options)
         let kituraCredentials = Credentials()

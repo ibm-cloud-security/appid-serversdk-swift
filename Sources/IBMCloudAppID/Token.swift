@@ -83,4 +83,5 @@ public class Token {
         self.header = JSON(data: headerDecodedData)
         self.payload = JSON(data: payloadDecodedData)
     }
+
 }

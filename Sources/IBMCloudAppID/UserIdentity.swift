@@ -42,4 +42,5 @@ public class UserIdentity {
     internal init(json: JSON) {
         self.json = json
     }
+
 }
