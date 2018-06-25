@@ -14,27 +14,27 @@
 import Foundation
 
 extension String {
-    
+
     func base64decodedData() -> Data? {
         let missing = self.count % 4
-        
+
         var ending = ""
         if missing > 0 {
             let amount = 4 - missing
             ending = String(repeating: "=", count: amount)
         }
-        
+
         let base64 = self.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/") + ending
-        
+
         return Data(base64Encoded: base64, options: Data.Base64DecodingOptions())
     }
-    
+
     /// Generates a random state
     ///
     /// - parameter: length - denotes the size of the random string
     /// - returns: a random string of the specified size
     static func generateStateParameter(of length: Int) -> String {
-        
+
         let allowedChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
         let allowedCharsCount = allowedChars.count
         var randomString = ""
@@ -53,4 +53,5 @@ extension String {
 
         return randomString
     }
+
 }
