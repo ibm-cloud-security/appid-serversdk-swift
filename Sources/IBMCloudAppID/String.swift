@@ -51,6 +51,6 @@ extension String {
             randomString += String(newCharacter)
         }
 
-        return "randomString"
+        return randomString
     }
 }
