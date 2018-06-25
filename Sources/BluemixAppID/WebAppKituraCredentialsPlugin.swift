@@ -67,7 +67,7 @@ public class WebAppKituraCredentialsPlugin: AppIDPlugin, CredentialsPluginProtoc
     }
 
     public func logout(request: RouterRequest) {
-        //        request.session?.remove(key: OriginalUrl)
+        // request.session?.remove(key: OriginalUrl)
         request.session?.remove(key: Constants.AuthContext.name)
     }
 
@@ -75,16 +75,17 @@ public class WebAppKituraCredentialsPlugin: AppIDPlugin, CredentialsPluginProtoc
     // Internal for testing //
     //////////////////////////
     
-    /// Generaets a high en
+    /// Generates a high entropy random state parameter
     internal func generateState(of length: Int) -> String {
         return String.generateStateParameter(of: length)
     }
     
+    /// Executes a ResRequest
     internal func executeRequest(_ request: RestRequest, completion: @escaping (Data?, HTTPURLResponse?, Swift.Error?) -> Void) {
         request.response(completionHandler: completion)
     }
     
-    
+    /// Getter for the a RouterRequest state query parameter
     internal func getRequestState(from request: RouterRequest) -> String? {
         return request.parsedURL.queryParameters[Constants.state]
     }
@@ -129,6 +130,7 @@ extension WebAppKituraCredentialsPlugin {
         return nil
     }
 
+    /// Handles execution of the initial authorization request for authorization code flow.
     fileprivate func handleAuthorization (request: RouterRequest,
                                       response: RouterResponse,
                                       options: [String: Any], // Options is read only
@@ -144,7 +146,7 @@ extension WebAppKituraCredentialsPlugin {
         // If user is already authenticated and new login is not enforced - end processing
         // Otherwise - persist original request url and redirect to authorization
         if let requestUserProfile = request.userProfile, !forceLogin && !allowAnonymousLogin {
-            logger.debug("ALREADY AUTHENTICATED!!!")
+            logger.debug("ALREADY AUTHENTICATED !!!")
             return onSuccess(requestUserProfile)
         } else {
             //			request.session?[OriginalUrl] = JSON(request.originalURL)
@@ -179,8 +181,8 @@ extension WebAppKituraCredentialsPlugin {
         let state = generateState(of: 10)
     
         authUrl += "&state=\(state)"
-        
-        request.session?[Constants.state] = state
+        logger.debug(authUrl)
+        request.session?[Constants.context] = [Constants.state: state, Constants.isAnonymous: authUrl.range(of: "idp=appid_anon") != nil]
 
         logger.debug("Redirecting to : " + authUrl)
 
@@ -192,31 +194,36 @@ extension WebAppKituraCredentialsPlugin {
         }
     }
 
+    /// Handles the initial authorization request callback for authorization code flow.
     internal func handleAuthorizationCallback(code: String,
                                               request: RouterRequest,
                                               onSuccess: @escaping (UserProfile) -> Void,
                                               onFailure: @escaping (HTTPStatusCode?, [String: String]?) -> Void) {
         
         /// Validate state parameter in session matches response state
+        /// The anonymous flow does not currently return a state parameter.
+        if let isAnonymous = getRequestContext(param: Constants.isAnonymous, type: Bool.self, from: request), !isAnonymous {
         
-        guard let storedState = request.session?[Constants.state] as? String else {
-            logger.error("The expected state parameter was not found in the request session")
-            return onFailure(nil, nil)
-        }
-        
-        guard let returnedState = getRequestState(from: request) else {
-            logger.error("The redirect URI does not have required state")
-            return onFailure(nil, nil)
-        }
-        
-        guard storedState == returnedState else {
-            logger.error("Stored State does not match redirect uri state query parameter")
-            return onFailure(nil, nil)
+            guard let storedState = getRequestContext(param: Constants.state, type: String.self, from: request) else {
+                logger.error("The expected state parameter was not found in the request session")
+                return onFailure(nil, nil)
+            }
+            
+            guard let returnedState = getRequestState(from: request) else {
+                logger.error("The redirect URI does not have required state")
+                return onFailure(nil, nil)
+            }
+            
+            guard storedState == returnedState else {
+                logger.error("Stored State does not match redirect uri state query parameter")
+                return onFailure(nil, nil)
+            }
         }
         
         retrieveTokens(grantCode: code, request: request, onSuccess: onSuccess, onFailure: onFailure)
     }
     
+    /// Retrieves tokens using the callback grant code
     fileprivate func retrieveTokens(grantCode: String,
                                     request: RouterRequest,
                                     onSuccess: @escaping (UserProfile) -> Void,
@@ -258,6 +265,7 @@ extension WebAppKituraCredentialsPlugin {
         }
     }
     
+    /// Parses and validates token request response
     fileprivate func handleTokenResponse(httpCode: Int?,
                                          tokenData: Data?,
                                          tokenError: Swift.Error?,
@@ -343,4 +351,8 @@ extension WebAppKituraCredentialsPlugin {
         return authUrl
     }
 
+    /// Getter for the a request session
+    private func getRequestContext<T: Codable>(param: String, type: T.Type, from request: RouterRequest) -> T? {
+        return (request.session?[Constants.context] as? [String: Any])?[param] as? T
+    }
 }

@@ -404,6 +404,17 @@ class WebAppPluginTest: XCTestCase {
         awaitExpectations()
     }
     
+    func testStateParameterAnonymous() {
+        let builder = AuthorizationCallbackHandler(name: "testStateParameterAnonymous")
+        
+        builder.requireSession()
+        builder.setSessionState("doesn't matter", isAnonymous: true)
+        builder.expectFailure(with: expectation(description: builder.name))
+        builder.execute()
+        
+        awaitExpectations()
+    }
+    
     func awaitExpectations() {
         waitForExpectations(timeout: 1) { error in
             if let error = error {
@@ -428,7 +439,7 @@ class WebAppPluginTest: XCTestCase {
             "profilesUrl": "https://appid-profiles.ng.bluemix.net",
             "secret": "YjYxZDg1NTAtNmVkYi00YTA4LTg0ODYtZTYyZGY3NGY3ODU0",
             "tenantId": "798288dc-79cb-4faf-9825-dad68cd4ed6f",
-            "redirectUri": "http://localhost:8080/ibm/bluemix/appid/callback"
+            "redirectUri": "http://localhost:8090/ibm/bluemix/appid/callback"
         ]
 
         let LOGIN_URL = "/ibm/bluemix/appid/login"
@@ -493,7 +504,7 @@ class WebAppPluginTest: XCTestCase {
             next()
         })
 
-        Kitura.addHTTPServer(onPort: 8080, with: router)
+        Kitura.addHTTPServer(onPort: 8090, with: router)
         Kitura.run()
     }
 }
@@ -674,8 +685,8 @@ extension WebAppPluginTest {
         }
 
         /// Adds the state paramter to the session
-        func setSessionState(_ state: String) {
-            request.session?["state"] = state
+        func setSessionState(_ state: String, isAnonymous: Bool = false) {
+            request.session?["context"] = ["state": state, "isAnonymous": isAnonymous]
         }
         
         /// Adds the user profile object to the request with the provided params
@@ -775,10 +786,10 @@ extension WebAppPluginTest {
             self.web?.requestState = state
         }
         
-        func setDefaultSessionAndState() {
+        func setDefaultSessionAndState(isAnonymous: Bool = false) {
             requireSession()
             setRedirectUriState("state")
-            setSessionState("state")
+            setSessionState("state", isAnonymous: isAnonymous)
         }
         
         func validateAuthContext(accessToken: String? = nil, identityToken: String? = nil) {
