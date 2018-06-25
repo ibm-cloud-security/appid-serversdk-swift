@@ -427,7 +427,7 @@ class WebAppPluginTest: XCTestCase {
     func off_testRunWebAppServer() {
         logger.debug("Starting")
 
-        let options = []
+        let options = ["":""]
 
         let LOGIN_URL = "/ibm/bluemix/appid/login"
         let LOGIN_ANON_URL = "/ibm/bluemix/appid/loginanon"
