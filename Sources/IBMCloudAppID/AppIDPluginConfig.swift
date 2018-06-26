@@ -51,6 +51,9 @@ class AppIDPluginConfig {
         guard let sUrl = serverUrl, let url = URL(string: sUrl) else {
             return nil
         }
+        if let host = url.host, let port = url.port {
+            return "\(host):\(port)"
+        }
         return url.host
     }
 

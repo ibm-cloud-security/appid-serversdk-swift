@@ -16,24 +16,6 @@ import SwiftyJSON
 import SimpleLogger
 import CryptorRSA
 
-extension String {
-
-    func base64decodedData() -> Data? {
-        let missing = self.count % 4
-
-        var ending = ""
-        if missing > 0 {
-            let amount = 4 - missing
-            ending = String(repeating: "=", count: amount)
-        }
-
-        let base64 = self.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/") + ending
-
-        return Data(base64Encoded: base64, options: Data.Base64DecodingOptions())
-    }
-
-}
-
 @available(OSX 10.12, *)
 class Utils {
 
