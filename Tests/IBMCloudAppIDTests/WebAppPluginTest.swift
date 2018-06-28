@@ -424,23 +424,10 @@ class WebAppPluginTest: XCTestCase {
     }
 
     // Remove off_ to run sample app
-    func testRunWebAppServer() {
+    func off_testRunWebAppServer() {
         logger.debug("Starting")
 
-        let options = [
-            "apikey": "9QuW7JJ7i3HoxOPtbbuh7WUt9RUhjH_eVKiQ1pYvalEq",
-            "clientId": "05235622-abc8-4261-b39b-d9a992b934a9",
-            "iam_apikey_description": "Auto generated apikey during resource-key operation for Instance - crn:v1:staging:public:appid:eu-gb:a/f8a2502ea907007a58a933f29a9b1511:71b34890-a94f-4ef2-a4b6-ce094aa68092::",
-            "iam_apikey_name": "auto-generated-apikey-05235622-abc8-4261-b39b-d9a992b934a9",
-            "iam_role_crn": "crn:v1:bluemix:public:iam::::serviceRole:Manager",
-            "iam_serviceid_crn": "crn:v1:staging:public:iam-identity::a/f8a2502ea907007a58a933f29a9b1511::serviceid:ServiceId-ea0bdd21-860e-40be-a5a5-66719bb4a08f",
-            "managementUrl": "https://appid-management.stage1.eu-gb.bluemix.net/management/v4/71b34890-a94f-4ef2-a4b6-ce094aa68092",
-            "oauthServerUrl": "https://appid-oauth.stage1.eu-gb.bluemix.net/oauth/v3/71b34890-a94f-4ef2-a4b6-ce094aa68092",
-            "profilesUrl": "https://appid-profiles.stage1.eu-gb.bluemix.net",
-            "secret": "NDc4ODhmY2MtNmEwNS00Mjg1LTgwZGItMzY5MGU0Mzk3OTg1",
-            "tenantId": "71b34890-a94f-4ef2-a4b6-ce094aa68092",
-            "redirectUri": "http://localhost:8090/ibm/bluemix/appid/callback"
-            ]
+        let options = ["": ""]
 
         let LOGIN_URL = "/ibm/bluemix/appid/login"
         let LOGIN_ANON_URL = "/ibm/bluemix/appid/loginanon"

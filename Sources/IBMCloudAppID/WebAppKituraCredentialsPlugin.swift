@@ -54,7 +54,6 @@ public class WebAppKituraCredentialsPlugin: AppIDPlugin, CredentialsPluginProtoc
             logger.warn("Error returned in callback " + error)
             onFailure(nil, nil)
         } else if let code = request.queryParameters["code"] {
-            logger.warn("\nCallback URL: " + request.urlURL.absoluteString + "\n")
             return handleAuthorizationCallback(code: code, request: request, onSuccess: onSuccess, onFailure: onFailure)
         } else {
             return handleAuthorization(request: request,
