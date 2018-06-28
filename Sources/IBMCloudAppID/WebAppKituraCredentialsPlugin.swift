@@ -54,6 +54,7 @@ public class WebAppKituraCredentialsPlugin: AppIDPlugin, CredentialsPluginProtoc
             logger.warn("Error returned in callback " + error)
             onFailure(nil, nil)
         } else if let code = request.queryParameters["code"] {
+            logger.warn("\nCallback URL: " + request.urlURL.absoluteString + "\n")
             return handleAuthorizationCallback(code: code, request: request, onSuccess: onSuccess, onFailure: onFailure)
         } else {
             return handleAuthorization(request: request,
@@ -77,7 +78,7 @@ public class WebAppKituraCredentialsPlugin: AppIDPlugin, CredentialsPluginProtoc
     //////////////////////////
 
     /// Generates a high entropy random state parameter
-    internal func generateState(of length: Int) -> String {
+    internal func generateState(of length: Int) -> String? {
         return String.generateStateParameter(of: length)
     }
 
@@ -179,7 +180,10 @@ extension WebAppKituraCredentialsPlugin {
         }
 
         // Store and add high entropy state
-        let state = generateState(of: 10)
+        guard let state = generateState(of: 24) else {
+            logger.error("Could not generate a state parameter. Please try again.")
+            return onFailure(nil, nil)
+        }
 
         authUrl += "&state=\(state)"
         logger.debug(authUrl)
