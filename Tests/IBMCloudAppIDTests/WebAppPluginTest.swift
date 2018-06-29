@@ -65,7 +65,7 @@ class WebAppPluginTest: XCTestCase {
 
     let logger = Logger(forName:"WebAppPluginTest")
     let expectedState = "abc123"
-    
+
     func testLogout() {
 
         let web = MockWebAppKituraCredentialsPlugin(options: TestConstants.options)
@@ -211,7 +211,7 @@ class WebAppPluginTest: XCTestCase {
         let authContext: [String: Any] = ["accessTokenPayload": try! Utils.parseToken(from: TestConstants.ANON_TOKEN)["payload"].dictionaryObject as Any,
                                           "accessToken": "someaccesstoken"]
 
-        
+
         let redirectUri = TestConstants.serverUrl + "/authorization?client_id=" + TestConstants.clientId + "&response_type=code&redirect_uri=http://someredirect&scope=appid_default&appid_access_token=someaccesstoken&state=\(expectedState)"
 
         let builder = AuthorizationRequestHandler(name: "testWebAuthenticateSessionPersists")
@@ -247,7 +247,7 @@ class WebAppPluginTest: XCTestCase {
         builder.mockRequest(url: "http://someurl?code=somecode")
         builder.expectFailure(with: expectation(description: "failure"))
         builder.execute()
-        
+
         awaitExpectations()
     }
 
@@ -373,48 +373,48 @@ class WebAppPluginTest: XCTestCase {
 
     func testStateParameterMismatch() {
         let builder = AuthorizationCallbackHandler(name: "testStateParameterMismatch")
-        
+
         builder.requireSession()
         builder.setSessionState("original_state")
         builder.setRedirectUriState("wrong_state")
         builder.expectFailure(with: expectation(description: builder.name))
         builder.execute()
-        
+
         awaitExpectations()
     }
 
     func testStateParameterNotSaved() {
         let builder = AuthorizationCallbackHandler(name: "testStateParameterNotSaved")
-        
+
         builder.setRedirectUriState("wrong_state")
         builder.expectFailure(with: expectation(description: builder.name))
         builder.execute()
-        
+
         awaitExpectations()
     }
-    
+
     func testStateParameterNotReturned() {
         let builder = AuthorizationCallbackHandler(name: "testStateParameterNotReturned")
-        
+
         builder.requireSession()
         builder.setSessionState("original_state")
         builder.expectFailure(with: expectation(description: builder.name))
         builder.execute()
-        
+
         awaitExpectations()
     }
-    
+
     func testStateParameterAnonymous() {
         let builder = AuthorizationCallbackHandler(name: "testStateParameterAnonymous")
-        
+
         builder.requireSession()
         builder.setSessionState("doesn't matter", isAnonymous: true)
         builder.expectFailure(with: expectation(description: builder.name))
         builder.execute()
-        
+
         awaitExpectations()
     }
-    
+
     func awaitExpectations() {
         waitForExpectations(timeout: 1) { error in
             if let error = error {
@@ -422,12 +422,12 @@ class WebAppPluginTest: XCTestCase {
             }
         }
     }
-    
+
     // Remove off_ to run sample app
     func off_testRunWebAppServer() {
         logger.debug("Starting")
 
-        let options = ["":""]
+        let options = ["": ""]
 
         let LOGIN_URL = "/ibm/bluemix/appid/login"
         let LOGIN_ANON_URL = "/ibm/bluemix/appid/loginanon"
@@ -441,7 +441,7 @@ class WebAppPluginTest: XCTestCase {
         router.all("/", middleware: StaticFileServer(path: "./Tests/IBMCloudAppIDTests/public"))
 
         let webappKituraCredentialsPlugin = WebAppKituraCredentialsPlugin(options: options)
-        let kituraCredentials = Credentials()
+        let kituraCredentials = Credentials(options: [Constants.AppID.forceLogin: true])
         let kituraCredentialsAnonymous = Credentials(options: [
             Constants.AppID.allowAnonymousLogin: true,
             Constants.AppID.allowCreateNewAnonymousUser: true
@@ -483,8 +483,8 @@ class WebAppPluginTest: XCTestCase {
                 response.status(.unauthorized)
                 return next()
             }
-            print("accessToken:: \(String(describing: appIdAuthContext?["accessToken"]))")
-            print("identityToken:: \(String(describing: appIdAuthContext?["identityToken"]))")
+            //print("accessToken:: \(String(describing: appIdAuthContext?["accessToken"]))")
+            //print("identityToken:: \(String(describing: appIdAuthContext?["identityToken"]))")
             if let payload = identityTokenPayload as? [String : Any] {
                 response.send(json: payload)
             }
@@ -505,14 +505,14 @@ extension WebAppPluginTest {
 
     /// Mocks Web Strategy
     class MockWebAppKituraCredentialsPlugin: WebAppKituraCredentialsPlugin {
-        
+
         var generatedState: String
         var requestState: String?
-        
+
         var tokenData: String?
         var tokenStatus: Int = 200
         var tokenError: Swift.Error?
-        
+
         init(options: [String: Any]?, responseCode: Int = 200, responseBody: String = "{\"keys\": [\(TestConstants.PUBLIC_KEY)]}", state: String = "abc123") {
             self.generatedState = state
             super.init(options: options)
@@ -520,19 +520,19 @@ extension WebAppPluginTest {
                                                    responseCode: responseCode,
                                                    responseBody: responseBody)
         }
-        
+
         /// Overrides the token request callback
         override func executeRequest(_ request: RestRequest, completion: @escaping (Data?, HTTPURLResponse?, Swift.Error?) -> Void) {
             completion(tokenData?.data(using: .utf8),
                        HTTPURLResponse(url: URL(string: "http://test.com")!, statusCode: tokenStatus, httpVersion: nil, headerFields: nil),
                        tokenError)
         }
-        
+
         /// Overrides the high entropy state parameter
         override func generateState(of length: Int) -> String {
             return generatedState
         }
-        
+
         /// Overrides the state found in the requests query parameters
         override func getRequestState(from request: RouterRequest) -> String? {
             return requestState
@@ -554,7 +554,7 @@ extension WebAppPluginTest {
             self.urlTest = url
             super.init(request: request)
         }
-        
+
         public override var urlURL: URL {
             return URL(string:urlTest)!
         }
@@ -572,7 +572,7 @@ extension WebAppPluginTest {
             routerStack.push(Router())
             super.init(response: response, routerStack: routerStack, request: request)
         }
-        
+
         public override func redirect(_ path: String, status: HTTPStatusCode = .movedTemporarily) -> RouterResponse {
             if let expectation = expectation {
                 XCTAssertEqual(path, redirectUri)
@@ -590,9 +590,9 @@ extension WebAppPluginTest {
 
     /// Core Web Strategy Testing Handler
     class WebResponseHandler {
-        
+
         let name: String
-        
+
         var web: MockWebAppKituraCredentialsPlugin?
 
         var httpRequest: HTTPServerRequest
@@ -606,13 +606,13 @@ extension WebAppPluginTest {
         var onSuccess: (UserProfile) -> Void = setOnSuccess()
         var inProgress: () -> Void = setInProgress()
         var onFailure: (HTTPStatusCode?, [String: String]?) -> Void = setOnFailure()
-        
+
         init(name: String) {
-            
+
             self.name = name
-            
+
             web = MockWebAppKituraCredentialsPlugin(options: TestConstants.options)
-            
+
             httpRequest = HTTPServerRequest(socket: try! Socket.create(family: .inet), httpParser: nil)
             httpResponse = HTTPServerResponse(processor: IncomingHTTPSocketProcessor(socket: try! Socket.create(family: .inet),
                                                                                      using: delegate(),
@@ -675,7 +675,7 @@ extension WebAppPluginTest {
         func setSessionState(_ state: String, isAnonymous: Bool = false) {
             request.session?[Constants.context] = ["state": state, "isAnonymous": isAnonymous]
         }
-        
+
         /// Adds the user profile object to the request with the provided params
         func setRequestUserProfile(id: String, name: String, provider: String) {
             request.userProfile = UserProfile(id: id, displayName: name, provider: provider)
@@ -731,7 +731,7 @@ extension WebAppPluginTest {
 
 @available(OSX 10.12, *)
 extension WebAppPluginTest {
-    
+
     // Manages Authentication Request Handling Tests
     class AuthorizationRequestHandler: WebResponseHandler {
 
@@ -750,7 +750,7 @@ extension WebAppPluginTest {
 
     // Manages the Authentication Callback Response Tests
     class AuthorizationCallbackHandler: WebResponseHandler {
-        
+
         override init(name: String) {
             super.init(name: name)
         }
@@ -768,17 +768,17 @@ extension WebAppPluginTest {
             self.web?.tokenError = error
             self.web?.tokenData = body
         }
-        
+
         func setRedirectUriState(_ state: String) {
             self.web?.requestState = state
         }
-        
+
         func setDefaultSessionAndState(isAnonymous: Bool = false) {
             requireSession()
             setRedirectUriState("state")
             setSessionState("state", isAnonymous: isAnonymous)
         }
-        
+
         func validateAuthContext(accessToken: String? = nil, identityToken: String? = nil) {
 
             if accessToken == nil && identityToken == nil {

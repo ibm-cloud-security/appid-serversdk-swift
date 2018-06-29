@@ -12,6 +12,7 @@
  */
 
 import Foundation
+import Cryptor
 
 extension String {
 
@@ -31,27 +32,16 @@ extension String {
 
     /// Generates a random state
     ///
-    /// - parameter: length - denotes the size of the random string
+    /// - parameter: length - denotes the number of bytes in the random string
     /// - returns: a random string of the specified size
-    static func generateStateParameter(of length: Int) -> String {
-
-        let allowedChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        let allowedCharsCount = allowedChars.count
-        var randomString = ""
-
-        for _ in 0..<length {
-            var randomNum = 0
-            #if os(Linux)
-                randomNum = Int(random() % allowedCharsCount) + 0
-            #else
-                randomNum = Int(arc4random_uniform(UInt32(allowedCharsCount)))
-            #endif
-            let randomIndex = allowedChars.index(allowedChars.startIndex, offsetBy: randomNum)
-            let newCharacter = allowedChars[randomIndex]
-            randomString += String(newCharacter)
+    static func generateStateParameter(of length: Int) -> String? {
+        do {
+            let randomBytes = try Random.generate(byteCount: length)
+            return CryptoUtils.data(from: randomBytes).base64URLEncode()
+                .trimmingCharacters(in: CharacterSet(charactersIn: "="))
+        } catch {
+            return nil
         }
-
-        return randomString
     }
 
 }
