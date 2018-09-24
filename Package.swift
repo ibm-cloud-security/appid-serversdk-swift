@@ -29,7 +29,7 @@ let package = Package(
       .package(url: "https://github.com/IBM-Swift/Kitura-Credentials.git", from: "2.1.0"),
       .package(url: "https://github.com/IBM-Swift/SwiftyRequest.git", from: "1.0.1"),
       .package(url: "https://github.com/ibm-bluemix-mobile-services/bluemix-simple-logger-swift.git", .upToNextMinor(from: "0.5.0")),
-      .package(url: "https://github.com/Andrew-lees11/Swift-JWT-to-PEM.git", .branch("master")),
+      .package(url: "https://github.com/Andrew-Lees11/Swift-JWT-to-PEM.git", .branch("master")),
       .package(url: "https://github.com/IBM-Swift/BlueRSA.git", from: "1.0.0")
     ],
     targets: [
