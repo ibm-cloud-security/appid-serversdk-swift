@@ -70,7 +70,7 @@ class WebAppPluginTest: XCTestCase {
 
         let web = MockWebAppKituraCredentialsPlugin(options: TestConstants.options)
         let httpRequest = HTTPServerRequest(socket: try! Socket.create(family: .inet), httpParser: nil)
-        let request = RouterRequest(request: httpRequest)
+        let request = RouterRequest(request: httpRequest, decoder: JSONDecoder())
         request.session = SessionState(id: "someSession", store: InMemoryStore())
         XCTAssertNil(request.session?[Constants.AuthContext.name] as? [String:Any])
 
@@ -552,7 +552,7 @@ extension WebAppPluginTest {
 
         public init(request: HTTPServerRequest, url: String) {
             self.urlTest = url
-            super.init(request: request)
+            super.init(request: request, decoder: JSONDecoder())
         }
 
         public override var urlURL: URL {
@@ -570,7 +570,7 @@ extension WebAppPluginTest {
             self.expectation = expectation
             self.redirectUri = redirectUri
             routerStack.push(Router())
-            super.init(response: response, routerStack: routerStack, request: request)
+            super.init(response: response, routerStack: routerStack, request: request, encoders: [.json: { return JSONEncoder() }], defaultResponseMediaType: .json)
         }
 
         public override func redirect(_ path: String, status: HTTPStatusCode = .movedTemporarily) -> RouterResponse {
@@ -582,8 +582,8 @@ extension WebAppPluginTest {
             }
             let httpRequest =  HTTPServerRequest(socket: try! Socket.create(family: .inet), httpParser: nil)
             let httpResponse = HTTPServerResponse(processor: IncomingHTTPSocketProcessor(socket: try! Socket.create(family: .inet), using: delegate(), keepalive: .disabled), request: httpRequest)
-            let request = RouterRequest(request: httpRequest)
-            let response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request)
+            let request = RouterRequest(request: httpRequest, decoder: JSONDecoder())
+            let response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request, encoders: [.json: { return JSONEncoder() }], defaultResponseMediaType: .json)
             return response
         }
     }
@@ -620,8 +620,8 @@ extension WebAppPluginTest {
                                                    request: httpRequest)
             routerStack.push(Router())
 
-            request = RouterRequest(request: httpRequest)
-            response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request)
+            request = RouterRequest(request: httpRequest, decoder: JSONDecoder())
+            response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request, encoders: [.json: { return JSONEncoder() }], defaultResponseMediaType: .json)
         }
 
         // Sets the test to expect a failure. Only one expect method should be called per test
@@ -649,7 +649,7 @@ extension WebAppPluginTest {
         /// Mock Router Request to return provided url
         func mockRequest(url: String) {
             request = MockRouterRequest(request: httpRequest, url: url)
-            response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request)
+            response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request, encoders: [.json: { return JSONEncoder() }], defaultResponseMediaType: .json)
         }
 
         /// Mock Router Response to validate redirect uri matches the one sent
