@@ -34,23 +34,6 @@ Read the [official documentation](https://console.bluemix.net/docs/services/appi
 * Kitura 2.3
 * OpenSSL
 
-### Build Instructions
-
-
-Since this library uses OpenSSL under the covers (specifically used by `Swift-JWT-to-PEM` dependency library), it requires explicitly passing build and linker paths for the OpenSSL library. Additionally, `swift package generate-xcodeproj` doesn't add the proper flags when they are passed in using the flags, therefore they must be added to the generated xcode project.
-```
-swift build -Xlinker -L/usr/local/opt/openssl/lib -Xcc -I/usr/local/opt/openssl/include
-```
-
-To generate Xcode project:
-```
-swift package generate-xcodeproj --xcconfig-overrides openssl.xcconfig
-```
-The extra xcconfig are needed to be able to build in Xcode or use `xcodebuild`.
-
-**These extra flags are necessary for any target that uses `IBMCloudAppID` library as a dependency.**
-
-
 ### Installation
 ```swift
 import PackageDescription
@@ -58,7 +41,7 @@ import PackageDescription
 let package = Package(
     ...
     dependencies: [
-        .package(url: "https://github.com/ibm-cloud-security/appid-serversdk-swift.git", .upToNextMinor(from: "4.1.0"))
+        .package(url: "https://github.com/ibm-cloud-security/appid-serversdk-swift.git", .upToNextMinor(from: "5.0.0"))
     ]
     .target(
         name: "<Your Target>",
