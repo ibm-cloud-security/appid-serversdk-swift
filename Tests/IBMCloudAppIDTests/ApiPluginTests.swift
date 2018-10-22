@@ -70,8 +70,8 @@ class ApiPluginTests: XCTestCase {
         httpRequest =  HTTPServerRequest(socket: try! Socket.create(family: .inet), httpParser: parser)
         httpResponse = HTTPServerResponse(processor: IncomingHTTPSocketProcessor(socket: try! Socket.create(family: .inet), using: delegate(), keepalive: .disabled), request: httpRequest)
         routerStack = Stack<Router>()
-        request = RouterRequest(request: httpRequest)
-        response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request)
+        request = RouterRequest(request: httpRequest, decoder: JSONDecoder())
+        response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request, encoders: [.json: { return JSONEncoder() }], defaultResponseMediaType: .json)
     }
 
     func testAuthFlowNoAuthHeader() {
