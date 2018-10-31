@@ -1,49 +1,49 @@
-os:
-  - linux
-  - osx
-language: generic
-env:
-  global:
-  - SWIFT_VERSION=4.1
+# Travis CI build file for Kitura sample app.
+# Kitura runs on OS X and Linux (Ubuntu).
+# See the following URLs for further details on Travis CI
+# https://docs.travis-ci.com/user/customizing-the-build/
+# https://docs.travis-ci.com/user/docker/
+# https://docs.travis-ci.com/user/multi-os/
 
-sudo: required
-dist: trusty
-osx_image: xcode9.2
-
-sudo: required
-
-services:
-  - docker
-
+# whitelist (branches that should be built)
 branches:
   only:
-  - master
-  - development
-  - /\d+\.\d+\.\d+/
+    - master
+    - development
+    - /\d+\.\d+\.\d+/
 
 notifications:
   email:
     on_success: always
     on_failure: always
 
-install:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker pull ibmcom/swift-ubuntu-xenial; fi
-  - git --version
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      sudo: required
+      env: SWIFT_SNAPSHOT=4.0.3
+    - os: linux
+      dist: trusty
+      sudo: required
+      env: SWIFT_SNAPSHOT=4.1
+    - os: linux
+      dist: trusty
+      sudo: required
+    - os: osx
+      osx_image: xcode9.2
+      sudo: required
+      env: SWIFT_SNAPSHOT=4.0.3
+    - os: osx
+      osx_image: xcode9.4
+      sudo: required
+      env: SWIFT_SNAPSHOT=4.1.2 JAZZY_ELIGIBLE=true
+    - os: osx
+      osx_image: xcode10
+      sudo: required
+
+before_install:
+  - git clone https://github.com/IBM-Swift/Package-Builder.git
 
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run -i -t -v ${TRAVIS_BUILD_DIR}:/root/repo ibmcom/swift-ubuntu-xenial /bin/bash -c "cd /root/repo; swift build"; fi # build project
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run -i -t -v ${TRAVIS_BUILD_DIR}:/root/repo ibmcom/swift-ubuntu-xenial /bin/bash -c "cd /root/repo; swift test"; fi # test project
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift package clean; fi  # clean built artifacts if present
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift package fetch; fi  # clones all dependencies
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift build -Xlinker -L/usr/local/opt/openssl/lib -Xcc -I/usr/local/opt/openssl/include; fi # build project
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift test -Xlinker -L/usr/local/opt/openssl/lib -Xcc -I/usr/local/opt/openssl/include; fi #run tests
-
-after_success:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-      gem install slather;
-      swift package generate-xcodeproj --xcconfig-overrides openssl.xcconfig;
-      slather setup IBMCloudAppID.xcodeproj;
-      xcodebuild -project IBMCloudAppID.xcodeproj -scheme IBMCloudAppID build;
-      xcodebuild -project IBMCloudAppID.xcodeproj -scheme IBMCloudAppID -enableCodeCoverage YES test;
-      slather coverage --coveralls --binary-basename IBMCloudAppID.framework -v;
-    fi
+- ./Package-Builder/build-package.sh -projectDir $TRAVIS_BUILD_DIR

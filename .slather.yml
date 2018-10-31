@@ -1,7 +1,0 @@
-coverage_service: coveralls
-xcodeproj: IBMCloudAppID.xcodeproj
-scheme: IBMCloudAppID
-ignore:
-  - Tests/*
-  - Packages/*
-  - .build/
