@@ -19,6 +19,7 @@ import Credentials
 import Socket
 import SwiftyJSON
 import Foundation
+import Dispatch
 @testable import IBMCloudAppID
 
 @available(OSX 10.12, *)

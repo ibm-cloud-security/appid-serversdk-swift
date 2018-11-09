@@ -15,6 +15,7 @@ import SimpleLogger
 import SwiftyRequest
 import SwiftJWKtoPEM
 import Foundation
+import Dispatch
 
 /// Public Key utility class.
 /// - Responsible for retrieving and storing App ID public keys
