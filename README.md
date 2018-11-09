@@ -129,23 +129,36 @@ router.get(LOGOUT_URL, handler:  { (request, response, next) in
 	_ = try? response.redirect(LANDING_PAGE_URL)
 })
 
-// Protected area
+// Protected area  using `Credentials` standard `userProfile`
 router.get("/protected", handler: kituraCredentials.authenticate(credentialsType: webappKituraCredentialsPlugin.name), { (request, response, next) in
-    let appIdAuthContext:JSON? = request.session?[WebAppKituraCredentialsPlugin.AuthContext]
-    let identityTokenPayload:JSON? = appIdAuthContext?["identityTokenPayload"]
-
-    guard appIdAuthContext?.dictionary != nil, identityTokenPayload?.dictionary != nil else {
+    // check user profile for successful login
+    guard let user = request.userProfile else {
         response.status(.unauthorized)
         return next()
     }
+    try response.send("Hello \(user.displayName)")
+    next()
+})
 
-    response.send(json: identityTokenPayload!)
+// Protected area using AppID `userIdentity`
+router.get("/protected", handler: kituraCredentials.authenticate(credentialsType: webappKituraCredentialsPlugin.name), { (request, response, next) in
+    guard let authContextDict = request.session?["APPID_AUTH_CONTEXT"] as? [String: Any],
+          let identityTokenPayload = authContextDict["identityTokenPayload"] as? [String: Any],
+          let identityTokenData = try? JSONSerialization.data(withJSONObject: identityTokenPayload, options: [])
+    else {
+        response.status(.unauthorized)
+        return next()
+    }
+    let authContext = AuthorizationContext(idTokenPayload: JSON(data: identityTokenData))
+    response.send("Hello \(authContext.userIdentity.displayName)")
     next()
 })
 
 // Start the server!
 Kitura.addHTTPServer(onPort: 1234, with: router)
 Kitura.run()
+
+
 ```
 
 #### Protecting API endpoints using APIKituraCredentialsPlugin
