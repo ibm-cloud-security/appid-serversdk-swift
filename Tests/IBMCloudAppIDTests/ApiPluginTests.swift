@@ -12,7 +12,7 @@
  */
 import XCTest
 import Kitura
-import SimpleLogger
+import LoggerAPI
 import Credentials
 @testable import KituraNet
 @testable import Kitura
@@ -44,8 +44,6 @@ class ApiPluginTests: XCTestCase {
         ]
     }
 
-    let logger = Logger(forName:"ApiPluginTest")
-
     class MockAPIKituraCredentialsPlugin: APIKituraCredentialsPlugin {
 
         init(options: [String: Any]?, responseCode: Int = 200, responseBody: String = "{\"keys\": [\(TestConstants.PUBLIC_KEY)]}") {
@@ -64,6 +62,7 @@ class ApiPluginTests: XCTestCase {
     var response: RouterResponse!
 
     override func setUp() {
+        Log.logger = PrintLogger(colored: true)
         unsetenv("VCAP_SERVICES")
         unsetenv("redirectUri")
         parser = HTTPParser(isRequest: true)
@@ -298,7 +297,7 @@ extension ApiPluginTests {
 
     // Remove off_ for running
     func off_testRunWebAppServer() {
-        logger.debug("Starting")
+        Log.debug("Starting")
 
         let router = Router()
 

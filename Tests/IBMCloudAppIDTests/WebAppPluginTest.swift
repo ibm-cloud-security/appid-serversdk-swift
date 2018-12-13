@@ -11,21 +11,16 @@
  limitations under the License.
  */
 import XCTest
-import Kitura
-import SimpleLogger
 import Credentials
-import KituraSession
 import SwiftyJSON
 import XCTest
-import Kitura
-import SimpleLogger
 import SwiftyRequest
+import LoggerAPI
 @testable import Credentials
 @testable import KituraNet
 @testable import Kitura
 @testable import KituraSession
 import Socket
-import SwiftyJSON
 import Foundation
 
 @testable import IBMCloudAppID
@@ -63,8 +58,11 @@ class WebAppPluginTest: XCTestCase {
         ]
     }
 
-    let logger = Logger(forName:"WebAppPluginTest")
     let expectedState = "abc123"
+
+    override func setUp() {
+        Log.logger = PrintLogger(colored: true)
+    }
 
     func testLogout() {
 
@@ -425,7 +423,7 @@ class WebAppPluginTest: XCTestCase {
 
     // Remove off_ to run sample app
     func off_testRunWebAppServer() {
-        logger.debug("Starting")
+        Log.debug("Starting")
 
         let options = ["": ""]
 
