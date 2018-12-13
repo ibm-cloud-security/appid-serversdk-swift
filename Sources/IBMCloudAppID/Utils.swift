@@ -13,21 +13,19 @@
 
 import Foundation
 import SwiftyJSON
-import SimpleLogger
+import LoggerAPI
 import CryptorRSA
 
 @available(OSX 10.12, *)
 class Utils {
 
-    private static let logger = Logger(forName: Constants.Utils.appId)
-
     static func getAuthorizedIdentities(from idToken: JSON) -> AuthorizationContext? {
-        logger.debug("APIStrategy getAuthorizedIdentities")
+        Log.debug("APIStrategy getAuthorizedIdentities")
         return AuthorizationContext(idTokenPayload: idToken["payload"])
     }
 
     static func getAuthorizedIdentities(from idToken: [String: Any]) -> AuthorizationContext? {
-        logger.debug("APIStrategy getAuthorizedIdentities")
+        Log.debug("APIStrategy getAuthorizedIdentities")
         guard let json = try? JSONSerialization.data(withJSONObject: idToken, options: .prettyPrinted) else {
             return nil
         }
@@ -39,14 +37,14 @@ class Utils {
         let tokenComponents = tokenString.components(separatedBy: ".")
 
         guard tokenComponents.count == 3 else {
-            logger.error("Invalid access token format")
+            Log.error("Invalid access token format")
             throw AppIDError.invalidTokenFormat
         }
 
         guard let jwtHeaderData = tokenComponents[0].base64decodedData(),
               let jwtPayloadData = tokenComponents[1].base64decodedData()
         else {
-            logger.error("Invalid access token format")
+            Log.error("Invalid access token format")
             throw AppIDError.invalidTokenFormat
         }
 
@@ -88,14 +86,14 @@ class Utils {
 
         isValid = try message.verify(with: tokenPublicKey, signature: signature, algorithm: .sha256)
         if !isValid {
-	        logger.error("invalid signature on token")
+	        Log.error("invalid signature on token")
         }
 
         return isValid
     }
 
     static func isTokenValid(token: String) -> Bool {
-        logger.debug("isTokenValid")
+        Log.debug("isTokenValid")
         if let jwt = try? parseToken(from: token) {
             let jwtPayload = jwt["payload"].dictionary
 
@@ -123,7 +121,7 @@ class Utils {
                                   completion: @escaping ([String: Any]?, AppIDError?) -> Void) {
 
         func logAndReturn(_ error: AppIDError, completion: @escaping ([String: Any]?, AppIDError?) -> Void) {
-            logger.debug("Unable to validate token: " + error.description)
+            Log.debug("Unable to validate token: " + error.description)
             completion(nil, error)
         }
 
