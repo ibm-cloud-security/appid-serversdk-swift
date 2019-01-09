@@ -28,8 +28,8 @@ let package = Package(
       .package(url: "https://github.com/IBM-Swift/Kitura-Session.git", from: "3.1.0"),
       .package(url: "https://github.com/IBM-Swift/Kitura-Credentials.git", from: "2.1.0"),
       .package(url: "https://github.com/IBM-Swift/SwiftyRequest.git", from: "1.0.1"),
-      .package(url: "https://github.com/ibm-bluemix-mobile-services/bluemix-simple-logger-swift.git", .upToNextMinor(from: "0.5.0")),
-      .package(url: "https://github.com/ibm-cloud-security/Swift-JWK-to-PEM.git", from: "0.3.0"),
+      .package(url: "https://github.com/IBM-Swift/LoggerAPI.git", from: "1.7.0"),
+      .package(url: "https://github.com/ibm-cloud-security/Swift-JWT-to-PEM.git", from: "0.4.0"),
       .package(url: "https://github.com/IBM-Swift/BlueRSA.git", from: "1.0.0")
     ],
     targets: [
@@ -37,7 +37,7 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages which this package depends on.
         .target(
             name: "IBMCloudAppID",
-            dependencies: ["Credentials", "SwiftyRequest", "SimpleLogger", "SwiftyJSON", "KituraSession", "SwiftJWKtoPEM", "CryptorRSA"]
+            dependencies: ["Credentials", "SwiftyRequest", "LoggerAPI", "SwiftyJSON", "KituraSession", "SwiftJWKtoPEM", "CryptorRSA"]
         ),
         .testTarget(
             name: "IBMCloudAppIDTests",

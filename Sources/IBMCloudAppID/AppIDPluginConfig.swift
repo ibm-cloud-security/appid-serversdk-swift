@@ -12,14 +12,12 @@
  */
 
 import Foundation
-import SimpleLogger
+import LoggerAPI
 import SwiftyJSON
 
 /// App ID Configuration Plugin - VCAP / Options parser
 ///
 class AppIDPluginConfig {
-
-    private let logger = Logger(forName: Constants.Utils.configuration)
 
     var serviceConfig: [String: Any] = [:]
 
@@ -80,7 +78,7 @@ class AppIDPluginConfig {
 
         self.shouldValidateAudAndIssuer = validateEntireToken
 
-        logger.debug("Intializing configuration")
+        Log.debug("Intializing configuration")
 
         let options = options ?? [:]
         let vcapString = ProcessInfo.processInfo.environment[Constants.VCAP.services] ?? ""
@@ -124,15 +122,15 @@ class AppIDPluginConfig {
         /// Assert configuration has required fields
         for path in required {
             if self[keyPath: path] == nil {
-                logger.error("Failed to fully initialize configuration." +
+                Log.error("Failed to fully initialize configuration." +
                     " To ensure complete functionality, ensure your app is either bound to an" +
                     " App ID service instance or pass the required parameters to the constructor")
                 break
             }
         }
 
-        logger.info("ServerUrl: " + (serverUrl ?? "unset"))
-        logger.info("ProfilesUrl: " + (userProfileServerUrl ?? "unset"))
+        Log.info("ServerUrl: " + (serverUrl ?? "unset"))
+        Log.info("ProfilesUrl: " + (userProfileServerUrl ?? "unset"))
     }
 
 }

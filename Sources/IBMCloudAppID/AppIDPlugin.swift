@@ -11,7 +11,7 @@
  limitations under the License.
  */
 import Foundation
-import SimpleLogger
+import LoggerAPI
 import Credentials
 import KituraNet
 
@@ -22,14 +22,11 @@ import KituraNet
 @available(OSX 10.12, *)
 public class AppIDPlugin {
 
-    let logger: Logger
-
     var publicKeyUtil: PublicKeyUtil
 
     let config: AppIDPluginConfig
 
-    init(logger: Logger, config: AppIDPluginConfig) {
-        self.logger = logger
+    init(config: AppIDPluginConfig) {
         self.config = config
         self.publicKeyUtil = PublicKeyUtil(url: config.publicKeyServerURL)
     }
@@ -42,23 +39,23 @@ public class AppIDPlugin {
     func parseIdentityToken(idTokenString: String?, completion: @escaping (([String: Any], UserProfile)?, AppIDError?) -> Void) {
 
         guard let idTokenString = idTokenString else {
-            logger.debug("Identity token does not exist")
+            Log.debug("Identity token does not exist")
             return completion(nil, AppIDError.invalidToken("Identity token does not exist"))
         }
 
         Utils.decodeAndValidate(tokenString: idTokenString, publicKeyUtil: publicKeyUtil, options: config) { payload, error in
 
             guard let payload = payload, error == nil else {
-                self.logger.debug("Identity token is malformed")
+                Log.debug("Identity token is malformed")
                 return completion(nil, error ?? AppIDError.invalidToken("Identity token could not be decoded"))
             }
 
             guard let authContext = Utils.getAuthorizedIdentities(from: payload) else {
-                self.logger.debug("Identity token is malformed")
+                Log.debug("Identity token is malformed")
                 return completion(nil, error ?? AppIDError.invalidToken("Identity token could not be decoded"))
             }
 
-            self.logger.debug("Identity token successfully parsed")
+            Log.debug("Identity token successfully parsed")
 
             let identityContext = [
                 "identityToken": idTokenString,
@@ -89,7 +86,7 @@ public class AppIDPlugin {
                                   description: String? = nil,
                                   completion: @escaping (HTTPStatusCode?, [String: String]?) -> Void) {
 
-        logger.debug("Sending unauthorized response")
+        Log.debug("Sending unauthorized response")
 
         var msg = Constants.bearer + " scope=\"" + scope + "\", error=\"" + error.rawValue + "\""
         var status: HTTPStatusCode!
