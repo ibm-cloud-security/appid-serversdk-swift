@@ -187,12 +187,11 @@ public class PublicKeyUtil {
         let publicKeys = tokens.reduce([String: String]()) { (dict, key) in
             var dict = dict
 
-            guard let pemKey = try? RSAKey(n: key.n, e: key.e).getPublicKey(certEncoding.pemPkcs8),
-                let publicKey = pemKey else {
+            guard let pemKey = try? RSAKey(n: key.n, e: key.e).getPublicKey(certEncoding.pemPkcs8) else {
                     logger.debug("Failed to convert public key to pemPkcs: \(key)")
                     return dict
             }
-            dict[key.kid] = publicKey
+            dict[key.kid] = pemKey
 
             return dict
         }
