@@ -9,7 +9,7 @@ matrix:
       sudo: required
       env: SWIFT_SNAPSHOT=4.1.2
     - os: osx
-      osx_image: xcode10
+      osx_image: xcode10.2
       sudo: required
 
 sudo: required
@@ -19,9 +19,9 @@ services:
 
 branches:
   only:
-  - master
-  - development
-  - /\d+\.\d+\.\d+/
+    - master
+    - development
+    - /\d+\.\d+\.\d+/
 
 notifications:
   email:
@@ -35,17 +35,17 @@ install:
 script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run -i -t -v ${TRAVIS_BUILD_DIR}:/root/repo ibmcom/swift-ubuntu-xenial /bin/bash -c "cd /root/repo; swift build"; fi # build project
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run -i -t -v ${TRAVIS_BUILD_DIR}:/root/repo ibmcom/swift-ubuntu-xenial /bin/bash -c "cd /root/repo; swift test"; fi # test project
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift package clean; fi  # clean built artifacts if present
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift package fetch; fi  # clones all dependencies
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift package clean; fi # clean built artifacts if present
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift package fetch; fi # clones all dependencies
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift build; fi # build project
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift test; fi #run tests
 
 after_success:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-      gem install slather;
-      swift package generate-xcodeproj;
-      slather setup IBMCloudAppID.xcodeproj;
-      xcodebuild -project IBMCloudAppID.xcodeproj -scheme IBMCloudAppID build;
-      xcodebuild -project IBMCloudAppID.xcodeproj -scheme IBMCloudAppID -enableCodeCoverage YES test;
-      slather coverage --coveralls --binary-basename IBMCloudAppID.framework -v;
+    gem install slather;
+    swift package generate-xcodeproj;
+    slather setup IBMCloudAppID.xcodeproj;
+    xcodebuild -project IBMCloudAppID.xcodeproj -scheme IBMCloudAppID build;
+    xcodebuild -project IBMCloudAppID.xcodeproj -scheme IBMCloudAppID -enableCodeCoverage YES test;
+    slather coverage --coveralls --binary-basename IBMCloudAppID.framework -v;
     fi

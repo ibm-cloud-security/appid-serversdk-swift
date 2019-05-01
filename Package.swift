@@ -1,7 +1,7 @@
-// swift-tools-version:4.0
+// swift-tools-version:5.0
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 /*
- Copyright 2017 IBM Corp.
+ Copyright 2017, 2019 IBM Corp.
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
@@ -27,7 +27,7 @@ let package = Package(
       .package(url: "https://github.com/IBM-Swift/SwiftyJSON.git", from: "17.0.0"),
       .package(url: "https://github.com/IBM-Swift/Kitura-Session.git", from: "3.1.0"),
       .package(url: "https://github.com/IBM-Swift/Kitura-Credentials.git", from: "2.1.0"),
-      .package(url: "https://github.com/IBM-Swift/SwiftyRequest.git", from: "1.0.1"),
+      .package(url: "https://github.com/IBM-Swift/SwiftyRequest.git", from: "2.0.5"),
       .package(url: "https://github.com/IBM-Swift/LoggerAPI.git", from: "1.7.0"),
       .package(url: "https://github.com/ibm-cloud-security/Swift-JWT-to-PEM.git", from: "0.4.0"),
       .package(url: "https://github.com/IBM-Swift/BlueRSA.git", from: "1.0.0")
