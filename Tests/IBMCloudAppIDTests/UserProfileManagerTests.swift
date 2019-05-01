@@ -13,6 +13,7 @@
 import XCTest
 import Foundation
 import SwiftyJSON
+
 @testable import Credentials
 @testable import KituraNet
 @testable import Kitura
@@ -76,6 +77,7 @@ class UserProfileManagerTests: XCTestCase {
     static let AccessTokenSuccessMismatchedSubjects = "accessToken_mismatched_subjects"
     let IdentityTokenSubject123 = "ifQ.eyJzdWIiOiJzdWJqZWN0MTIzIn0.Q"
     let AccessTokenFailure = "accessToken,return_error"
+
     let fullOptions =  ["clientId": "someclient",
                         "secret": "somesecret",
                         "tenantId": "sometenant",

@@ -16,11 +16,13 @@ import SwiftyJSON
 import XCTest
 import SwiftyRequest
 import LoggerAPI
+
 @testable import Credentials
 @testable import KituraNet
 @testable import Kitura
 @testable import KituraSession
 import Socket
+
 import Foundation
 
 @testable import IBMCloudAppID
@@ -69,6 +71,7 @@ class WebAppPluginTest: XCTestCase {
         let web = MockWebAppKituraCredentialsPlugin(options: TestConstants.options)
         let httpRequest = HTTPServerRequest(socket: try! Socket.create(family: .inet), httpParser: nil)
         let request = RouterRequest(request: httpRequest, decoder: JSONDecoder())
+
         request.session = SessionState(id: "someSession", store: InMemoryStore())
         XCTAssertNil(request.session?[Constants.AuthContext.name] as? [String:Any])
 
@@ -81,7 +84,6 @@ class WebAppPluginTest: XCTestCase {
 
     func testWebAuthenticateNoSession() {
         let builder = AuthorizationRequestHandler(name: "testWebAuthenticateNoSession")
-
         builder.expectFailure(with: expectation(description: "No Session"))
         builder.execute()
 
@@ -90,7 +92,6 @@ class WebAppPluginTest: XCTestCase {
 
     func testWebAuthenticateRedirect() {
         let builder = AuthorizationRequestHandler(name: "testWebAuthenticateRedirect")
-
         builder.requireSession()
         builder.expectInProgress(with: expectation(description: "Redirect"))
         builder.execute()
@@ -100,7 +101,6 @@ class WebAppPluginTest: XCTestCase {
 
     func testWebAuthenticateErrorInQuery() {
         let builder = AuthorizationRequestHandler(name: "testWebAuthenticateErrorInQuery")
-
         builder.requireSession()
         builder.mockRequest(url: TestConstants.serverUrl + "?error=someerr")
         builder.expectFailure(with: expectation(description: "Error Response"))
@@ -120,6 +120,7 @@ class WebAppPluginTest: XCTestCase {
         builder.requireSession()
         builder.setSessionUserProfile(dict: dict)
         builder.setSessionState(expectedState)
+
         builder.authenticateOptions = ["allowAnonymousLogin": true]
         builder.mockResponse(redirectUri: redirectUri, expectation: expectation(description: "expectation"))
         builder.expectInProgress(with: expectation(description: "in progress"))
@@ -209,7 +210,6 @@ class WebAppPluginTest: XCTestCase {
         let authContext: [String: Any] = ["accessTokenPayload": try! Utils.parseToken(from: TestConstants.ANON_TOKEN)["payload"].dictionaryObject as Any,
                                           "accessToken": "someaccesstoken"]
 
-
         let redirectUri = TestConstants.serverUrl + "/authorization?client_id=" + TestConstants.clientId + "&response_type=code&redirect_uri=http://someredirect&scope=appid_default&appid_access_token=someaccesstoken&state=\(expectedState)"
 
         let builder = AuthorizationRequestHandler(name: "testWebAuthenticateSessionPersists")
@@ -240,12 +240,12 @@ class WebAppPluginTest: XCTestCase {
 
     func testWebAuthenticateCodeOnQuery() {
         let builder = AuthorizationRequestHandler(name: "testWebAuthenticateFailure")
-
+      
         builder.requireSession()
         builder.mockRequest(url: "http://someurl?code=somecode")
         builder.expectFailure(with: expectation(description: "failure"))
         builder.execute()
-
+      
         awaitExpectations()
     }
 
@@ -481,8 +481,10 @@ class WebAppPluginTest: XCTestCase {
                 response.status(.unauthorized)
                 return next()
             }
-            //print("accessToken:: \(String(describing: appIdAuthContext?["accessToken"]))")
+
+                                           //print("accessToken:: \(String(describing: appIdAuthContext?["accessToken"]))")
             //print("identityToken:: \(String(describing: appIdAuthContext?["identityToken"]))")
+
             if let payload = identityTokenPayload as? [String : Any] {
                 response.send(json: payload)
             }
@@ -490,6 +492,7 @@ class WebAppPluginTest: XCTestCase {
         })
 
         Kitura.addHTTPServer(onPort: 8090, with: router)
+
         Kitura.run()
     }
 }
@@ -612,6 +615,7 @@ extension WebAppPluginTest {
             web = MockWebAppKituraCredentialsPlugin(options: TestConstants.options)
 
             httpRequest = HTTPServerRequest(socket: try! Socket.create(family: .inet), httpParser: nil)
+
             httpResponse = HTTPServerResponse(processor: IncomingHTTPSocketProcessor(socket: try! Socket.create(family: .inet),
                                                                                      using: delegate(),
                                                                                      keepalive: .disabled),

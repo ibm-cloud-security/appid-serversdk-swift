@@ -36,7 +36,6 @@ public class APIKituraCredentialsPlugin: AppIDPlugin, CredentialsPluginProtocol 
         super.init(config: config)
 
         Log.warning("This is a beta version of APIKituraCredentialsPlugin." +
-                    "It should not be used for production environments!")
 
     }
 

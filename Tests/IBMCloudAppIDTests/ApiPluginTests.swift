@@ -20,6 +20,7 @@ import Socket
 import SwiftyJSON
 import Foundation
 import Dispatch
+
 @testable import IBMCloudAppID
 
 @available(OSX 10.12, *)
@@ -63,6 +64,7 @@ class ApiPluginTests: XCTestCase {
 
     override func setUp() {
         Log.logger = PrintLogger(colored: true)
+
         unsetenv("VCAP_SERVICES")
         unsetenv("redirectUri")
         parser = HTTPParser(isRequest: true)

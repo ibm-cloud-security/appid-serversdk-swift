@@ -12,6 +12,7 @@
  */
 import XCTest
 import SwiftyJSON
+
 @testable import Credentials
 @testable import KituraNet
 @testable import Kitura

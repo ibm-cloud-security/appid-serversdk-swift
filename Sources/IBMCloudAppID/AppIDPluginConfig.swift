@@ -52,7 +52,6 @@ class AppIDPluginConfig {
         if let host = url.host, let port = url.port {
             return "\(host):\(port)"
         }
-        return url.host
     }
 
     var publicKeyServerURL: String? {
