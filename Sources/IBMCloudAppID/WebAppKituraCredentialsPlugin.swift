@@ -17,7 +17,7 @@ import Credentials
 import KituraNet
 import SwiftyRequest
 import SwiftyJSON
-import SimpleLogger
+import LoggerAPI
 import KituraSession
 
 @available(OSX 10.12, *)
@@ -33,7 +33,7 @@ public class WebAppKituraCredentialsPlugin: AppIDPlugin, CredentialsPluginProtoc
 
     public init(options: [String: Any]?) {
         let config = AppIDPluginConfig(options: options, required: \.serverUrl, \.clientId, \.tenantId, \.secret, \.redirectUri)
-        super.init(logger: Logger(forName: Constants.WebAppPlugin.name), config: config)
+        super.init(config: config)
     }
 
     public func authenticate (request: RouterRequest,
@@ -45,16 +45,16 @@ public class WebAppKituraCredentialsPlugin: AppIDPlugin, CredentialsPluginProtoc
                               inProgress: @escaping () -> Void) {
 
         if request.session == nil {
-            logger.error("Can't find request.session. Ensure KituraSession middleware is in use")
+            Log.error("Can't find request.session. Ensure KituraSession middleware is in use")
             onFailure(nil, nil)
             return
         }
 
         if let error = request.queryParameters["error"] {
-            logger.warn("Error returned in callback " + error)
+            Log.warning("Error returned in callback " + error)
             onFailure(nil, nil)
         } else if let code = request.queryParameters["code"] {
-            return retrieveTokens(options: options, grantCode: code, onFailure: onFailure, request: request, onSuccess: onSuccess)
+            return handleAuthorizationCallback(code: code, request: request, onSuccess: onSuccess, onFailure: onFailure)
         } else {
             return handleAuthorization(request: request,
                                        response: response,
@@ -67,10 +67,29 @@ public class WebAppKituraCredentialsPlugin: AppIDPlugin, CredentialsPluginProtoc
     }
 
     public func logout(request: RouterRequest) {
-        //        request.session?.remove(key: OriginalUrl)
+        // request.session?.remove(key: OriginalUrl)
+        request.session?.remove(key: Constants.context)
         request.session?.remove(key: Constants.AuthContext.name)
     }
 
+    //////////////////////////
+    // Internal for testing //
+    //////////////////////////
+
+    /// Generates a high entropy random state parameter
+    internal func generateState(of length: Int) -> String? {
+        return String.generateStateParameter(of: length)
+    }
+
+    /// Executes a ResRequest
+    internal func executeRequest(_ request: RestRequest, completion: @escaping (Data?, HTTPURLResponse?, Swift.Error?) -> Void) {
+        request.response(completionHandler: completion)
+    }
+
+    /// Getter for the a RouterRequest state query parameter
+    internal func getRequestState(from request: RouterRequest) -> String? {
+        return request.parsedURL.queryParameters[Constants.state]
+    }
 }
 
 @available(OSX 10.12, *)
@@ -112,6 +131,7 @@ extension WebAppKituraCredentialsPlugin {
         return nil
     }
 
+    /// Handles execution of the initial authorization request for authorization code flow.
     fileprivate func handleAuthorization (request: RouterRequest,
                                       response: RouterResponse,
                                       options: [String: Any], // Options is read only
@@ -120,14 +140,14 @@ extension WebAppKituraCredentialsPlugin {
                                       onPass: @escaping (HTTPStatusCode?, [String: String]?) -> Void,
                                       inProgress: @escaping () -> Void) {
 
-        logger.debug("WebAppKituraCredentialsPlugin :: handleAuthorization")
+        Log.debug("WebAppKituraCredentialsPlugin :: handleAuthorization")
         let forceLogin: Bool = options[Constants.AppID.forceLogin] as? Bool ?? false
         let allowAnonymousLogin: Bool = options[Constants.AppID.allowAnonymousLogin] as? Bool ?? false
         let allowCreateNewAnonymousUser: Bool = options[Constants.AppID.allowCreateNewAnonymousUser] as? Bool ?? true
         // If user is already authenticated and new login is not enforced - end processing
         // Otherwise - persist original request url and redirect to authorization
         if let requestUserProfile = request.userProfile, !forceLogin && !allowAnonymousLogin {
-            logger.debug("ALREADY AUTHENTICATED!!!")
+            Log.debug("ALREADY AUTHENTICATED!!!")
             return onSuccess(requestUserProfile)
         } else {
             //			request.session?[OriginalUrl] = JSON(request.originalURL)
@@ -136,7 +156,7 @@ extension WebAppKituraCredentialsPlugin {
         let requestProfile = request.userProfile
         if forceLogin != true && allowAnonymousLogin != true {
             if requestProfile != nil || sessionProfile?.isEmpty == false {
-                logger.debug("ALREADY AUTHENTICATED!!!")
+                Log.debug("ALREADY AUTHENTICATED!!!")
                 if let session = request.session, let profile = restoreUserProfile(from: session) {
                     return onSuccess(profile)
                 }
@@ -149,16 +169,25 @@ extension WebAppKituraCredentialsPlugin {
         if let appIdAuthContext = request.session?[Constants.AuthContext.name] as? [String : Any] {
             let payload = appIdAuthContext["accessTokenPayload"] as? [String : Any]
             if (payload?["amr"] as? [String])?[0] ==  "appid_anon" {
-                logger.debug("WebAppKituraCredentialsPlugin :: handleAuthorization :: added anonymous access_token to url")
+                Log.debug("WebAppKituraCredentialsPlugin :: handleAuthorization :: added anonymous access_token to url")
                 authUrl += "&appid_access_token=" + ((appIdAuthContext["accessToken"] as? String) ?? "")
             }
         } else if allowAnonymousLogin && !allowCreateNewAnonymousUser {
             // If previous anonymous access token not found and new anonymous users are not allowed - fail
-            logger.warn("Previous anonymous user not found. Not allowed to create new anonymous users.")
+            Log.warning("Previous anonymous user not found. Not allowed to create new anonymous users.")
             return onFailure(nil, nil)
         }
 
-        logger.debug("Redirecting to : " + authUrl)
+        guard let state = generateState(of: 24) else {
+            Log.error("Could not generate a state parameter. Please try again.")
+            return onFailure(nil, nil)
+        }
+
+        authUrl += "&state=\(state)"
+        Log.debug(authUrl)
+        request.session?[Constants.context] = [Constants.state: state, Constants.isAnonymous: authUrl.range(of: "idp=appid_anon") != nil]
+
+        Log.debug("Redirecting to : " + authUrl)
 
         do {
             try response.redirect(authUrl)
@@ -168,78 +197,48 @@ extension WebAppKituraCredentialsPlugin {
         }
     }
 
-    internal func handleTokenResponse(httpCode: Int?,
-                                      tokenData: Data?,
-                                      tokenError: Swift.Error?,
-                                      originalRequest: RouterRequest,
-                                      onFailure: @escaping (HTTPStatusCode?, [String: String]?) -> Void,
-                                      onSuccess: @escaping (UserProfile) -> Void) {
+    /// Handles the initial authorization request callback for authorization code flow.
+    internal func handleAuthorizationCallback(code: String,
+                                              request: RouterRequest,
+                                              onSuccess: @escaping (UserProfile) -> Void,
+                                              onFailure: @escaping (HTTPStatusCode?, [String: String]?) -> Void) {
 
-        let code = httpCode.map { String(describing: $0) } ?? "<no http code>"
-        if let tokenError = tokenError {
-            let errorMessage = String(describing: tokenError)
-            self.logger.debug("WebAppKituraCredentialsPlugin :: Failed to obtain tokens. error message " +
-                              ": \(errorMessage)\nstatus code : \(code)\ntoken body : \(String(describing: tokenData))")
+        /// Validate state parameter in session matches response state
+        guard let context = request.session?[Constants.context] as? [String: Any],
+            let isAnonymous = context[Constants.isAnonymous] as? Bool else {
+            Log.error("The session is missing the required context")
             return onFailure(nil, nil)
         }
 
-        guard let tokenData = tokenData else {
-            self.logger.debug("WebAppKituraCredentialsPlugin :: Failed to obtain tokens." +
-                              " No token error message. No token data. status code : \(code)")
+        guard let storedState = context[Constants.state] as? String else {
+            Log.error("The expected state parameter was not found in the request session")
             return onFailure(nil, nil)
         }
 
-        guard httpCode == 200 else {
-            self.logger.debug("WebAppKituraCredentialsPlugin :: Failed to obtain tokens." +
-                              " Status code wasn't 200. No token error message. status code :" +
-                              " \(code)\n token body : \(String(describing: tokenData))")
-            return onFailure(nil, nil)
-        }
+        /// The anonymous flow does not currently return a state parameter.
+        if !isAnonymous {
 
-        var body = JSON(data: tokenData)
-
-        /// Parse access_token
-        guard let accessTokenString = body["access_token"].string else {
-            return onFailure(nil, nil)
-        }
-
-        Utils.decodeAndValidate(tokenString: accessTokenString, publicKeyUtil: publicKeyUtil, options: config) {
-            payload, error in
-
-            guard let payload = payload, error == nil else {
+            guard let returnedState = getRequestState(from: request) else {
+                Log.error("The redirect URI does not have required state")
                 return onFailure(nil, nil)
             }
 
-            var authorizationContext: [String:Any] = [
-                "accessToken": accessTokenString,
-                "accessTokenPayload": payload as Any
-            ]
-
-            /// Parse / Validate Identity Token, if necessary
-            self.parseIdentityToken(idTokenString: body["id_token"].string) { context, error in
-
-                /// On error (Web strategy only), we will fail
-                guard let context = context, error == nil else {
-                    return onFailure(nil, nil)
-                }
-
-                /// Merge authorization context and identity context, if necessary
-                context.0.forEach { authorizationContext[$0] = $1 }
-
-                originalRequest.session?[Constants.AuthContext.name] = authorizationContext
-                onSuccess(context.1)
-
-                self.logger.debug("retrieveTokens :: tokens retrieved")
+            guard storedState == returnedState else {
+                Log.error("Stored State does not match redirect uri state query parameter")
+                return onFailure(nil, nil)
             }
         }
+
+        retrieveTokens(grantCode: code, request: request, onSuccess: onSuccess, onFailure: onFailure)
     }
 
-    fileprivate func retrieveTokens(options: [String: Any],
-                                grantCode: String,
-                                onFailure: @escaping (HTTPStatusCode?, [String: String]?) -> Void,
-                                request: RouterRequest,
-                                onSuccess: @escaping (UserProfile) -> Void) {
-        logger.debug("WebAppKituraCredentialsPlugin :: retrieveTokens")
+    /// Retrieves tokens using the callback grant code
+    fileprivate func retrieveTokens(grantCode: String,
+                                    request: RouterRequest,
+                                    onSuccess: @escaping (UserProfile) -> Void,
+                                    onFailure: @escaping (HTTPStatusCode?, [String: String]?) -> Void) {
+
+        Log.debug("WebAppKituraCredentialsPlugin :: retrieveTokens")
 
         guard let clientId = config.clientId,
               let secret = config.secret,
@@ -262,16 +261,83 @@ extension WebAppKituraCredentialsPlugin {
         if let json = try? JSONSerialization.data(withJSONObject: params, options: []) {
             restReq.messageBody = json
         } else {
-            logger.debug("Failed to parse data into JSON.")
+            Log.debug("Failed to parse data into JSON.")
         }
 
-        restReq.response { (tokenData, tokenResponse, tokenError) in
+        self.executeRequest(restReq) { (tokenData, tokenResponse, tokenError) in
             self.handleTokenResponse(httpCode: tokenResponse?.statusCode,
                                      tokenData: tokenData,
                                      tokenError: tokenError,
                                      originalRequest: request,
                                      onFailure: onFailure,
                                      onSuccess: onSuccess)
+        }
+    }
+
+    /// Parses and validates token request response
+    fileprivate func handleTokenResponse(httpCode: Int?,
+                                         tokenData: Data?,
+                                         tokenError: Swift.Error?,
+                                         originalRequest: RouterRequest,
+                                         onFailure: @escaping (HTTPStatusCode?, [String: String]?) -> Void,
+                                         onSuccess: @escaping (UserProfile) -> Void) {
+
+        let code = httpCode.map { String(describing: $0) } ?? "<no http code>"
+        if let tokenError = tokenError {
+            let errorMessage = String(describing: tokenError)
+            Log.debug("WebAppKituraCredentialsPlugin :: Failed to obtain tokens. error message " +
+                ": \(errorMessage)\nstatus code : \(code)\ntoken body : \(String(describing: tokenData))")
+            return onFailure(nil, nil)
+        }
+
+        guard let tokenData = tokenData else {
+            Log.debug("WebAppKituraCredentialsPlugin :: Failed to obtain tokens." +
+                " No token error message. No token data. status code : \(code)")
+            return onFailure(nil, nil)
+        }
+
+        guard httpCode == 200 else {
+            Log.debug("WebAppKituraCredentialsPlugin :: Failed to obtain tokens." +
+                " Status code wasn't 200. No token error message. status code :" +
+                " \(code)\n token body : \(String(describing: tokenData))")
+            return onFailure(nil, nil)
+        }
+
+        var body = JSON(data: tokenData)
+
+        /// Parse access_token
+        guard let accessTokenString = body["access_token"].string else {
+            return onFailure(nil, nil)
+        }
+
+        Utils.decodeAndValidate(tokenString: accessTokenString, publicKeyUtil: publicKeyUtil, options: config) {
+            payload, error in
+
+            guard let payload = payload, error == nil else {
+                return onFailure(nil, nil)
+            }
+
+            var authorizationContext: [String: Any] = [
+                "accessToken": accessTokenString,
+                "accessTokenPayload": payload as Any
+            ]
+
+            /// Parse / Validate Identity Token, if necessary
+            self.parseIdentityToken(idTokenString: body["id_token"].string) { context, error in
+
+                /// On error (Web strategy only), we will fail
+                guard let context = context, error == nil else {
+                    return onFailure(nil, nil)
+                }
+
+                /// Merge authorization context and identity context, if necessary
+                context.0.forEach { authorizationContext[$0] = $1 }
+
+                originalRequest.session?[Constants.AuthContext.name] = authorizationContext
+                onSuccess(context.1)
+
+                Log.debug("retrieveTokens :: tokens retrieved")
+            }
         }
     }
 
@@ -290,7 +356,7 @@ extension WebAppKituraCredentialsPlugin {
         }
         query = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
         let authUrl = "\(authorizationEndpoint)?\(query)"
-        self.logger.debug("AUTHURL: \(authUrl)")
+        Log.debug("AUTHURL: \(authUrl)")
         return authUrl
     }
 

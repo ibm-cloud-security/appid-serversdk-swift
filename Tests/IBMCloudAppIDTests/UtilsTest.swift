@@ -11,20 +11,13 @@
  limitations under the License.
  */
 import XCTest
-import Kitura
-import SimpleLogger
-import Credentials
-import KituraSession
 import SwiftyJSON
-import XCTest
-import Kitura
-import SimpleLogger
+
 @testable import Credentials
 @testable import KituraNet
 @testable import Kitura
 @testable import KituraSession
 import Socket
-import SwiftyJSON
 
 @testable import IBMCloudAppID
 

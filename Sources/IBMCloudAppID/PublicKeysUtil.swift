@@ -11,10 +11,11 @@
  limitations under the License.
  */
 
-import SimpleLogger
+import LoggerAPI
 import SwiftyRequest
 import SwiftJWKtoPEM
 import Foundation
+import Dispatch
 
 /// Public Key utility class.
 /// - Responsible for retrieving and storing App ID public keys
@@ -37,13 +38,11 @@ public class PublicKeyUtil {
 
     private let stateQueue = DispatchQueue(label: "stateQueue")
 
-    private let logger = Logger(forName: Constants.Utils.publicKey)
-
     public init(url: String?) {
         if let url = url {
             publicKeyUrl = url
         } else {
-            logger.debug("Request public key url not supplied ")
+            Log.debug("Request public key url not supplied ")
         }
 
         /// Initiate first public keys request
@@ -151,14 +150,14 @@ public class PublicKeyUtil {
     private func updatePublicKeys(completion: @escaping ([String: String]?, AppIDError?) -> Void) {
 
         guard let publicKeyUrl = self.publicKeyUrl else {
-            logger.error("Cannot retrieve public keys. Missing OAuth server url.")
+            Log.error("Cannot retrieve public keys. Missing OAuth server url.")
             return completion(nil, .missingPublicKey)
         }
 
         sendRequest(url: publicKeyUrl) { data, response, error in
 
             guard error == nil, let response = response, let data = data else {
-                self.logger.debug("An error occured in the public key retrieval response. Error: \(error?.localizedDescription ?? "")")
+                Log.debug("An error occured in the public key retrieval response. Error: \(error?.localizedDescription ?? "")")
                 return completion(nil, .missingPublicKey)
             }
             self.handlePubKeyResponse(status: response.statusCode, data: data, completion: completion)
@@ -171,7 +170,7 @@ public class PublicKeyUtil {
     private func handlePubKeyResponse(status: Int?, data: Data, completion: @escaping ([String: String]?, AppIDError?) -> Void) {
 
         guard status == 200 else {
-            logger.debug("Failed to obtain public key " +
+            Log.debug("Failed to obtain public key " +
                 "status code \(String(describing: status))\n" +
                 "body \(String(data: data, encoding: .utf8) ?? "")")
             return completion(nil, .missingPublicKey)
@@ -179,7 +178,7 @@ public class PublicKeyUtil {
 
         guard let json = try? JSONDecoder().decode([String: [PublicKey]].self, from: data),
             let tokens = json["keys"] else {
-                logger.debug("Unable to decode data from public key response")
+                Log.debug("Unable to decode data from public key response")
                 return completion(nil, .missingPublicKey)
         }
 
@@ -187,9 +186,8 @@ public class PublicKeyUtil {
         let publicKeys = tokens.reduce([String: String]()) { (dict, key) in
             var dict = dict
 
-            guard let pemKey = try? RSAKey(n: key.n, e: key.e).getPublicKey(certEncoding.pemPkcs8),
-                let publicKey = pemKey else {
-                    logger.debug("Failed to convert public key to pemPkcs: \(key)")
+            guard let publicKey = try? RSAKey(n: key.n, e: key.e).getPublicKey(certEncoding.pemPkcs8) else {
+                    Log.debug("Failed to convert public key to pemPkcs: \(key)")
                     return dict
             }
             dict[key.kid] = publicKey
@@ -197,7 +195,7 @@ public class PublicKeyUtil {
             return dict
         }
 
-        logger.debug("Public keys retrieved and extracted")
+        Log.debug("Public keys retrieved and extracted")
 
         self.publicKeys = publicKeys
         completion(publicKeys, nil)

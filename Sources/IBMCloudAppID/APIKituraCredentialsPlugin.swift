@@ -15,7 +15,7 @@ import Foundation
 import Kitura
 import KituraNet
 import Credentials
-import SimpleLogger
+import LoggerAPI
 import SwiftyRequest
 import SwiftJWKtoPEM
 import SwiftyJSON
@@ -33,10 +33,9 @@ public class APIKituraCredentialsPlugin: AppIDPlugin, CredentialsPluginProtocol 
 
     public init(options: [String: Any]?) {
         let config = AppIDPluginConfig(options: options, validateEntireToken: false, required: \.serverUrl, \.clientId, \.tenantId)
-        super.init(logger: Logger(forName: Constants.APIPlugin.name), config: config)
+        super.init(config: config)
 
-        logger.warn("This is a beta version of APIKituraCredentialsPlugin." +
-                    "It should not be used for production environments!")
+        Log.warning("This is a beta version of APIKituraCredentialsPlugin.")
 
     }
 
@@ -48,7 +47,7 @@ public class APIKituraCredentialsPlugin: AppIDPlugin, CredentialsPluginProtocol 
                               onPass: @escaping (HTTPStatusCode?, [String: String]?) -> Void,
                               inProgress: @escaping () -> Void) {
 
-        logger.debug("authenticate")
+        Log.debug("authenticate")
 
         var requiredScope = Constants.AppID.defaultScope
 
@@ -57,19 +56,19 @@ public class APIKituraCredentialsPlugin: AppIDPlugin, CredentialsPluginProtocol 
         }
 
         guard let authHeaderComponents = request.headers[Constants.authHeader]?.components(separatedBy: " ") else {
-            logger.warn("Authorization header not found")
+            Log.warning("Authorization header not found")
             sendUnauthorized(scope: requiredScope, error: .missingAuth, completion: onPass)
             return
         }
 
         guard authHeaderComponents.first == Constants.bearer else {
-            logger.warn("Unrecognized Authorization Method")
+            Log.warning("Unrecognized Authorization Method")
             sendUnauthorized(scope: requiredScope, error: .invalidRequest, completion: onPass)
             return
         }
         // authHeader format :: "Bearer accessToken idToken"
         guard authHeaderComponents.count == 3 || authHeaderComponents.count == 2 else {
-            logger.warn("Invalid authorization header format")
+            Log.warning("Invalid authorization header format")
             sendUnauthorized(scope: requiredScope, error: .invalidRequest, completion: onFailure)
             return
         }
@@ -146,14 +145,14 @@ extension APIKituraCredentialsPlugin {
         }
 
         guard let scope = payload["scope"] as? String else {
-            logger.warn("Access token does not contain the required scopes")
+            Log.warning("Access token does not contain the required scopes")
             return false
         }
 
         let suppliedScopeElement = Set(scope.components(separatedBy: " "))
         for requiredScopeElement in requiredScopeElements {
             if !suppliedScopeElement.contains(requiredScopeElement) {
-                logger.warn("Access token does not contain required scope. Expected " +
+                Log.warning("Access token does not contain required scope. Expected " +
                             " \(requiredScope) + received + \(scope)")
                 return false
             }

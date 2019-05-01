@@ -1,14 +1,18 @@
-os:
-  - linux
-  - osx
-language: generic
-env:
-  global:
-  - SWIFT_VERSION=4.1
-
-sudo: required
-dist: trusty
-osx_image: xcode9.2
+matrix:
+  include:
+    - os: linux
+      dist: xenial
+      sudo: required
+      services: docker
+      env: DOCKER_IMAGE=swift:4.2.4 SWIFT_SNAPSHOT=4.2.4
+    - os: linux
+      dist: xenial
+      sudo: required
+      services: docker
+      env: DOCKER_IMAGE=swift:5.0.1-xenial
+    - os: osx
+      osx_image: xcode10.2
+      sudo: required
 
 sudo: required
 
@@ -17,9 +21,9 @@ services:
 
 branches:
   only:
-  - master
-  - development
-  - /\d+\.\d+\.\d+/
+    - master
+    - development
+    - /\d+\.\d+\.\d+/
 
 notifications:
   email:
@@ -33,17 +37,17 @@ install:
 script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run -i -t -v ${TRAVIS_BUILD_DIR}:/root/repo ibmcom/swift-ubuntu-xenial /bin/bash -c "cd /root/repo; swift build"; fi # build project
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run -i -t -v ${TRAVIS_BUILD_DIR}:/root/repo ibmcom/swift-ubuntu-xenial /bin/bash -c "cd /root/repo; swift test"; fi # test project
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift package clean; fi  # clean built artifacts if present
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift package fetch; fi  # clones all dependencies
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift build -Xlinker -L/usr/local/opt/openssl/lib -Xcc -I/usr/local/opt/openssl/include; fi # build project
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift test -Xlinker -L/usr/local/opt/openssl/lib -Xcc -I/usr/local/opt/openssl/include; fi #run tests
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift package clean; fi # clean built artifacts if present
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift package fetch; fi # clones all dependencies
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift build; fi # build project
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift test; fi #run tests
 
 after_success:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-      gem install slather;
-      swift package generate-xcodeproj --xcconfig-overrides openssl.xcconfig;
-      slather setup IBMCloudAppID.xcodeproj;
-      xcodebuild -project IBMCloudAppID.xcodeproj -scheme IBMCloudAppID build;
-      xcodebuild -project IBMCloudAppID.xcodeproj -scheme IBMCloudAppID -enableCodeCoverage YES test;
-      slather coverage --coveralls --binary-basename IBMCloudAppID.framework -v;
+    gem install slather;
+    swift package generate-xcodeproj;
+    slather setup IBMCloudAppID.xcodeproj;
+    xcodebuild -project IBMCloudAppID.xcodeproj -scheme IBMCloudAppID build;
+    xcodebuild -project IBMCloudAppID.xcodeproj -scheme IBMCloudAppID -enableCodeCoverage YES test;
+    slather coverage --coveralls --binary-basename IBMCloudAppID.framework -v;
     fi

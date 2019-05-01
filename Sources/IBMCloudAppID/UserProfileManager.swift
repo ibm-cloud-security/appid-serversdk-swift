@@ -16,13 +16,11 @@ import Kitura
 import Credentials
 import KituraNet
 import SwiftyJSON
-import SimpleLogger
+import LoggerAPI
 import KituraSession
 
 @available(OSX 10.12, *)
 public class UserProfileManager {
-
-    private let logger = Logger(forName: "UserProfileManager")
 
     var serviceConfig: AppIDPluginConfig
 
@@ -68,7 +66,7 @@ public class UserProfileManager {
 
     private func handleUserInfoRequest(accessToken: String, identityToken: String?, completionHandler: @escaping (Swift.Error?, [String: Any]?) -> Void) {
 
-        self.logger.debug("UserProfileManager :: handle Request - User Info")
+        Log.debug("UserProfileManager :: handle Request - User Info")
 
         guard let url = serviceConfig.serverUrl else {
             completionHandler(AppIDRequestError.invalidOauthServerUrl, nil)
@@ -78,25 +76,25 @@ public class UserProfileManager {
         handleRequest(accessToken: accessToken, url: url + Constants.Endpoints.userInfo, method: "GET", body: nil) { (error, userInfo) in
 
             guard error == nil, let userInfo = userInfo else {
-                self.logger.debug("Error: Unexpected error while retrieving User Info. Msg: \(error?.localizedDescription ?? "")")
+                Log.debug("Error: Unexpected error while retrieving User Info. Msg: \(error?.localizedDescription ?? "")")
                 return completionHandler(error ?? AppIDRequestError.unexpectedError, nil)
             }
 
             // Validate userinfo response has subject field
             guard let subject = userInfo["sub"] as? String else {
-                self.logger.error("Error: Invalid response user info response must contain the subject field.")
+                Log.error("Error: Invalid response user info response must contain the subject field.")
                 return completionHandler(error ?? AppIDRequestError.unexpectedError, nil)
             }
 
             if let identityToken = identityToken {
 
                 guard let identityToken = try? Utils.parseToken(from: identityToken) else {
-                    self.logger.debug("Error: Invalid identity Token")
+                    Log.debug("Error: Invalid identity Token")
                     return completionHandler(UserProfileError.invalidIdentityToken, nil)
                 }
 
                 if let idSubject = identityToken["payload"]["sub"].string, subject != idSubject {
-                    self.logger.debug("Error: IdentityToken.sub does not match UserInfoResult.sub.")
+                    Log.debug("Error: IdentityToken.sub does not match UserInfoResult.sub.")
                     return completionHandler(UserProfileError.conflictingSubjects, nil)
                 }
             }
@@ -107,7 +105,7 @@ public class UserProfileManager {
 
     private func handleAttributeRequest(attributeName: String?, attributeValue: String?, method: String, accessToken: String, completionHandler: @escaping (Swift.Error?, [String:Any]?) -> Void) {
 
-        self.logger.debug("UserProfileManager :: handle Request - " + method + " " + (attributeName ?? "all"))
+        Log.debug("UserProfileManager :: handle Request - " + method + " " + (attributeName ?? "all"))
 
         guard let profileURL = serviceConfig.userProfileServerUrl else {
             completionHandler(AppIDRequestError.invalidProfileServerUrl, nil)
@@ -126,10 +124,10 @@ public class UserProfileManager {
 
         let request = HTTP.request(url) {response in
             if response?.status == 401 || response?.status == 403 {
-                self.logger.error("Unauthorized")
+                Log.error("Unauthorized")
                 completionHandler(AppIDRequestError.unauthorized, nil)
             } else if response?.status == 404 {
-                self.logger.error("Not found")
+                Log.error("Not found")
                 completionHandler(AppIDRequestError.notFound, nil)
             } else if let responseStatus = response?.status, responseStatus >= 200 && responseStatus < 300 {
                 var responseJson: [String: Any] = [:]
@@ -142,7 +140,7 @@ public class UserProfileManager {
                     completionHandler(AppIDRequestError.parsingError, nil)
                 }
             } else {
-                self.logger.error("Unexpected error")
+                Log.error("Unexpected error")
                 completionHandler(AppIDRequestError.unexpectedError, nil)
             }
         }

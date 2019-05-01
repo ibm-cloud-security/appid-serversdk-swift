@@ -12,13 +12,15 @@
  */
 import XCTest
 import Kitura
-import SimpleLogger
+import LoggerAPI
 import Credentials
 @testable import KituraNet
 @testable import Kitura
 import Socket
 import SwiftyJSON
 import Foundation
+import Dispatch
+
 @testable import IBMCloudAppID
 
 @available(OSX 10.12, *)
@@ -43,8 +45,6 @@ class ApiPluginTests: XCTestCase {
         ]
     }
 
-    let logger = Logger(forName:"ApiPluginTest")
-
     class MockAPIKituraCredentialsPlugin: APIKituraCredentialsPlugin {
 
         init(options: [String: Any]?, responseCode: Int = 200, responseBody: String = "{\"keys\": [\(TestConstants.PUBLIC_KEY)]}") {
@@ -63,14 +63,16 @@ class ApiPluginTests: XCTestCase {
     var response: RouterResponse!
 
     override func setUp() {
+        Log.logger = PrintLogger(colored: true)
+
         unsetenv("VCAP_SERVICES")
         unsetenv("redirectUri")
         parser = HTTPParser(isRequest: true)
         httpRequest =  HTTPServerRequest(socket: try! Socket.create(family: .inet), httpParser: parser)
         httpResponse = HTTPServerResponse(processor: IncomingHTTPSocketProcessor(socket: try! Socket.create(family: .inet), using: delegate(), keepalive: .disabled), request: httpRequest)
         routerStack = Stack<Router>()
-        request = RouterRequest(request: httpRequest)
-        response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request)
+        request = RouterRequest(request: httpRequest, decoder: JSONDecoder())
+        response = RouterResponse(response: httpResponse, routerStack: routerStack, request: request, encoders: [.json: { return JSONEncoder() }], defaultResponseMediaType: .json)
     }
 
     func testAuthFlowNoAuthHeader() {
@@ -297,7 +299,7 @@ extension ApiPluginTests {
 
     // Remove off_ for running
     func off_testRunWebAppServer() {
-        logger.debug("Starting")
+        Log.debug("Starting")
 
         let router = Router()
 

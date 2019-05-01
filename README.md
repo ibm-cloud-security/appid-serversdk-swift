@@ -30,26 +30,9 @@ When using WebAppKituraCredentialsPlugin the unauthenticated client will get HTT
 Read the [official documentation](https://console.bluemix.net/docs/services/appid/protecting-resources.html#requesting-swift) for information about getting started with IBM Cloud App ID Service.
 
 ### Requirements
-* Swift 4.1
+* Swift +4.2
 * Kitura 2.3
 * OpenSSL
-
-### Build Instructions
-
-
-Since this library uses OpenSSL under the covers (specifically used by `Swift-JWT-to-PEM` dependency library), it requires explicitly passing build and linker paths for the OpenSSL library. Additionally, `swift package generate-xcodeproj` doesn't add the proper flags when they are passed in using the flags, therefore they must be added to the generated xcode project.
-```
-swift build -Xlinker -L/usr/local/opt/openssl/lib -Xcc -I/usr/local/opt/openssl/include
-```
-
-To generate Xcode project:
-```
-swift package generate-xcodeproj --xcconfig-overrides openssl.xcconfig
-```
-The extra xcconfig are needed to be able to build in Xcode or use `xcodebuild`.
-
-**These extra flags are necessary for any target that uses `IBMCloudAppID` library as a dependency.**
-
 
 ### Installation
 ```swift
@@ -58,7 +41,7 @@ import PackageDescription
 let package = Package(
     ...
     dependencies: [
-        .package(url: "https://github.com/ibm-cloud-security/appid-serversdk-swift.git", .upToNextMinor(from: "4.1.0"))
+        .package(url: "https://github.com/ibm-cloud-security/appid-serversdk-swift.git", .upToNextMinor(from: "5.1.0"))
     ]
     .target(
         name: "<Your Target>",
@@ -66,6 +49,7 @@ let package = Package(
     )
 )
 ```
+* 5.1.x releases were tested on OSX and Linux with Swift 5.0 and 4.2
 * 4.1.x releases were tested on OSX and Linux with Swift 4.1.0
 * 4.0.x releases were tested on OSX and Linux with Swift 4.0.3
 * 2.0.x releases were tested on OSX and Linux with Swift 4.0
@@ -146,23 +130,36 @@ router.get(LOGOUT_URL, handler:  { (request, response, next) in
 	_ = try? response.redirect(LANDING_PAGE_URL)
 })
 
-// Protected area
+// Protected area  using `Credentials` standard `userProfile`
 router.get("/protected", handler: kituraCredentials.authenticate(credentialsType: webappKituraCredentialsPlugin.name), { (request, response, next) in
-    let appIdAuthContext:JSON? = request.session?[WebAppKituraCredentialsPlugin.AuthContext]
-    let identityTokenPayload:JSON? = appIdAuthContext?["identityTokenPayload"]
-
-    guard appIdAuthContext?.dictionary != nil, identityTokenPayload?.dictionary != nil else {
+    // check user profile for successful login
+    guard let user = request.userProfile else {
         response.status(.unauthorized)
         return next()
     }
+    try response.send("Hello \(user.displayName)")
+    next()
+})
 
-    response.send(json: identityTokenPayload!)
+// Protected area using AppID `userIdentity`
+router.get("/protected", handler: kituraCredentials.authenticate(credentialsType: webappKituraCredentialsPlugin.name), { (request, response, next) in
+    guard let authContextDict = request.session?["APPID_AUTH_CONTEXT"] as? [String: Any],
+          let identityTokenPayload = authContextDict["identityTokenPayload"] as? [String: Any],
+          let identityTokenData = try? JSONSerialization.data(withJSONObject: identityTokenPayload, options: [])
+    else {
+        response.status(.unauthorized)
+        return next()
+    }
+    let authContext = AuthorizationContext(idTokenPayload: JSON(data: identityTokenData))
+    response.send("Hello \(authContext.userIdentity.displayName)")
     next()
 })
 
 // Start the server!
 Kitura.addHTTPServer(onPort: 1234, with: router)
 Kitura.run()
+
+
 ```
 
 #### Protecting API endpoints using APIKituraCredentialsPlugin
