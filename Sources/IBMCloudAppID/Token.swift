@@ -37,7 +37,7 @@ public class Token {
     }
 
     public var aud: String? {
-        return payload["aud"].string
+        return payload["aud"].string ?? payload["aud"].array?.first?.string
     }
 
     public var iss: String? {

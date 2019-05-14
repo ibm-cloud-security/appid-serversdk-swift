@@ -49,10 +49,16 @@ class AppIDPluginConfig {
         guard let sUrl = serverUrl, let url = URL(string: sUrl) else {
             return nil
         }
-        if let host = url.host, let port = url.port {
-            return "\(host):\(port)"
+        let hostURL: String?
+        if url.absoluteString.contains("oauth/v4") {
+            hostURL = url.absoluteString
+        } else {
+            hostURL = url.host
         }
-        return url.host
+        guard host = hostURL, let port = url.port else {
+            return hostURL
+        }
+        return "\(host):\(port)"
     }
 
     var publicKeyServerURL: String? {
