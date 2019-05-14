@@ -55,7 +55,7 @@ class AppIDPluginConfig {
         } else {
             hostURL = url.host
         }
-        guard host = hostURL, let port = url.port else {
+        guard let host = hostURL, let port = url.port else {
             return hostURL
         }
         return "\(host):\(port)"
