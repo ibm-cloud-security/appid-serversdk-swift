@@ -166,11 +166,10 @@ class Utils {
 
             /// The WebAppStrategy requires full token validation
             if options.shouldValidateAudAndIssuer {
-
-                guard token.aud == options.clientId else {
+                if !(token.aud?.contains(where: {$0 == options.clientId}) ?? true) {
+                    print ("in if statement")
                     return logAndReturn(.invalidAudience, completion: completion)
                 }
-
                 guard token.iss == options.tokenIssuer else {
                     return logAndReturn(.invalidIssuer, completion: completion)
                 }

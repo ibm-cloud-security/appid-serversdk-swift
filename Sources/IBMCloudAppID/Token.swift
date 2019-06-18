@@ -36,8 +36,8 @@ public class Token {
         return payload["exp"].double
     }
 
-    public var aud: String? {
-        return payload["aud"].string
+    public var aud: Array<String>? {
+        return payload["aud"].object as? [String]
     }
 
     public var iss: String? {
