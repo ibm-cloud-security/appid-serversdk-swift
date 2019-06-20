@@ -37,10 +37,8 @@ public class Token {
     }
 
     public var aud: Array<String>? {
-        if payload["aud"].string != nil {
-            var audArray = [String]()
-            audArray.append(payload["aud"].string!)
-            return audArray
+        if let aud = payload["aud"].string {
+            return [aud]
         } else {
             return payload["aud"].object as? [String]
         }
