@@ -194,7 +194,7 @@ router.get("/myName") { (request, response, next) in
 
     do {
         if let userProfile = request.userProfile  {
-            try response.status(.OK).send(user.displayName).end()
+            try response.status(.OK).send(userProfile.displayName).end()
         }
     } catch {
         response.status(.internalServerError)

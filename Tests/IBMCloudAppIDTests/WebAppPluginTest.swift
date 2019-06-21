@@ -241,12 +241,12 @@ class WebAppPluginTest: XCTestCase {
 
     func testWebAuthenticateCodeOnQuery() {
         let builder = AuthorizationRequestHandler(name: "testWebAuthenticateFailure")
-      
+
         builder.requireSession()
         builder.mockRequest(url: "http://someurl?code=somecode")
         builder.expectFailure(with: expectation(description: "failure"))
         builder.execute()
-      
+
         awaitExpectations()
     }
 
