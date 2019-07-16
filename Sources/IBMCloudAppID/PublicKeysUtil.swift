@@ -17,6 +17,12 @@ import SwiftJWKtoPEM
 import Foundation
 import Dispatch
 
+#if swift(>=4.1)
+  #if canImport(FoundationNetworking)
+    import FoundationNetworking
+  #endif
+#endif
+
 /// Public Key utility class.
 /// - Responsible for retrieving and storing App ID public keys
 public class PublicKeyUtil {

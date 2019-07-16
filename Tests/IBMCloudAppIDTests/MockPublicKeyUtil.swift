@@ -14,6 +14,12 @@
 import Foundation
 @testable import IBMCloudAppID
 
+#if swift(>=4.1)
+  #if canImport(FoundationNetworking)
+    import FoundationNetworking
+  #endif
+#endif
+
 class MockPublicKeyUtil: PublicKeyUtil {
     var publicKeyResponseCode: Int
     var publicKeyResponse: String
