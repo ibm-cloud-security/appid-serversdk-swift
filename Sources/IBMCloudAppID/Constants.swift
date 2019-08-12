@@ -76,4 +76,6 @@ struct Constants {
 
     static let bearer = "Bearer"
     static let authHeader = "Authorization"
+    static let xFilterTypeHeader = "x-filter-type"
+    static let xFilterTypeValue = "swift-serversdk"
 }

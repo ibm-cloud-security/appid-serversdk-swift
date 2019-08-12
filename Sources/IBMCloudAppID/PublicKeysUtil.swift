@@ -209,7 +209,9 @@ public class PublicKeyUtil {
 
     /// Testing:
     func sendRequest(url: String, completion: @escaping (Data?, HTTPURLResponse?, Error?) -> Void) {
-        RestRequest(url: url).response(completionHandler: completion)
+        let request = RestRequest(url: url)
+        request.headerParameters = [Constants.xFilterTypeHeader: Constants.xFilterTypeValue]
+        request.response(completionHandler: completion)
     }
 
 }
