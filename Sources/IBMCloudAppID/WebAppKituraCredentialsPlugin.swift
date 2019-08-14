@@ -20,6 +20,12 @@ import SwiftyJSON
 import LoggerAPI
 import KituraSession
 
+#if swift(>=4.1)
+  #if canImport(FoundationNetworking)
+    import FoundationNetworking
+  #endif
+#endif
+
 @available(OSX 10.12, *)
 public class WebAppKituraCredentialsPlugin: AppIDPlugin, CredentialsPluginProtocol {
 
@@ -303,7 +309,7 @@ extension WebAppKituraCredentialsPlugin {
             return onFailure(nil, nil)
         }
 
-        var body = JSON(data: tokenData)
+        let body = JSON(data: tokenData)
 
         /// Parse access_token
         guard let accessTokenString = body["access_token"].string else {
