@@ -17,6 +17,12 @@ import SwiftJWKtoPEM
 import Foundation
 import Dispatch
 
+#if swift(>=4.1)
+  #if canImport(FoundationNetworking)
+    import FoundationNetworking
+  #endif
+#endif
+
 /// Public Key utility class.
 /// - Responsible for retrieving and storing App ID public keys
 public class PublicKeyUtil {
@@ -203,7 +209,9 @@ public class PublicKeyUtil {
 
     /// Testing:
     func sendRequest(url: String, completion: @escaping (Data?, HTTPURLResponse?, Error?) -> Void) {
-        RestRequest(url: url).response(completionHandler: completion)
+        let request = RestRequest(url: url)
+        request.headerParameters = [Constants.xFilterTypeHeader: Constants.xFilterTypeValue]
+        request.response(completionHandler: completion)
     }
 
 }

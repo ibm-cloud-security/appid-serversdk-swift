@@ -25,6 +25,12 @@ import Socket
 
 import Foundation
 
+#if swift(>=4.1)
+  #if canImport(FoundationNetworking)
+    import FoundationNetworking
+  #endif
+#endif
+
 @testable import IBMCloudAppID
 
 @available(OSX 10.12, *)
@@ -47,7 +53,8 @@ class WebAppPluginTest: XCTestCase {
             ("testHandleTokenResponse401", testHandleTokenResponse401),
             ("testHandleTokenResponseError", testHandleTokenResponseError),
             ("testHandleTokenResponseNoData", testHandleTokenResponseNoData),
-            ("testHandleTokenResponseSuccess", testHandleTokenResponseSuccess),
+            ("testHandleTokenResponseSuccessV3", testHandleTokenResponseSuccessV3),
+            ("testHandleTokenResponseSuccessV4", testHandleTokenResponseSuccessV4),
             ("testHandleTokenResponseMissingAccessToken", testHandleTokenResponseMissingAccessToken),
             ("testHandleTokenResponseAccessTokenWrongTenant", testHandleTokenResponseAccessTokenWrongTenant),
             ("testHandleTokenResponseAccessTokenWrongAudience", testHandleTokenResponseAccessTokenWrongAudience),
@@ -240,12 +247,12 @@ class WebAppPluginTest: XCTestCase {
 
     func testWebAuthenticateCodeOnQuery() {
         let builder = AuthorizationRequestHandler(name: "testWebAuthenticateFailure")
-      
+
         builder.requireSession()
         builder.mockRequest(url: "http://someurl?code=somecode")
         builder.expectFailure(with: expectation(description: "failure"))
         builder.execute()
-      
+
         awaitExpectations()
     }
 
@@ -357,14 +364,27 @@ class WebAppPluginTest: XCTestCase {
         awaitExpectations()
     }
 
-    func testHandleTokenResponseSuccess() {
-        let builder = AuthorizationCallbackHandler(name: "testHandleTokenResponseSuccess")
+    func testHandleTokenResponseSuccessV3() {
+        let builder = AuthorizationCallbackHandler(name: "testHandleTokenResponseSuccessV3")
 
         builder.setDefaultSessionAndState()
         builder.setTokenResponse(status: 200, body: "{\n\"access_token\" : \"\(TestConstants.ACCESS_TOKEN)\",\n\"id_token\" : \"\(TestConstants.ID_TOKEN)\"\n}\n\n")
         builder.expectSuccess(id: "subject", name: "test name", provider: "someprov", with: expectation(description: builder.name))
         builder.execute()
         builder.validateAuthContext(accessToken: TestConstants.ACCESS_TOKEN, identityToken: TestConstants.ID_TOKEN)
+
+        awaitExpectations()
+    }
+
+    func testHandleTokenResponseSuccessV4() {
+        let builder = AuthorizationCallbackHandler(name: "testHandleTokenResponseSuccessV4")
+        builder.setWebMock(options: TestConstants.optionsV4)
+
+        builder.setDefaultSessionAndState()
+        builder.setTokenResponse(status: 200, body: "{\n\"access_token\" : \"\(TestConstants.ACCESS_TOKEN_V4)\",\n\"id_token\" : \"\(TestConstants.ID_TOKEN_V4)\"\n}\n\n")
+        builder.expectSuccess(id: "subject", name: "test name", provider: "someprov", with: expectation(description: builder.name))
+        builder.execute()
+        builder.validateAuthContext(accessToken: TestConstants.ACCESS_TOKEN_V4, identityToken: TestConstants.ID_TOKEN_V4)
 
         awaitExpectations()
     }
