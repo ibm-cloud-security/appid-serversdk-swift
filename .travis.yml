@@ -42,6 +42,7 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run -i -t -v ${TRAVIS_BUILD_DIR}:/root/repo ibmcom/swift-ubuntu-xenial /bin/bash -c "cd /root/repo; swift test"; fi # test project
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift package clean; fi # clean built artifacts if present
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift package resolve; fi # clones all dependencies
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift package update; fi # clones all dependencies
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift build; fi # build project
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then swift test; fi #run tests
 
